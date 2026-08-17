@@ -77,7 +77,7 @@ export class TurnOrchestrator {
             {
               role: 'user',
               content:
-                'Por favor, envie uma resposta em linguagem natural e amigável para o usuário confirmando com clareza o resultado das ações executadas.',
+                'Com base nos resultados das ferramentas acima, apresente a resposta completa, clara, calorosa e detalhada para o usuário.',
             },
           ],
           false
@@ -89,7 +89,24 @@ export class TurnOrchestrator {
     }
 
     if (!finalContent || !finalContent.trim()) {
-      finalContent = 'Ação executada com sucesso no ambiente.';
+      // Find the last tool output to construct a helpful response rather than a generic string
+      const lastToolMsg = [...currentMessages].reverse().find((m) => m.role === 'tool');
+      if (lastToolMsg && lastToolMsg.content) {
+        try {
+          const parsed = JSON.parse(lastToolMsg.content);
+          if (parsed.formattedProposalMarkdown) {
+            finalContent = parsed.formattedProposalMarkdown;
+          } else if (parsed.message) {
+            finalContent = parsed.message;
+          } else {
+            finalContent = `Resultado da operação:\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+          }
+        } catch {
+          finalContent = lastToolMsg.content;
+        }
+      } else {
+        finalContent = 'Tudo pronto! As consultas e operações foram concluídas com sucesso.';
+      }
     }
 
     // 4. Wrap in <message to="..."> for NanoClaw message delivery
