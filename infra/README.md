@@ -8,6 +8,7 @@ This directory contains system-level operational playbooks, architecture specifi
 
 | Document | Description |
 | :--- | :--- |
+| **[ARCHITECTURE_PHILOSOPHY.md](file:///opt/nanoclaw-stack/infra/ARCHITECTURE_PHILOSOPHY.md)** | Core design principles, the satellite pattern, and upstream compatibility rules. |
 | **[SERVICES.md](file:///opt/nanoclaw-stack/infra/SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
 | **[MAINTENANCE.md](file:///opt/nanoclaw-stack/infra/MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
 | **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, context window management, and provider configuration. |
