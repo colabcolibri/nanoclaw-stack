@@ -50,10 +50,24 @@ function decodeBase64Url(data: string): string {
   }
 }
 
+function cleanHtml(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function extractBody(payload: any): string {
   if (!payload) return '';
   if (payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
+    const raw = decodeBase64Url(payload.body.data);
+    return raw.includes('<html') || raw.includes('<div') || raw.includes('<head') ? cleanHtml(raw) : raw;
   }
   if (payload.parts && Array.isArray(payload.parts)) {
     // Prefer text/plain, fallback to text/html
@@ -63,7 +77,7 @@ function extractBody(payload: any): string {
     }
     const htmlPart = payload.parts.find((p: any) => p.mimeType === 'text/html');
     if (htmlPart?.body?.data) {
-      return decodeBase64Url(htmlPart.body.data).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      return cleanHtml(decodeBase64Url(htmlPart.body.data));
     }
     for (const part of payload.parts) {
       const nested = extractBody(part);

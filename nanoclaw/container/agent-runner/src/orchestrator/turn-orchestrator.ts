@@ -62,8 +62,23 @@ export class TurnOrchestrator {
         continue;
       }
 
-      // No tools called — capture model's final response
-      finalContent = ResponseParser.cleanHumanText(response.content);
+      // No tools called — capture model's response
+      const rawText = ResponseParser.cleanHumanText(response.content) || '';
+      
+      // ANTI-DANGLING FILLER CHECK:
+      // If the model output a filler promise ("Deixa eu...", "Vou ver...", "Aguarde...") without executing tools,
+      // re-prompt it immediately to execute the tools and deliver the answer in the same turn.
+      const isDanglingPromise = /^(deixa eu|vou (verificar|pesquisar|buscar|extrair|olhar|abrir|achar|preparar)|aguarde|um momento|só um instante|espera aí)/i.test(rawText.trim());
+      if (isDanglingPromise && toolsRunCount === 0 && iter < 3) {
+        currentMessages.push({ role: 'assistant', content: response.content });
+        currentMessages.push({
+          role: 'user',
+          content: 'Você indicou que iria buscar/extrair as informações, mas não executou nenhuma ferramenta. Execute a ferramenta apropriada (ex: google_gmail, notion, etc.) agora para obter os dados reais e entregar a resposta completa.',
+        });
+        continue;
+      }
+
+      finalContent = rawText;
       break;
     }
 
