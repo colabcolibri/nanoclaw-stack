@@ -44,6 +44,6 @@ O assistente deve sempre ponderar a natureza do e-mail:
 
 ## 🛠️ 3. Ferramentas Utilizadas:
 * `google_gmail(action: "create_draft" | "send_message", to: "...", subject: "...", body: "...", from_alias: "Assistente Virtual da Colibri <contato@colabcolibri.com>", thread_id: "...")`
-* `yampi_store(action: "calculate_resale_quote", items: [{ nameOrSku: "JG001", quantity: 5 }])` -> SEMPRE usar para calcular orçamentos oficiais de revenda (tabela oficial de 30% a 38% de desconto).
-* `yampi_store(action: "get_order" | "search_products" | "check_product_quantity")`
+* `resale_pricing(action: "calculate_quote", items: [{ nameOrSku: "JG001", quantity: 5 }])` -> SEMPRE usar para calcular orçamentos oficiais de revenda (tabela oficial de 30% a 38% de desconto).
+* `yampi_store(action: "get_order" | "search_products" | "check_product_quantity")` -> Usar para consultar pedidos da loja virtual e estoque.
 * `schedule_followup` para agendar lembretes ou continuações autônomas.
