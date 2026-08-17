@@ -203,7 +203,7 @@ export const googleGmailTool: AgentTool = {
       }
 
       const utf8Subject = `=?utf-8?B?${Buffer.from(args.subject).toString('base64')}?=`;
-      const fromAlias = args.from_alias || 'Equipe Colibri <contato@colabcolibri.com>';
+      const fromAlias = args.from_alias || 'Assistente Virtual da Colibri <contato@colabcolibri.com>';
       const emailLines = [
         `From: ${fromAlias}`,
         `To: ${args.to}`,

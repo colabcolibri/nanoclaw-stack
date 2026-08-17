@@ -1,6 +1,6 @@
 # Repertório de Modelos de Resposta & Guia de Estilo
 
-Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equipe Colibri** (`contato@colabcolibri.com`).
+Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assistente Virtual da Colibri** (`contato@colabcolibri.com`).
 
 ---
 
@@ -21,7 +21,7 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equip
 > Qualquer dúvida, estamos por aqui!
 >
 > Um abraço,  
-> **Equipe Colibri**  
+> **Assistente Virtual da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
 
 ---
@@ -42,7 +42,7 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equip
 > Se precisar de mais alguma informação, é só nos chamar!
 >
 > Um abraço,  
-> **Equipe Colibri**  
+> **Assistente Virtual da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
 
 ---
@@ -67,5 +67,5 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equip
 > Para darmos andamento ao pedido, basta nos confirmar os dados de faturamento e endereço de entrega.
 >
 > Um abraço,  
-> **Equipe Colibri**  
+> **Assistente Virtual da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
