@@ -17,6 +17,17 @@ export interface BuyerInfo {
   cep?: string;
 }
 
+export interface ProductPriceRow {
+  sku: string;
+  product: string;
+  description: string;
+  coverPrice: number;
+  tier1to10: number;
+  tier11to20: number;
+  tier21to40: number;
+  tier41plus: number;
+}
+
 export interface QuoteCalculationResult {
   buyer: BuyerInfo;
   isConsignment: boolean;
@@ -36,94 +47,87 @@ export interface QuoteCalculationResult {
   formattedProposalMarkdown: string;
 }
 
-const PRODUCTS_TABLE = [
-  {
-    sku: 'GROK-GAME',
-    aliases: ['grok', 'jogo grok', 'cartas grok', 'baralho grok'],
-    product: 'Jogo Grok',
-    cover: 160.0,
-    t1: 112.0, // 1-10 (30%)
-    t2: 105.6, // 11-20 (34%)
-    t3: 102.4, // 21-40 (36%)
-    t4: 99.2, // 41+ (38%)
-  },
-  {
-    sku: 'BOOK-CNV-WORK',
-    aliases: ['trabalho', 'cnv no trabalho', 'livro trabalho'],
-    product: 'Livro: Comunicação Não Violenta no trabalho',
-    cover: 63.0,
-    t1: 35.28, // 44%
-    t2: 34.02, // 46%
-    t3: 32.76, // 48%
-    t4: 31.5, // 50%
-  },
-  {
-    sku: 'BOOK-CNV-TEAM',
-    aliases: ['equipe', 'cnv na equipe', 'livro equipe'],
-    product: 'Livro: Comunicação Não Violenta na equipe',
-    cover: 53.0,
-    t1: 29.68,
-    t2: 28.62,
-    t3: 27.56,
-    t4: 26.5,
-  },
-  {
-    sku: 'BOOK-CNV-ILUST1',
-    aliases: ['ilustrada', 'cnv ilustrada', 'desconexão à conexão'],
-    product: 'Livro: CNV Ilustrada V1 – mudando a chave da desconexão à conexão',
-    cover: 44.0,
-    t1: 24.64,
-    t2: 23.76,
-    t3: 22.88,
-    t4: 22.0,
-  },
-  {
-    sku: 'BOOK-GIRAFA',
-    aliases: ['girafa', 'a linguagem da girafa'],
-    product: 'Livro: A linguagem da girafa',
-    cover: 44.0,
-    t1: 24.64,
-    t2: 23.76,
-    t3: 22.88,
-    t4: 22.0,
-  },
-  {
-    sku: 'BOOK-CORAZAO',
-    aliases: ['corazao', 'a corazão', 'a coracao'],
-    product: 'Livro: a corazão',
-    cover: 53.0,
-    t1: 29.68,
-    t2: 28.62,
-    t3: 27.56,
-    t4: 26.5,
-  },
-  {
-    sku: 'BOOK-LIBERDADE',
-    aliases: ['liberdade', 'liberdade sem distancia', 'liberdade sem distância'],
-    product: 'Livro: Liberdade sem distância, conexão sem controle',
-    cover: 44.0,
-    t1: 24.64,
-    t2: 23.76,
-    t3: 22.88,
-    t4: 22.0,
-  },
-  {
-    sku: 'BOOK-SAUDADE',
-    aliases: ['saudade', 'saudade sabor chocolate', 'chocolate'],
-    product: 'Livro: Saudade Sabor Chocolate',
-    cover: 44.0,
-    t1: 24.64,
-    t2: 23.76,
-    t3: 22.88,
-    t4: 22.0,
-  },
-];
+/**
+ * Dynamically finds and loads the resale prices CSV from the skill references folder.
+ */
+export function loadProductsFromCsv(customCsvPath?: string): ProductPriceRow[] {
+  const possiblePaths = [
+    customCsvPath,
+    path.join(import.meta.dir, '..', 'references', 'tabela_precos_revenda.csv'),
+    '/workspace/skills/store-email-attendant/references/tabela_precos_revenda.csv',
+    '/opt/nanoclaw-stack/nanoclaw/container/skills/store-email-attendant/references/tabela_precos_revenda.csv',
+  ].filter(Boolean) as string[];
 
+  let csvContent = '';
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        csvContent = fs.readFileSync(p, 'utf-8');
+        if (csvContent.trim()) break;
+      } catch {}
+    }
+  }
+
+  if (!csvContent) {
+    throw new Error('Arquivo tabela_precos_revenda.csv não encontrado na pasta references da skill.');
+  }
+
+  // Parse CSV rows safely handling quotes
+  const rows: ProductPriceRow[] = [];
+  const lines = csvContent.split(/\r?\n/).filter((l) => l.trim().length > 0);
+
+  // Skip header line if present
+  const dataLines = lines[0].toLowerCase().includes('sku') ? lines.slice(1) : lines;
+
+  for (const line of dataLines) {
+    // Regex to parse comma-separated values respecting double-quotes
+    const match = line.match(/(?:^|,)(?:"([^"]*)"|([^",]*))/g);
+    if (!match || match.length < 8) continue;
+
+    const fields = match.map((val) => {
+      let v = val.replace(/^,/, '').trim();
+      if (v.startsWith('"') && v.endsWith('"')) {
+        v = v.slice(1, -1).trim();
+      }
+      return v;
+    });
+
+    const sku = fields[0];
+    const product = fields[1];
+    const description = fields[2];
+    const coverPrice = parseFloat(fields[3].replace(/[R$\s]/g, '').replace(',', '.')) || 0;
+    const tier1to10 = parseFloat(fields[4].replace(/[R$\s]/g, '').replace(',', '.')) || coverPrice;
+    const tier11to20 = parseFloat(fields[5].replace(/[R$\s]/g, '').replace(',', '.')) || tier1to10;
+    const tier21to40 = parseFloat(fields[6].replace(/[R$\s]/g, '').replace(',', '.')) || tier11to20;
+    const tier41plus = parseFloat(fields[7].replace(/[R$\s]/g, '').replace(',', '.')) || tier21to40;
+
+    if (sku && product && coverPrice > 0) {
+      rows.push({
+        sku,
+        product,
+        description,
+        coverPrice,
+        tier1to10,
+        tier11to20,
+        tier21to40,
+        tier41plus,
+      });
+    }
+  }
+
+  return rows;
+}
+
+/**
+ * Calculates deterministic resale quote based on the live dynamic CSV table.
+ */
 export function calculateResaleQuote(
   itemsInput: QuoteItemInput[],
   buyer: BuyerInfo = { name: 'Cliente' },
-  isConsignment = false
+  isConsignment = false,
+  customCsvPath?: string
 ): QuoteCalculationResult {
+  const productsTable = loadProductsFromCsv(customCsvPath);
   const calculatedItems = [];
   let totalQuantity = 0;
   let totalCoverValue = 0;
@@ -133,24 +137,26 @@ export function calculateResaleQuote(
     const q = Math.max(1, Math.floor(Number(input.quantity) || 1));
     const term = (input.nameOrSku || '').toLowerCase().trim();
 
-    const product = PRODUCTS_TABLE.find(
-      (p) =>
-        p.sku.toLowerCase() === term ||
-        p.product.toLowerCase().includes(term) ||
-        p.aliases.some((a) => term.includes(a) || a.includes(term))
-    ) || PRODUCTS_TABLE[0]; // fallback to Grok if not found
+    // Match product dynamically from CSV rows
+    const product = productsTable.find((p) => {
+      const s = p.sku.toLowerCase();
+      const name = p.product.toLowerCase();
+      return s === term || name === term || name.includes(term) || term.includes(name);
+    }) || productsTable.find((p) => p.sku.toLowerCase().includes('grok')) || productsTable[0];
 
-    let unitPrice = product.t1;
+    if (!product) continue;
+
+    let unitPrice = product.tier1to10;
     if (!isConsignment) {
-      if (q >= 41) unitPrice = product.t4;
-      else if (q >= 21) unitPrice = product.t3;
-      else if (q >= 11) unitPrice = product.t2;
-      else unitPrice = product.t1;
+      if (q >= 41) unitPrice = product.tier41plus;
+      else if (q >= 21) unitPrice = product.tier21to40;
+      else if (q >= 11) unitPrice = product.tier11to20;
+      else unitPrice = product.tier1to10;
     }
 
     const subtotal = Number((unitPrice * q).toFixed(2));
-    const coverTotal = Number((product.cover * q).toFixed(2));
-    const discountPercent = Math.round(((product.cover - unitPrice) / product.cover) * 100);
+    const coverTotal = Number((product.coverPrice * q).toFixed(2));
+    const discountPercent = Math.round(((product.coverPrice - unitPrice) / product.coverPrice) * 100);
 
     totalQuantity += q;
     totalCoverValue += coverTotal;
@@ -160,7 +166,7 @@ export function calculateResaleQuote(
       sku: product.sku,
       product: product.product,
       quantity: q,
-      coverPrice: product.cover,
+      coverPrice: product.coverPrice,
       unitPrice,
       discountPercent,
       subtotal,
@@ -228,7 +234,7 @@ contato@colabcolibri.com | colabcolibri.com
   };
 }
 
-// Support CLI execution: bun run calcular_orcamento.ts '{"items":[{"nameOrSku":"grok","quantity":9}]}'
+// CLI test mode: bun run calcular_orcamento.ts
 if (import.meta.main) {
   const arg = process.argv[2];
   let input = { items: [{ nameOrSku: 'grok', quantity: 9 }], buyer: { name: 'Heloisa Vieira' } };
