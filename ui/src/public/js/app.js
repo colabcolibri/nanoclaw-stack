@@ -536,6 +536,9 @@ class App {
           approvalsContainer.innerHTML = html;
         }
       }
+    } catch {}
+  }
+
   static async loadScheduledTasks() {
     const container = document.getElementById("scheduled-tasks-container");
     const badgeCount = document.getElementById("badge-scheduled-count");

@@ -259,7 +259,7 @@ export const googleGmailTool: AgentTool = {
     }
 
     // 3. LIST CONVERSATIONS/THREADS (MIRRORS EXACT GMAIL UI CONVERSATIONS)
-    const limit = Math.min(Math.max(Number(args.max_results) || 50, 1), 100);
+    const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 50, 1), 100);
     const folder = args.folder || 'inbox';
 
     let queryParts: string[] = [];

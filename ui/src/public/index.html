@@ -483,7 +483,7 @@
             </div>
 
             <!-- Notion Configuration Form (collapsible) -->
-            <div id="notion-config-drawer" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+            <form id="notion-config-drawer" class="hidden" onsubmit="return false;" autocomplete="off" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                 <div>
                   <label class="form-label" style="font-size:11px;">Internal Integration Secret / API Token</label>
@@ -495,10 +495,10 @@
                 </div>
               </div>
               <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-secondary" id="btn-cancel-notion" style="font-size:12px; padding:5px 12px;">Cancelar</button>
-                <button class="btn" id="btn-save-notion" style="font-size:12px; padding:5px 14px; background:linear-gradient(135deg, #9333ea, #7e22ce);">Testar & Salvar Conexão</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-notion" style="font-size:12px; padding:5px 12px;">Cancelar</button>
+                <button type="button" class="btn" id="btn-save-notion" style="font-size:12px; padding:5px 14px; background:linear-gradient(135deg, #9333ea, #7e22ce);">Testar & Salvar Conexão</button>
               </div>
-            </div>
+            </form>
           </div>
 
           <!-- YAMPI E-COMMERCE INTEGRATION CARD -->
@@ -523,7 +523,7 @@
             </div>
 
             <!-- Yampi Configuration Form (collapsible) -->
-            <div id="yampi-config-drawer" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+            <form id="yampi-config-drawer" class="hidden" onsubmit="return false;" autocomplete="off" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
               <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
                 <div>
                   <label class="form-label" style="font-size:11px;">Alias da Loja</label>
@@ -541,11 +541,11 @@
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <p style="font-size:11px; color:var(--text-dim);">Obtenha suas credenciais no painel da Yampi em <strong>Configurações > Credenciais de API</strong>.</p>
                 <div style="display:flex; gap:8px;">
-                  <button class="btn btn-secondary" id="btn-cancel-yampi" style="font-size:12px; padding:5px 12px;">Cancelar</button>
-                  <button class="btn" id="btn-save-yampi" style="font-size:12px; padding:5px 14px; background:linear-gradient(135deg, #d97706, #b45309);">Testar & Salvar Conexão</button>
+                  <button type="button" class="btn btn-secondary" id="btn-cancel-yampi" style="font-size:12px; padding:5px 12px;">Cancelar</button>
+                  <button type="button" class="btn" id="btn-save-yampi" style="font-size:12px; padding:5px 14px; background:linear-gradient(135deg, #d97706, #b45309);">Testar & Salvar Conexão</button>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
 
           <!-- MACOS & APPLE SHORTCUTS INTEGRATION CARD -->
@@ -567,20 +567,20 @@
             </div>
 
             <!-- Mac Configuration Details (collapsible) -->
-            <div id="mac-config-drawer" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+            <form id="mac-config-drawer" class="hidden" onsubmit="return false;" autocomplete="off" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
                 <div>
                   <label class="form-label" style="font-size:11px;">Endpoint do Mac (HTTPS)</label>
                   <div style="display:flex; gap:8px;">
                     <input type="text" id="input-mac-endpoint" class="form-input" style="font-size:12px; font-family:monospace;" readonly value="https://uai.sergioluciano.com/api/mac/prompt">
-                    <button class="btn btn-secondary" id="btn-copy-mac-endpoint" style="font-size:11px; padding:4px 10px;">Copiar</button>
+                    <button type="button" class="btn btn-secondary" id="btn-copy-mac-endpoint" style="font-size:11px; padding:4px 10px;">Copiar</button>
                   </div>
                 </div>
                 <div>
                   <label class="form-label" style="font-size:11px;">Sua Chave de Autenticação do Mac (Bearer Token)</label>
                   <div style="display:flex; gap:8px;">
                     <input type="password" id="input-mac-api-key" class="form-input" style="font-size:12px; font-family:monospace;" readonly placeholder="Carregando chave...">
-                    <button class="btn btn-secondary" id="btn-copy-mac-key" style="font-size:11px; padding:4px 10px;">Copiar</button>
+                    <button type="button" class="btn btn-secondary" id="btn-copy-mac-key" style="font-size:11px; padding:4px 10px;">Copiar</button>
                   </div>
                 </div>
               </div>
