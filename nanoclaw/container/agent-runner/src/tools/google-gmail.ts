@@ -149,7 +149,9 @@ export const googleGmailTool: AgentTool = {
       }
 
       const utf8Subject = `=?utf-8?B?${Buffer.from(args.subject).toString('base64')}?=`;
+      const fromAlias = args.from_alias || 'Equipe Colibri <contato@colabcolibri.com>';
       const emailLines = [
+        `From: ${fromAlias}`,
         `To: ${args.to}`,
         `Subject: ${utf8Subject}`,
         'Content-Type: text/plain; charset="UTF-8"',
@@ -164,6 +166,11 @@ export const googleGmailTool: AgentTool = {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
+      const messagePayload: any = { raw: base64Email };
+      if (args.thread_id || args.threadId) {
+        messagePayload.threadId = args.thread_id || args.threadId;
+      }
+
       if (action === 'create_draft') {
         const draftRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
           method: 'POST',
@@ -171,7 +178,7 @@ export const googleGmailTool: AgentTool = {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message: { raw: base64Email } }),
+          body: JSON.stringify({ message: messagePayload }),
         });
 
         if (!draftRes.ok) {
@@ -187,7 +194,7 @@ export const googleGmailTool: AgentTool = {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ raw: base64Email }),
+        body: JSON.stringify(messagePayload),
       });
 
       if (!sendRes.ok) {
