@@ -51,29 +51,87 @@ export class MacChannelService {
   }
 
   /**
-   * Executes a user prompt through the NanoClaw turn execution engine with session continuity.
+   * Executes a user prompt through the NanoClaw turn execution engine with session continuity via SQLite.
    */
   static async processPrompt(
     prompt: string,
     groupFolder = 'barao',
     resetSession = false
   ): Promise<{ reply: string; timestamp: string }> {
-    const filePath = this.getKeyFilePath(groupFolder);
-    let state: MacSessionState = {
-      apiKey: this.getOrCreateApiKey(groupFolder),
-      history: [],
-      updatedAt: new Date().toISOString(),
-    };
+    const { Database } = await import('bun:sqlite');
+    const agentGroupId = 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c';
+    const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', agentGroupId, 'sess-macos-sergio');
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-    if (fs.existsSync(filePath)) {
-      try {
-        state = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      } catch {}
-    }
+    const inDbPath = path.join(sessionDir, 'inbound.db');
+    const outDbPath = path.join(sessionDir, 'outbound.db');
+
+    // Ensure schema on both SQLite databases
+    const inDb = new Database(inDbPath);
+    inDb.run(`CREATE TABLE IF NOT EXISTS messages_in (
+      id TEXT PRIMARY KEY,
+      seq INTEGER,
+      in_reply_to TEXT,
+      timestamp TEXT NOT NULL,
+      deliver_after TEXT,
+      recurrence TEXT,
+      kind TEXT NOT NULL,
+      platform_id TEXT,
+      channel_type TEXT,
+      thread_id TEXT,
+      content TEXT NOT NULL
+    )`);
+
+    const outDb = new Database(outDbPath);
+    outDb.run(`CREATE TABLE IF NOT EXISTS messages_out (
+      id TEXT PRIMARY KEY,
+      seq INTEGER,
+      in_reply_to TEXT,
+      timestamp TEXT NOT NULL,
+      deliver_after TEXT,
+      recurrence TEXT,
+      kind TEXT NOT NULL,
+      platform_id TEXT,
+      channel_type TEXT,
+      thread_id TEXT,
+      content TEXT NOT NULL
+    )`);
 
     if (resetSession) {
-      state.history = [];
+      inDb.run(`DELETE FROM messages_in`);
+      outDb.run(`DELETE FROM messages_out`);
     }
+
+    // Read previous conversation history directly from SQLite
+    let history: Array<{ role: string; content?: string }> = [];
+    try {
+      const inRows = inDb.query(`SELECT timestamp, content FROM messages_in ORDER BY timestamp ASC`).all() as any[];
+      const outRows = outDb.query(`SELECT timestamp, content FROM messages_out ORDER BY timestamp ASC`).all() as any[];
+
+      const combined: Array<{ timestamp: string; role: 'user' | 'assistant'; text: string }> = [];
+
+      for (const r of inRows) {
+        let text = r.content || '';
+        try {
+          if (text.startsWith('{')) {
+            const parsed = JSON.parse(text);
+            text = parsed.text || parsed.content || text;
+          }
+        } catch {}
+        combined.push({ timestamp: r.timestamp, role: 'user', text });
+      }
+
+      for (const r of outRows) {
+        let text = (r.content || '')
+          .replace(/<message[^>]*>/gi, '')
+          .replace(/<\/message>/gi, '')
+          .trim();
+        combined.push({ timestamp: r.timestamp, role: 'assistant', text });
+      }
+
+      combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      history = combined.slice(-30).map((c) => ({ role: c.role, content: c.text }));
+    } catch {}
 
     // Load group configuration and soul
     const groupDir = path.join(CONFIG.GROUPS_PATH, groupFolder);
@@ -89,6 +147,8 @@ export class MacChannelService {
     const model = (envMap['DEEPSEEK_MODEL'] || process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash').replace(/^deepseek\//, '');
 
     if (!apiKey) {
+      inDb.close();
+      outDb.close();
       throw new Error('DEEPSEEK_API_KEY não configurada no NanoClaw.');
     }
 
@@ -112,7 +172,7 @@ export class MacChannelService {
 
     const messages: any[] = [
       { role: 'system', content: systemParts.join('\n\n') },
-      ...state.history,
+      ...history,
       { role: 'user', content: prompt },
     ];
 
@@ -142,6 +202,8 @@ export class MacChannelService {
 
       if (!res.ok) {
         const errText = await res.text();
+        inDb.close();
+        outDb.close();
         throw new Error(`DeepSeek API Error (${res.status}): ${errText}`);
       }
 
@@ -184,116 +246,54 @@ export class MacChannelService {
       break;
     }
 
+    if (!finalContent || !finalContent.trim()) {
+      finalContent = 'Ação concluída com sucesso.';
+    }
+
     const now = new Date().toISOString();
     const userMsgId = `msg-mac-in-${Date.now()}`;
     const assistantMsgId = `msg-mac-out-${Date.now() + 1}`;
 
-    // Persist to central SQLite Database (v2.db & v2-sessions/ag-4c9ad14f-4032-4305-8efc-0cd8b700042c/sess-macos-sergio)
-    try {
-      const { Database } = await import('bun:sqlite');
-      const agentGroupId = 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c';
-      const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', agentGroupId, 'sess-macos-sergio');
-      if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+    // Insert User Inbound message
+    inDb.run(
+      `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        userMsgId,
+        now,
+        'chat',
+        'macos',
+        'mac:sergio',
+        JSON.stringify({ text: prompt, sender: 'MacBook (Sérgio)', channel: 'macos' }),
+      ]
+    );
+    inDb.close();
 
-      const inDbPath = path.join(sessionDir, 'inbound.db');
-      const outDbPath = path.join(sessionDir, 'outbound.db');
+    // Insert Assistant Outbound message
+    outDb.run(
+      `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        assistantMsgId,
+        now,
+        'chat',
+        'macos',
+        'mac:sergio',
+        `<message to="mac:sergio">\n${finalContent}\n</message>`,
+      ]
+    );
+    outDb.close();
 
-      // Initialize inbound & outbound SQLite DBs if needed
-      const inDb = new Database(inDbPath);
-      inDb.run(`CREATE TABLE IF NOT EXISTS messages_in (
-        id TEXT PRIMARY KEY,
-        seq INTEGER,
-        in_reply_to TEXT,
-        timestamp TEXT NOT NULL,
-        deliver_after TEXT,
-        recurrence TEXT,
-        kind TEXT NOT NULL,
-        platform_id TEXT,
-        channel_type TEXT,
-        thread_id TEXT,
-        content TEXT NOT NULL
-      )`);
-
-      const outDb = new Database(outDbPath);
-      outDb.run(`CREATE TABLE IF NOT EXISTS messages_out (
-        id TEXT PRIMARY KEY,
-        seq INTEGER,
-        in_reply_to TEXT,
-        timestamp TEXT NOT NULL,
-        deliver_after TEXT,
-        recurrence TEXT,
-        kind TEXT NOT NULL,
-        platform_id TEXT,
-        channel_type TEXT,
-        thread_id TEXT,
-        content TEXT NOT NULL
-      )`);
-
-      // Insert User Inbound message
-      inDb.run(
-        `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          userMsgId,
-          now,
-          'chat',
-          'macos',
-          'mac:sergio',
-          JSON.stringify({ text: prompt, sender: 'MacBook (Sérgio)', channel: 'macos' }),
-        ]
-      );
-      inDb.close();
-
-      // Insert Assistant Outbound message
-      outDb.run(
-        `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          assistantMsgId,
-          now,
-          'chat',
-          'macos',
-          'mac:sergio',
-          `<message to="mac:sergio">\n${finalContent}\n</message>`,
-        ]
-      );
-      outDb.close();
-
-      // Register session in central v2.db
-      if (fs.existsSync(CONFIG.DB_PATH)) {
-        const centralDb = new Database(CONFIG.DB_PATH);
-        try {
-          centralDb.run(
-            `INSERT INTO sessions (id, agent_group_id, created_at, updated_at) VALUES (?, ?, ?, ?)
-             ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
-            ['sess-mac-barao', 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c', now, now]
-          );
-        } catch {}
-        centralDb.close();
-      }
-    } catch (dbErr) {
-      console.error('[MacChannelService] SQLite persistence error:', dbErr);
+    // Register session in central v2.db
+    if (fs.existsSync(CONFIG.DB_PATH)) {
+      const centralDb = new Database(CONFIG.DB_PATH);
+      try {
+        centralDb.run(
+          `INSERT INTO sessions (id, agent_group_id, created_at, updated_at) VALUES (?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
+          ['sess-macos-sergio', agentGroupId, now, now]
+        );
+      } catch {}
+      centralDb.close();
     }
-
-    // Persist continuous session history in JSON state file
-    state.history = [
-      ...state.history,
-      {
-        id: userMsgId,
-        role: 'user',
-        content: prompt,
-        timestamp: now,
-        channel: 'macos',
-      },
-      {
-        id: assistantMsgId,
-        role: 'assistant',
-        content: finalContent,
-        timestamp: new Date().toISOString(),
-        channel: 'macos',
-      },
-    ].slice(-50);
-    state.updatedAt = now;
-
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
 
     return {
       reply: finalContent,
