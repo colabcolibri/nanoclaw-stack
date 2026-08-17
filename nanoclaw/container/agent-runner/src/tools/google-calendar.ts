@@ -101,20 +101,25 @@ export const googleCalendarTool: AgentTool = {
       return JSON.stringify({ status: 'created', summary: created.summary, start: created.start });
     }
 
-    // 3. List or Search events with strict date-window bounds & token-minified payload
+    // 3. List or Search events with intelligent date-window bounds & token-minified payload
     let timeMin: string;
     let timeMax: string | undefined;
 
     if (args.date) {
       const cleanDate = args.date.split('T')[0];
       timeMin = `${cleanDate}T00:00:00Z`;
-      timeMax = `${cleanDate}T23:59:59Z`;
+      if (args.days && Number(args.days) > 1) {
+        timeMax = new Date(new Date(timeMin).getTime() + Number(args.days) * 86400000).toISOString();
+      } else {
+        timeMax = `${cleanDate}T23:59:59Z`;
+      }
     } else {
       timeMin = new Date().toISOString();
-      // Default to next 3 days only if no date was specified
-      timeMax = new Date(Date.now() + 3 * 86400000).toISOString();
+      const spanDays = Math.min(Math.max(Number(args.days || 3), 1), 60);
+      timeMax = new Date(Date.now() + spanDays * 86400000).toISOString();
     }
 
+    const eventLimit = Math.min(Math.max(Number(args.max_results || args.limit) || 15, 1), 100);
     const searchQuery = args.action === 'search_events' ? args.query : undefined;
 
     // Helper to sanitize & minify event payload for maximum token efficiency

@@ -505,8 +505,8 @@ export const googleGmailTool: AgentTool = {
       });
     }
 
-    // 5. LIST CONVERSATIONS/THREADS (TOKEN OPTIMIZED)
-    const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 12, 1), 30);
+    // 5. LIST CONVERSATIONS/THREADS (TOKEN OPTIMIZED WITH DYNAMIC LIMIT & PAGINATION)
+    const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 15, 1), 100);
     const folder = args.folder || 'inbox';
 
     let queryParts: string[] = [];
@@ -525,9 +525,10 @@ export const googleGmailTool: AgentTool = {
     const finalQueryString = queryParts.join(' ');
     const qParam = finalQueryString ? `&q=${encodeURIComponent(finalQueryString)}` : '';
     const labelParam = folder === 'inbox' ? '&labelIds=INBOX' : '';
+    const pageTokenParam = args.page_token ? `&pageToken=${encodeURIComponent(args.page_token)}` : '';
 
     const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${limit}${labelParam}${qParam}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${limit}${labelParam}${qParam}${pageTokenParam}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -560,7 +561,7 @@ export const googleGmailTool: AgentTool = {
 
               const isUnread = msgs.some((m: any) => m.labelIds && m.labelIds.includes('UNREAD'));
               let snip = (t.snippet || lastMsg?.snippet || '').trim();
-              if (snip.length > 90) snip = snip.slice(0, 87) + '...';
+              if (snip.length > 120) snip = snip.slice(0, 117) + '...';
 
               return {
                 id: lastMsg?.id || t.id,
@@ -580,7 +581,8 @@ export const googleGmailTool: AgentTool = {
 
     return JSON.stringify({
       status: 'ok',
-      total: detailed.length,
+      totalReturned: detailed.length,
+      nextPageToken: data.nextPageToken || undefined,
       threads: detailed,
     });
   },
