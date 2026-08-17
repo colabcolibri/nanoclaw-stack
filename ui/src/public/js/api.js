@@ -160,6 +160,10 @@ export class ApiClient {
     });
   }
 
+  static getMacConfig(group = "barao") {
+    return this.request(`/api/mac/config?folder=${group}`);
+  }
+
   static getServiceStatus() {
     return this.request("/api/service/status");
   }

@@ -372,6 +372,7 @@ class App {
     this.loadGoogleStatus();
     this.loadNotionStatus();
     this.loadYampiStatus();
+    this.loadMacConfig();
     this.loadConfig();
     this.loadServiceStatus();
     this.startLogsAutoRefresh();
@@ -1258,6 +1259,16 @@ class App {
     } catch (err) {
       Toast.show(err.message, "error");
     }
+  }
+
+  static async loadMacConfig() {
+    try {
+      const data = await ApiClient.getMacConfig(this.currentGroup);
+      const inputEndpoint = document.getElementById("input-mac-endpoint");
+      const inputKey = document.getElementById("input-mac-api-key");
+      if (inputEndpoint && data.endpoint) inputEndpoint.value = data.endpoint;
+      if (inputKey && data.apiKey) inputKey.value = data.apiKey;
+    } catch {}
   }
 
   static async loadConfig() {

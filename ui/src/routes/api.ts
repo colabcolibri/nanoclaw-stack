@@ -278,6 +278,17 @@ export class ApiRouter {
       return jsonResponse({ success: true });
     }
 
+    // Mac & Apple Shortcuts Config
+    if (url.pathname === "/api/mac/config" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const host = req.headers.get("host") || "uai.sergioluciano.com";
+      const apiKey = MacChannelService.getOrCreateApiKey(folder);
+      return jsonResponse({
+        endpoint: `https://${host}/api/mac/prompt`,
+        apiKey,
+      });
+    }
+
     // Chat & Stats
     if (url.pathname === "/api/chat" && method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "100", 10);
