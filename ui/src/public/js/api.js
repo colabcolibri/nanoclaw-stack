@@ -178,4 +178,15 @@ export class ApiClient {
       body: JSON.stringify({ folder: group }),
     });
   }
+
+  static getScheduledTasks(group = "barao") {
+    return this.request(`/api/scheduler/tasks?folder=${group}`);
+  }
+
+  static cancelScheduledTask(taskId) {
+    return this.request("/api/scheduler/cancel", {
+      method: "POST",
+      body: JSON.stringify({ taskId }),
+    });
+  }
 }

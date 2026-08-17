@@ -289,6 +289,22 @@ export class ApiRouter {
       });
     }
 
+    // Scheduler & Autonomous Routines (Cron & Delayed Tasks)
+    if (url.pathname === "/api/scheduler/tasks" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const tasks = DatabaseService.getScheduledTasks(folder);
+      return jsonResponse({ tasks, total: tasks.length });
+    }
+
+    if (url.pathname === "/api/scheduler/cancel" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { taskId?: string };
+      if (!body.taskId) {
+        return jsonResponse({ success: false, error: "taskId é obrigatório." }, 400);
+      }
+      const ok = DatabaseService.cancelScheduledTask(body.taskId);
+      return jsonResponse({ success: ok });
+    }
+
     // Chat & Stats
     if (url.pathname === "/api/chat" && method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "100", 10);

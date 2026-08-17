@@ -48,11 +48,16 @@ class App {
       this.loadStats();
     });
 
-    // Refresh Usage
+    // Refresh Usage & Schedules
     document.getElementById("btn-refresh-usage")?.addEventListener("click", () => {
       this.loadUsage();
       this.loadRuns();
       this.loadStats();
+      this.loadScheduledTasks();
+    });
+
+    document.getElementById("btn-refresh-schedules")?.addEventListener("click", () => {
+      this.loadScheduledTasks();
     });
 
     // Usage Tabs (Messages vs Runs)
@@ -373,6 +378,7 @@ class App {
     this.loadNotionStatus();
     this.loadYampiStatus();
     this.loadMacConfig();
+    this.loadScheduledTasks();
     this.loadConfig();
     this.loadServiceStatus();
     this.startLogsAutoRefresh();
@@ -530,6 +536,89 @@ class App {
           approvalsContainer.innerHTML = html;
         }
       }
+  static async loadScheduledTasks() {
+    const container = document.getElementById("scheduled-tasks-container");
+    const badgeCount = document.getElementById("badge-scheduled-count");
+    if (!container) return;
+
+    try {
+      const data = await ApiClient.getScheduledTasks(this.currentGroup);
+      const tasks = data.tasks || [];
+
+      if (badgeCount) {
+        badgeCount.innerText = `${tasks.length} ativa${tasks.length === 1 ? "" : "s"}`;
+      }
+
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:16px; color:var(--text-dim); font-size:12px; background:var(--bg-surface); border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
+            Nenhuma rotina ou tarefa agendada no momento.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks
+        .map((t) => {
+          let recurrenceDesc = "";
+          if (t.isRecurring) {
+            if (t.recurrence === "0 12-23,0 * * *" || t.recurrence === "0 12-23 * * *") {
+              recurrenceDesc = "A cada 1 hora (07:00 às 19:00 - Horário do Brasil / 12:00 às 00:00 Bélgica)";
+            } else if (t.recurrence === "0 * * * *") {
+              recurrenceDesc = "A cada 1 hora (24h/dia)";
+            } else {
+              recurrenceDesc = `Expressão Cron: ${t.recurrence}`;
+            }
+          }
+
+          const badgeType = t.isRecurring
+            ? `<span class="badge-status" style="font-size:10px; padding:2px 6px; background:rgba(168, 85, 247, 0.15); color:#c084fc;">🔄 Rotina Recorrente</span>`
+            : `<span class="badge-status" style="font-size:10px; padding:2px 6px; background:rgba(56, 189, 248, 0.15); color:var(--accent);">⏳ Follow-up Agendado</span>`;
+
+          const timingInfo = t.isRecurring
+            ? `<span style="font-weight:600; color:var(--text-main); font-size:12px;">${recurrenceDesc}</span>`
+            : `<span style="font-size:12px; color:var(--text-main);">Execução prevista para: <strong>${new Date(t.processAfter).toLocaleString("pt-BR")}</strong></span>`;
+
+          return `
+            <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px 16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  ${badgeType}
+                  ${timingInfo}
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:11px; color:var(--text-dim);">Canal: <strong style="color:var(--text-muted);">${t.channelType}</strong></span>
+                  <button class="btn btn-secondary btn-cancel-task" data-id="${t.id}" style="font-size:10px; padding:2px 8px; color:var(--danger);">
+                    🗑️ Cancelar
+                  </button>
+                </div>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); line-height:1.5; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-family:var(--font-sans);">
+                ${t.prompt || "Instrução interna da tarefa"}
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      // Bind cancel buttons
+      container.querySelectorAll(".btn-cancel-task").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          const taskId = e.currentTarget.dataset.id;
+          if (!confirm("Deseja realmente cancelar esta rotina/agendamento?")) return;
+          try {
+            const res = await ApiClient.cancelScheduledTask(taskId);
+            if (res.success) {
+              Toast.show("Rotina cancelada com sucesso!");
+              this.loadScheduledTasks();
+            } else {
+              Toast.show("Erro ao cancelar rotina.", "error");
+            }
+          } catch (err) {
+            Toast.show(err.message, "error");
+          }
+        });
+      });
     } catch {}
   }
 

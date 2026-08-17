@@ -316,4 +316,87 @@ export class DatabaseService {
     runs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return runs.slice(0, limit);
   }
+
+  static getScheduledTasks(folder = "barao") {
+    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
+    const tasks: any[] = [];
+    if (!fs.existsSync(sessionsRoot)) return tasks;
+
+    try {
+      const groups = fs.readdirSync(sessionsRoot);
+      for (const g of groups) {
+        const gPath = path.join(sessionsRoot, g);
+        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        for (const s of sessions) {
+          const dbPath = path.join(gPath, s, "inbound.db");
+          if (fs.existsSync(dbPath)) {
+            try {
+              const inDb = new Database(dbPath);
+              const rows = inDb
+                .query(
+                  `SELECT id, kind, timestamp, status, process_after, recurrence, trigger, channel_type, platform_id, content 
+                   FROM messages_in 
+                   WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status != 'cancelled'
+                   ORDER BY timestamp DESC`
+                )
+                .all() as any[];
+
+              for (const r of rows) {
+                let text = "";
+                let isRecurring = Boolean(r.recurrence);
+                let cron = r.recurrence || null;
+                try {
+                  const parsed = JSON.parse(r.content);
+                  text = parsed.text || "";
+                } catch {}
+
+                tasks.push({
+                  id: r.id,
+                  kind: r.kind,
+                  status: r.status,
+                  createdAt: r.timestamp,
+                  processAfter: r.process_after,
+                  recurrence: cron,
+                  isRecurring,
+                  channelType: r.channel_type || "telegram",
+                  platformId: r.platform_id,
+                  prompt: text,
+                  dbPath,
+                });
+              }
+              inDb.close();
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    return tasks;
+  }
+
+  static cancelScheduledTask(taskId: string) {
+    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
+    if (!fs.existsSync(sessionsRoot)) return false;
+
+    try {
+      const groups = fs.readdirSync(sessionsRoot);
+      for (const g of groups) {
+        const gPath = path.join(sessionsRoot, g);
+        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        for (const s of sessions) {
+          const dbPath = path.join(gPath, s, "inbound.db");
+          if (fs.existsSync(dbPath)) {
+            try {
+              const inDb = new Database(dbPath);
+              inDb.query("DELETE FROM messages_in WHERE id = ?").run(taskId);
+              inDb.close();
+            } catch {}
+          }
+        }
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

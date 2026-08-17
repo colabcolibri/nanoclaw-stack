@@ -13,7 +13,7 @@ export const CONFIG = {
   SESSION_SECRET: process.env.SESSION_SECRET || randomBytes(32).toString("hex"),
   COOKIE_NAME: "nanoclaw_session",
   SESSION_MAX_AGE_DAYS: 30,
-  NANOCLAW_PATH: process.env.NANOCLAW_PATH || "/opt/nanoclaw",
+  NANOCLAW_PATH: process.env.NANOCLAW_PATH || "/opt/nanoclaw-stack/nanoclaw",
   get GROUPS_PATH() {
     return path.join(this.NANOCLAW_PATH, "groups");
   },
