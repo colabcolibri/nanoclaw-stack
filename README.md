@@ -1,83 +1,90 @@
 # NanoClaw Personal Assistant Stack
 
-> A practical, production-ready personal assistant stack built on top of [NanoClaw](https://github.com/nanocoai/nanoclaw), customized for real-world daily workflows with a native tool runner, multi-calendar Google Workspace integration, a web control panel, and self-hosted audio transcription.
+> A modular, production-ready personal AI assistant ecosystem built on top of [NanoClaw](https://github.com/nanocoai/nanoclaw), designed to be model-agnostic, channel-agnostic, and self-hosted with zero vendor lock-in.
 
 ---
 
-## 📖 About This Project
+## 🧭 Overview
 
-This repository is a personalized, self-hosted deployment of **NanoClaw** designed to run an autonomous personal assistant (called *Barão*) accessible via Telegram and a private web dashboard.
+**NanoClaw Personal Assistant Stack** is a complete, self-hosted deployment architecture that turns the NanoClaw multi-agent runtime into a daily operational assistant.
 
-While the upstream NanoClaw project provides a solid multi-agent container engine, running it as a reliable daily personal assistant required several practical adaptations: replacing heavy external MCP servers with fast native tools, supporting multiple Google calendars simultaneously, adding a lightweight management UI, and handling voice messages locally.
+Rather than coupling the system to a single AI vendor or chat app, this stack is architected around **modularity and independence**:
+* **Channel-Agnostic**: Connects to any messaging interface (Telegram, Slack, Discord, CLI, or custom webhooks) through pluggable adapters.
+* **Model-Agnostic**: Implements high-speed native function calling that works seamlessly with DeepSeek, OpenAI, Anthropic, or local open-weight LLMs without proprietary CLI wrappers.
+* **Tool-Agnostic**: Standardized, zero-overhead native tools (`/tools`) that execute API calls directly in milliseconds with automated OAuth token lifecycle management.
+* **Self-Contained Infrastructure**: Bundles a web control panel, automated SSL edge routing, and local audio transcription into a single reproducible monorepo.
 
 ---
 
-## ⚡ What’s Different from Upstream NanoClaw?
+## ⚡ Key Architectural Adaptations
 
-| Feature | Upstream NanoClaw | This Customized Stack |
+| Layer | Upstream NanoClaw | This Unified Stack |
 | :--- | :--- | :--- |
-| **Google Calendar** | Only reads the user's single `primary` calendar. | **Multi-Calendar Parallel Aggregation**: Monitors and consolidates events across all 6 active calendars (personal, work, team, shared) in one view. |
-| **Tool Execution** | Relies on heavy Claude MCP subprocesses via STDIO. | **Native Modular Tools (`/tools`)**: Direct HTTP function calling with built-in OAuth2 auto-refresh. Lightweight, fast, and compatible with DeepSeek or any OpenAI-compatible LLM. |
-| **Management UI** | CLI-only or standard agent view. | **Custom Web Dashboard (`/ui`)**: Built with Bun & Hono. Includes 1-click Google OAuth2 pairing, skill toggles, and live Docker container inspection. |
-| **Voice Notes** | Requires external speech-to-text APIs. | **Self-Hosted Whisper (`/whisper`)**: Local Docker container running OpenAI Whisper for instant, private Telegram audio transcription. |
-| **Edge Routing & SSL** | Manual setup required. | **Traefik Proxy (`/traefik`)**: Automated Let's Encrypt SSL certificates and reverse proxy to the dashboard. |
+| **Tool System** | Relies primarily on heavy Claude CLI STDIO MCP subprocesses. | **Native Modular Tools (`/tools`)**: Direct, lightweight function-calling modules with automated OAuth2 auto-refresh. Pluggable across any LLM provider. |
+| **Workspace Integrations** | Queries single default/primary calendar. | **Parallel Multi-Calendar Aggregation**: Discovers and consolidates events across all accessible calendars (personal, work, shared, and team agendas) in a single unified view. |
+| **Control & Management** | Terminal CLI and config files. | **Web Control Dashboard (`/ui`)**: Built with Bun & Hono. Features 1-click OAuth pairing, live container lifecycle monitoring, skill management, and multi-agent configuration. |
+| **Audio & Voice** | Requires external cloud speech APIs. | **Local Audio Transcription (`/whisper`)**: Self-hosted OpenAI Whisper service for fast, private processing of incoming voice notes from any channel. |
+| **Edge Routing & SSL** | Manual reverse proxy setup. | **Traefik SSL Proxy (`/traefik`)**: Automated Let's Encrypt TLS certificate provisioning and secure routing to internal services. |
 
 ---
 
-## 🏛️ Project Layout
+## 🏛️ System Architecture
 
 ```text
 nanoclaw-stack/
-├── nanoclaw/         # Core NanoClaw engine adapted with native providers & tools
-│   ├── container/    # Agent runner, skills, and modular tools (/tools)
-│   └── src/          # Central host service, SQLite state, and Telegram bridge
+├── nanoclaw/         # Core Multi-Agent Container Engine
+│   ├── container/    # Ephemeral Docker runner, skills, and modular tools (/tools)
+│   └── src/          # Channel adapters (Telegram, CLI, etc.), SQLite state, message router
 │
-├── ui/               # Web control dashboard (Bun + Hono + TypeScript)
-│   ├── src/          # REST API, SQLite sync, Google OAuth callback handler
-│   └── public/       # Clean frontend control panel
+├── ui/               # Web Management Dashboard (Bun + Hono + TypeScript)
+│   ├── src/          # API, database sync, OAuth callbacks, multi-agent control
+│   └── public/       # Responsive control panel
 │
-├── traefik/          # Automated Let's Encrypt SSL reverse proxy configuration
+├── traefik/          # Automated SSL Edge Proxy (Docker)
 │   └── docker-compose.yml
 │
-├── whisper/          # Local audio transcription container (OpenAI Whisper ASR)
+├── whisper/          # Local Audio Transcription Service (OpenAI Whisper ASR)
 │   └── docker-compose.yml
 │
-└── infra/            # Documentation, persona prompts (Soul), and maintenance playbooks
-    ├── BARAO_SOUL.md # Personality and behavioral directives
-    ├── SERVICES.md   # Systemd unit definitions and port mappings
-    └── MAINTENANCE.md# Backup strategies and update guides
+└── infra/            # Systemd service playbooks, agent personas (Soul), and ops manuals
+    ├── BARAO_SOUL.md # Agent behavioral and cognitive directives
+    ├── SERVICES.md   # Service definitions and port topologies
+    └── MAINTENANCE.md# Backup strategies and update workflows
 ```
 
 ---
 
-## 🤔 Why a Unified Stack Instead of a Traditional Fork?
+## 💡 Why a Monorepo Stack (Instead of a Traditional Fork)?
 
-Upstream NanoClaw is strictly the agent runtime. However, a practical personal assistant ecosystem in production needs:
+Upstream NanoClaw focuses strictly on the agent runtime engine. However, operating an autonomous assistant in a real-world multi-device setup requires:
 
-1. **A Web UI** to manage settings and connect OAuth services without touching JSON files.
-2. **An Audio Transcriber** to handle voice notes on Telegram.
-3. **An SSL Reverse Proxy** to securely expose the dashboard.
-4. **Operational Documentation** for server maintenance and persona prompting.
+1. **A Control Surface (`/ui`)**: To manage bot personalities, inspect logs, and authenticate third-party services via web OAuth flows.
+2. **Edge Security (`/traefik`)**: To route external traffic securely with automated HTTPS certificates.
+3. **Media Processing (`/whisper`)**: To process voice messages locally without sending audio to third-party APIs.
+4. **Operational Playbooks (`/infra`)**: To manage systemd services, backups, and prompt architectures.
 
-Keeping everything in this unified repository (*monorepo*) makes it possible to clone, configure, and operate the entire personal assistant stack on any VPS while keeping the core engine easily updatable against upstream releases.
+Consolidating these components into a single stack creates a **turnkey, reproducible deployment** that can be stood up on any server in minutes while maintaining clear separation from the upstream engine.
 
 ---
 
-## 🚀 Running the Stack
+## 🚀 Quick Start
 
+### 1. Launch Edge Routing & Microservices
 ```bash
-# 1. Start the SSL reverse proxy
+# Start Traefik (SSL) & Whisper (Audio Transcription)
 cd traefik && docker compose up -d
-
-# 2. Start the local voice transcription service
 cd ../whisper && docker compose up -d
+```
 
-# 3. Start the Web Control Dashboard
+### 2. Start the Web Control Dashboard
+```bash
 cd ../ui
 bun install
 bun run src/index.ts
+```
 
-# 4. Start the NanoClaw Agent Engine
+### 3. Start the NanoClaw Engine
+```bash
 cd ../nanoclaw
 pnpm install
 pnpm start
@@ -85,13 +92,14 @@ pnpm start
 
 ---
 
-## 🔒 Security
+## 🔒 Privacy & Security
 
-All secrets, active session databases (`v2.db`), OAuth tokens (`google_tokens.json`), and private agent memories are strictly ignored by `.gitignore` and only exist locally on the host server.
+* **Zero-Secret Commits**: All credentials, tokens (`google_tokens.json`), databases (`v2.db`), and `.env` files are strictly isolated locally and excluded via `.gitignore`.
+* **Sandboxed Execution**: Agent sessions run inside ephemeral, isolated Docker containers with strictly scoped filesystem boundaries.
 
 ---
 
 ## 📜 Credits & Acknowledgments
 
-* Based on [NanoClaw](https://github.com/nanocoai/nanoclaw) by Nanoco AI.
-* Designed and configured for personal executive and engineering automation.
+* Engine built upon [NanoClaw](https://github.com/nanocoai/nanoclaw) by Nanoco AI.
+* Adapted and extended as an omnichannel, privacy-focused autonomous assistant platform.
