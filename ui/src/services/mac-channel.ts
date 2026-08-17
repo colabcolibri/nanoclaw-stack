@@ -188,19 +188,35 @@ export class MacChannelService {
       finalContent = 'Ação concluída com sucesso.';
     }
 
-    // Persist continuous session history (keep last 30 messages)
+    const now = new Date().toISOString();
+    const userMsgId = `mac-in-${Date.now()}`;
+    const assistantMsgId = `mac-out-${Date.now() + 1}`;
+
+    // Persist continuous session history (keep last 50 messages)
     state.history = [
       ...state.history,
-      { role: 'user', content: prompt },
-      { role: 'assistant', content: finalContent },
-    ].slice(-30);
-    state.updatedAt = new Date().toISOString();
+      {
+        id: userMsgId,
+        role: 'user',
+        content: prompt,
+        timestamp: now,
+        channel: 'macos',
+      },
+      {
+        id: assistantMsgId,
+        role: 'assistant',
+        content: finalContent,
+        timestamp: new Date().toISOString(),
+        channel: 'macos',
+      },
+    ].slice(-50);
+    state.updatedAt = now;
 
     fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
 
     return {
       reply: finalContent,
-      timestamp: new Date().toISOString(),
+      timestamp: now,
     };
   }
 }

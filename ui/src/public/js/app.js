@@ -660,6 +660,33 @@ class App {
     } catch {}
   }
 
+  static parseMarkdown(text) {
+    if (!text) return "";
+    try {
+      if (window.marked) {
+        const renderer = new window.marked.Renderer();
+        renderer.link = ({ href, title, text }) => {
+          const titleAttr = title ? ` title="${title}"` : "";
+          return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+        };
+        const rawHtml = window.marked.parse(text, { renderer, breaks: true, gfm: true });
+        if (window.DOMPurify) {
+          return window.DOMPurify.sanitize(rawHtml, {
+            ADD_ATTR: ["target", "rel"],
+          });
+        }
+        return rawHtml;
+      }
+    } catch (e) {
+      console.warn("Markdown parse error:", e);
+    }
+    return (text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>");
+  }
+
   static async loadChat() {
     const container = document.getElementById("chat-bubbles-container");
     if (!container) return;
@@ -675,7 +702,13 @@ class App {
         .map((m) => {
           const isUser = m.type === "user";
           const timeStr = new Date(m.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-          const safeText = m.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const renderedContent = this.parseMarkdown(m.text || "");
+          let channelLabel = m.channel || "telegram";
+          if (channelLabel === "macos") channelLabel = "💻 macOS";
+          else if (channelLabel === "telegram") channelLabel = "📱 Telegram";
+          else if (channelLabel === "cli") channelLabel = "💻 Terminal";
+          else if (channelLabel === "webhook") channelLabel = "🌐 Web";
+
           return `
             <div class="chat-bubble-row ${isUser ? "user" : "assistant"}">
               <div class="chat-meta">
@@ -683,10 +716,10 @@ class App {
                 <span>•</span>
                 <span>${timeStr}</span>
                 <span>•</span>
-                <code>${m.channel}</code>
+                <span class="badge-status" style="font-size:10px; padding:2px 8px; font-family:var(--font-mono);">${channelLabel}</span>
               </div>
               <div class="chat-bubble ${isUser ? "user" : "assistant"}" data-id="${m.id}" title="Clique para detalhes">
-                ${safeText.replace(/\n/g, "<br>")}
+                ${renderedContent}
               </div>
             </div>
           `;
@@ -695,7 +728,8 @@ class App {
 
       // Add click listeners to chat bubbles to open lateral sheet with message inspector!
       container.querySelectorAll(".chat-bubble").forEach((bubble) => {
-        bubble.addEventListener("click", () => {
+        bubble.addEventListener("click", (e) => {
+          if (e.target.closest("a")) return; // Don't trigger drawer when clicking markdown links
           const msgId = bubble.dataset.id;
           const msgObj = data.messages.find((m) => m.id === msgId);
           if (msgObj) {
@@ -799,21 +833,7 @@ class App {
       preview.innerHTML = "<p style='color:var(--text-dim)'>Nenhuma instrução definida.</p>";
       return;
     }
-    const html = md
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-      .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-      .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-      .replace(/^\* (.*$)/gim, "<ul><li>$1</li></ul>")
-      .replace(/^- (.*$)/gim, "<ul><li>$1</li></ul>")
-      .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
-      .replace(/\*(.*)\*/gim, "<em>$1</em>")
-      .replace(/`([^`]+)`/gim, "<code>$1</code>")
-      .replace(/\n\n/gim, "<p></p>")
-      .replace(/\n/gim, "<br>");
-    preview.innerHTML = html;
+    preview.innerHTML = this.parseMarkdown(md);
   }
 
   static async handleSaveSoul() {
