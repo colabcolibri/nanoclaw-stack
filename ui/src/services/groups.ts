@@ -365,10 +365,12 @@ export class GroupManager {
                 if (sf.isFile()) {
                   const fullPath = path.join(scriptDir, sf.name);
                   const stat = fs.statSync(fullPath);
+                  const content = fs.readFileSync(fullPath, "utf-8");
                   scripts.push({
                     name: sf.name,
                     relativePath: `scripts/${sf.name}`,
                     sizeBytes: stat.size,
+                    content,
                   });
                 }
               }

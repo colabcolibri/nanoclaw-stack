@@ -901,16 +901,21 @@ class App {
       container.innerHTML = this.cachedSkills
         .map((s) => {
           const refCount = s.references ? s.references.length : 0;
+          const scriptCount = s.scripts ? s.scripts.length : 0;
           const refBadge = refCount > 0
             ? `<span class="badge-status" style="font-size:10px; padding:2px 6px; background:rgba(56, 189, 248, 0.15); color:var(--accent);">📂 ${refCount} ref(s)</span>`
+            : "";
+          const scriptBadge = scriptCount > 0
+            ? `<span class="badge-status" style="font-size:10px; padding:2px 6px; background:rgba(168, 85, 247, 0.15); color:#c084fc;">⚙️ ${scriptCount} script(s)</span>`
             : "";
 
           return `
             <div class="skill-card ${s.enabled ? "active" : ""}">
               <div class="skill-card-top">
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                   <span class="skill-name">🧩 ${s.name}</span>
                   ${refBadge}
+                  ${scriptBadge}
                 </div>
                 <label class="switch">
                   <input type="checkbox" class="skill-toggle" data-name="${s.name}" ${s.enabled ? "checked" : ""}>
@@ -920,7 +925,7 @@ class App {
               <p class="skill-desc">${s.description}</p>
               <div style="margin-top:10px; display:flex; justify-content:flex-end;">
                 <button class="btn btn-secondary btn-inspect-skill" data-name="${s.name}" style="font-size:11px; padding:4px 10px;">
-                  🔍 Ver SKILL.md & Referências
+                  🔍 Ver SKILL.md, Referências & Scripts
                 </button>
               </div>
             </div>
@@ -961,10 +966,24 @@ class App {
                 </div>
               </div>
             `;
-          } else {
-            refHtml = `
-              <div style="margin-top:18px; border-top:1px solid var(--border-color); padding-top:14px; font-size:12px; color:var(--text-dim);">
-                <em>Nenhum documento adicional na pasta <code>references/</code>. Todas as diretrizes residem diretamente no SKILL.md.</em>
+          }
+
+          let scriptHtml = "";
+          if (skill.scripts && skill.scripts.length > 0) {
+            scriptHtml = `
+              <div style="margin-top:18px; border-top:1px solid var(--border-color); padding-top:14px;">
+                <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:10px;">⚙️ Scripts e Utilitários na pasta <code>scripts/</code>:</h4>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  ${skill.scripts.map((sc) => `
+                    <details style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:10px 14px;">
+                      <summary style="cursor:pointer; font-size:13px; font-weight:600; color:#c084fc; outline:none; display:flex; align-items:center; gap:8px;">
+                        <span>📜 ${sc.name}</span>
+                        <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(${(sc.sizeBytes / 1024).toFixed(1)} KB)</span>
+                      </summary>
+                      <pre style="margin-top:12px; font-size:12px; font-family:var(--font-mono); background:var(--bg-card); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); max-height:350px; overflow-x:auto; overflow-y:auto; color:var(--text-main); line-height:1.5;"><code>${(sc.content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+                    </details>
+                  `).join("")}
+                </div>
               </div>
             `;
           }
@@ -991,6 +1010,7 @@ class App {
                 </div>
 
                 ${refHtml}
+                ${scriptHtml}
               </div>
             `,
           });
