@@ -303,7 +303,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
                 {selectedMessage.subRuns && selectedMessage.subRuns.length > 0 ? (
                   <div className="space-y-2.5">
-                    {selectedMessage.subRuns.map((step, idx) => (
+                    {[...selectedMessage.subRuns]
+                      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+                      .map((step, idx) => (
                       <div
                         key={step.id || idx}
                         className="p-3.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-2 font-mono text-xs"

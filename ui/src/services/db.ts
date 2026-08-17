@@ -120,11 +120,10 @@ export class DatabaseService {
   }
 
   static getRealTokenRecords(limit = 200): any[] {
-    const records: any[] = [];
+    const recordMap = new Map<string, any>();
     const searchDirs = [
       path.join(CONFIG.GROUPS_PATH),
       path.join(CONFIG.DATA_PATH, "v2-sessions"),
-      "/opt/nanoclaw-stack/nanoclaw/groups",
     ];
 
     for (const baseDir of searchDirs) {
@@ -137,13 +136,16 @@ export class DatabaseService {
           for (const line of lines) {
             try {
               const rec = JSON.parse(line);
-              records.push(rec);
+              if (rec && rec.id) {
+                recordMap.set(rec.id, rec);
+              }
             } catch {}
           }
         } catch {}
       }
     }
 
+    const records = Array.from(recordMap.values());
     records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return records.slice(0, limit);
   }
