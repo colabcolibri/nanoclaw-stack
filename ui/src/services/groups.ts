@@ -128,7 +128,10 @@ export class GroupManager {
 
     if (!fs.existsSync(groupDir)) return docs;
 
+    const knownPaths = new Set<string>();
+
     for (const [relPath, meta] of Object.entries(DEFAULT_CONTAINER_DOCS)) {
+      knownPaths.add(relPath);
       docs.push({
         filename: path.basename(relPath),
         relativePath: relPath,
@@ -136,6 +139,31 @@ export class GroupManager {
         category: meta.category,
         fallbackPath: meta.fallback,
       });
+    }
+
+    // Dynamically discover any custom memory files created by the agent/user
+    const memoryDir = path.join(groupDir, "memory");
+    if (fs.existsSync(memoryDir)) {
+      const scanDir = (dir: string, baseRel: string) => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const entryRel = path.join(baseRel, entry.name);
+          if (entry.isDirectory() && entry.name !== "node_modules" && !entry.name.startsWith(".")) {
+            scanDir(path.join(dir, entry.name), entryRel);
+          } else if (entry.isFile() && entry.name.endsWith(".md")) {
+            if (!knownPaths.has(entryRel)) {
+              knownPaths.add(entryRel);
+              docs.push({
+                filename: entry.name,
+                relativePath: entryRel,
+                title: `📄 Memória: ${entryRel}`,
+                category: "⭐ 1. Principais (Edição Frequente)",
+              });
+            }
+          }
+        }
+      };
+      scanDir(memoryDir, "memory");
     }
 
     return docs;
