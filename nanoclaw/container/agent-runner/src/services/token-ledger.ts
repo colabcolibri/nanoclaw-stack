@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Database } from 'bun:sqlite';
+import { CurrencyService } from './currency.js';
 
 export interface DeepSeekUsage {
   prompt_tokens?: number;
@@ -87,7 +88,7 @@ export class TokenLedger {
     const costOut = (completionTokens / 1_000_000) * rates.outputPerMillion;
 
     const costUsd = Number((costHit + costMiss + costOut).toFixed(8));
-    const costBrl = Number((costUsd * 5.75).toFixed(6));
+    const costBrl = CurrencyService.convertUsdToBrl(costUsd);
 
     return {
       promptTokens,

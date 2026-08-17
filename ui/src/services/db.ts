@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import glob from "fast-glob";
 import { CONFIG } from "../config.js";
+import { CurrencyService } from "./currency.js";
 
 export interface ChatMessageItem {
   id: string;
@@ -187,7 +188,8 @@ export class DatabaseService {
       totalCostUsd = (totalTokens / 1_000_000) * 0.44;
     }
 
-    const totalCostBrl = totalCostUsd * 5.75;
+    const usdToBrlRate = CurrencyService.getRateSync();
+    const totalCostBrl = CurrencyService.convertUsdToBrl(totalCostUsd);
     const cacheHitRatio = totalPromptTokens > 0 ? Math.round((totalCacheHitTokens / totalPromptTokens) * 100) : 0;
 
     return {
@@ -206,6 +208,7 @@ export class DatabaseService {
       cacheHitRatio: `${cacheHitRatio}%`,
       estimatedTokens: totalTokens,
       totalTokens,
+      usdToBrlRate,
       estimatedCostUsd: totalCostUsd.toFixed(5),
       estimatedCostBrl: totalCostBrl.toFixed(4),
       modelName: "DeepSeek V4 Flash (Peak Pricing: $0.014 hit / $0.44 miss / $1.32 out)",
