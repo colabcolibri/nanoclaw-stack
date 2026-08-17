@@ -52,4 +52,27 @@ describe("Agent Runner Smoke & Regression Tests", () => {
     expect(Number(cost.costUsd)).toBeGreaterThan(0);
     expect(Number(cost.costBrl)).toBeGreaterThan(0);
   });
+
+  test("All registered providers implement the full AgentProvider contract", async () => {
+    const { createProvider } = await import("../src/providers/factory.js");
+    await import("../src/providers/index.js");
+
+    const providersToTest = ["deepseek", "groq"];
+    for (const name of providersToTest) {
+      const p = createProvider(name, { assistantName: "TestBot" });
+      expect(p).toBeDefined();
+      expect(typeof p.query).toBe("function");
+      expect(typeof p.registerMemorySessionHook).toBe("function");
+      expect(typeof p.isSessionInvalid).toBe("function");
+
+      // Verify that calling registerMemorySessionHook does not crash
+      expect(() => {
+        p.registerMemorySessionHook({
+          name: "test-memory-hook",
+          description: "Test hook",
+          source: "/tmp",
+        });
+      }).not.toThrow();
+    }
+  });
 });

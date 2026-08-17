@@ -1,29 +1,86 @@
 import fs from 'fs';
 import path from 'path';
-import type { AgentProvider, ProviderInput, ProviderEvent, ProviderOptions } from './types.js';
-import { registerProvider } from './provider-registry.js';
 import { AGENT_TOOLS } from '../tools/index.js';
+import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
 import { TokenLedger } from '../services/token-ledger.js';
-import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
+import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
+import { registerProvider } from './provider-registry.js';
+import type {
+  AgentProvider,
+  AgentQuery,
+  ProviderEvent,
+  ProviderOptions,
+  QueryInput,
+  ProviderExchange,
+} from './types.js';
+
+interface McpServerConfig {
+  type?: string;
+  command?: string;
+  args?: string[];
+  url?: string;
+  [key: string]: any;
+}
 
 export class GroqProvider implements AgentProvider {
-  name = 'groq';
-  private model: string;
+  readonly supportsNativeSlashCommands = false;
+  private memorySessionHook: MemorySessionHookRegistration | null = null;
+  private apiKey: string;
+  private baseURL: string;
+  private defaultModel: string;
   private assistantName: string;
+  private mcpServers: Record<string, McpServerConfig>;
 
-  constructor(options: ProviderOptions = {}) {
-    this.model = options.model || process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  constructor(options: ProviderOptions) {
+    this.apiKey =
+      process.env.GROQ_API_KEY ||
+      options.env?.GROQ_API_KEY ||
+      '';
+    this.baseURL =
+      process.env.GROQ_BASE_URL ||
+      options.env?.GROQ_BASE_URL ||
+      'https://api.groq.com/openai/v1';
+    this.defaultModel =
+      process.env.GROQ_MODEL ||
+      options.model ||
+      'openai/gpt-oss-120b';
     this.assistantName = options.assistantName || process.env.ASSISTANT_NAME || 'Íris';
+    this.mcpServers = options.mcpServers || {};
   }
 
-  run(input: ProviderInput): AsyncGenerator<ProviderEvent> {
-    let aborted = false;
-    const apiKey = process.env.GROQ_API_KEY;
-    const baseURL = process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1';
-    const model = this.model;
+  registerMemorySessionHook(hook: MemorySessionHookRegistration): void {
+    this.memorySessionHook = hook;
+  }
 
-    // Load group instructions
+  isSessionInvalid(_err: unknown): boolean {
+    return false;
+  }
+
+  onExchangeComplete?(exchange: ProviderExchange): void {
+    // Optional telemetry/logging hook
+  }
+
+  query(input: QueryInput): AgentQuery {
+    const apiKey = this.apiKey;
+    const baseURL = this.baseURL.replace(/\/+$/, '');
+    const model = (this.defaultModel || 'openai/gpt-oss-120b').trim();
+    let aborted = false;
+
+    // Load or initialize conversation history from continuation
+    let history: any[] = [];
+    if (input.continuation) {
+      try {
+        const parsed = JSON.parse(input.continuation);
+        if (Array.isArray(parsed)) {
+          history = parsed;
+        }
+      } catch {
+        history = [];
+      }
+    }
+
+    // Build system instructions
     const systemParts: string[] = [
       `You are ${this.assistantName}, a helpful, fast, and intelligent personal AI assistant running on NanoClaw.`,
     ];
@@ -64,7 +121,7 @@ export class GroqProvider implements AgentProvider {
       if (!apiKey) {
         yield {
           type: 'result',
-          text: 'Error: GROQ_API_KEY is not configured in NanoClaw .env',
+          text: 'Error: GROQ_API_KEY is not configured in NanoClaw .env. Please configure your Groq API key.',
           isError: true,
         };
         return;
@@ -73,20 +130,18 @@ export class GroqProvider implements AgentProvider {
       try {
         const url = `${baseURL}/chat/completions`;
 
-        // Direct HTTP Completion Function implementing standard OpenAI/Groq contract
+        // Direct HTTP Completion Function implementing standard OpenAI contract
         const completeFn = async (currentMessages: any[], enableTools: boolean) => {
           if (aborted) throw new Error('Query aborted');
 
           const payload: any = {
             model,
             messages: currentMessages,
-            temperature: 0.6,
             stream: false,
           };
 
           if (enableTools && AGENT_TOOLS.length > 0) {
             payload.tools = AGENT_TOOLS;
-            payload.tool_choice = 'auto';
           }
 
           const startTime = Date.now();
@@ -118,41 +173,55 @@ export class GroqProvider implements AgentProvider {
             });
           } catch {}
 
+          try {
+            const logDir = path.join(input.cwd, 'logs');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            const logFile = path.join(logDir, 'groq_activity.log');
+            fs.appendFileSync(
+              logFile,
+              `[${new Date().toISOString()}] ${JSON.stringify({
+                event: 'groq_response',
+                latencyMs,
+                usage,
+                content: msg.content,
+                tool_calls: msg.tool_calls?.map((tc: any) => ({ name: tc.function?.name, args: tc.function?.arguments })),
+              })}\n`,
+              'utf-8'
+            );
+          } catch {}
+
           return {
             content: msg.content,
             tool_calls: msg.tool_calls,
           };
         };
 
-        // Assemble messages
-        const messages: any[] = [];
-        messages.push({
-          role: 'system',
-          content: systemParts.join('\n\n---\n\n'),
-        });
+        const historyLimit = Math.max(10, parseInt(process.env.GROQ_HISTORY_LIMIT || '50', 10));
 
-        if (input.prompt) {
-          messages.push({ role: 'user', content: input.prompt });
-        }
+        const turnResult = await TurnOrchestrator.runTurn(
+          completeFn,
+          {
+            prompt: input.prompt,
+            cwd: input.cwd,
+            chatJid: (input as any).chatJid,
+            history,
+            systemInstructions: systemParts.join('\n\n'),
+            historyLimit,
+          },
+          () => {
+            // Signal activity heartbeat on each step
+          }
+        );
 
-        // Orchestrate turn loop
-        const orchestrator = new TurnOrchestrator({
-          maxIterations: 10,
-          assistantName: self.assistantName,
-        });
-
-        const targetDest = input.chatJid || 'direct';
-        const finalResponseText = await orchestrator.runTurn({
-          messages,
-          complete: completeFn,
-          targetDest,
-          cwd: input.cwd,
-          onActivity: () => {},
-        });
+        yield {
+          type: 'init',
+          continuation: JSON.stringify(turnResult.updatedHistory),
+        };
 
         yield {
           type: 'result',
-          text: finalResponseText,
+          text: turnResult.deliveredText,
+          isError: false,
         };
       } catch (err: any) {
         yield {
@@ -163,21 +232,13 @@ export class GroqProvider implements AgentProvider {
       }
     }
 
-    const generator = executeTurn();
-
     return {
-      next: () => generator.next(),
-      return: (val?: any) => {
+      push: (_msg: string) => {},
+      end: () => {},
+      abort: () => {
         aborted = true;
-        return generator.return(val);
       },
-      throw: (err?: any) => {
-        aborted = true;
-        return generator.throw(err);
-      },
-      [Symbol.asyncIterator]() {
-        return this;
-      },
+      events: executeTurn(),
     };
   }
 }

@@ -22,6 +22,10 @@ export interface ChatMessageItem {
   cacheHitTokens?: number;
   cacheMissTokens?: number;
   cacheHitRatio?: string;
+  costInUsd?: number;
+  costInBrl?: number;
+  costOutUsd?: number;
+  costOutBrl?: number;
   costUsd?: number;
   costBrl?: number;
   subRuns?: IntermediateRunItem[];
@@ -35,8 +39,15 @@ export interface IntermediateRunItem {
   timestamp: string;
   tokens: number;
   charCount: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  cacheHitTokens?: number;
+  cacheMissTokens?: number;
+  costInUsd?: number;
+  costOutUsd?: number;
   costUsd: number;
   costBrl: number;
+  latencyMs?: number;
   systemPrompt?: string;
   userPrompt?: string;
   toolName?: string;
@@ -259,9 +270,14 @@ export class DatabaseService {
           for (const r of rows) {
             const parsed = this.parseMessageContent(r.content || "", "user");
             const charCount = parsed.text.length;
-            const tokens = Math.max(1, Math.round(charCount / 3.5));
-            const costUsd = (tokens / 1_000_000) * 0.14;
-            const costBrl = costUsd * 5.7;
+            const promptTokens = Math.max(1, Math.round(charCount / 3.5));
+            const completionTokens = 0;
+            const costInUsd = (promptTokens / 1_000_000) * 0.14;
+            const costOutUsd = 0;
+            const costUsd = costInUsd;
+            const costBrl = CurrencyService.convertUsdToBrl(costUsd);
+            const costInBrl = costBrl;
+            const costOutBrl = 0;
 
             messages.push({
               id: r.id,
@@ -273,7 +289,13 @@ export class DatabaseService {
               text: parsed.text,
               threadId: parsed.threadId || r.thread_id,
               charCount,
-              tokens,
+              tokens: promptTokens,
+              promptTokens,
+              completionTokens,
+              costInUsd,
+              costInBrl,
+              costOutUsd,
+              costOutBrl,
               costUsd,
               costBrl,
             });
@@ -304,8 +326,9 @@ export class DatabaseService {
             let cacheHitTokens = 0;
             let cacheMissTokens = 0;
             let totalTokens = Math.max(1, Math.round(charCount / 3.5));
+            let costInUsd = 0;
+            let costOutUsd = 0;
             let costUsd = (totalTokens / 1_000_000) * 0.44;
-            let costBrl = CurrencyService.convertUsdToBrl(costUsd);
 
             if (matchedRuns.length > 0) {
               promptTokens = matchedRuns.reduce((acc, run) => acc + (run.promptTokens || 0), 0);
@@ -313,10 +336,20 @@ export class DatabaseService {
               cacheHitTokens = matchedRuns.reduce((acc, run) => acc + (run.cacheHitTokens || 0), 0);
               cacheMissTokens = matchedRuns.reduce((acc, run) => acc + (run.cacheMissTokens || 0), 0);
               totalTokens = promptTokens + completionTokens;
-              costUsd = matchedRuns.reduce((acc, run) => acc + (run.costUsd || 0), 0);
-              costBrl = CurrencyService.convertUsdToBrl(costUsd);
+              costInUsd = (promptTokens / 1_000_000) * 0.14;
+              costOutUsd = (completionTokens / 1_000_000) * 0.28;
+              costUsd = matchedRuns.reduce((acc, run) => acc + (run.costUsd || 0), 0) || (costInUsd + costOutUsd);
+            } else {
+              promptTokens = Math.round(totalTokens * 0.6);
+              completionTokens = Math.max(0, totalTokens - promptTokens);
+              costInUsd = (promptTokens / 1_000_000) * 0.14;
+              costOutUsd = (completionTokens / 1_000_000) * 0.28;
+              costUsd = costInUsd + costOutUsd;
             }
 
+            const costBrl = CurrencyService.convertUsdToBrl(costUsd);
+            const costInBrl = CurrencyService.convertUsdToBrl(costInUsd);
+            const costOutBrl = CurrencyService.convertUsdToBrl(costOutUsd);
             const cacheHitRatio = promptTokens > 0 ? `${Math.round((cacheHitTokens / promptTokens) * 100)}%` : "0%";
 
             messages.push({
@@ -335,6 +368,10 @@ export class DatabaseService {
               cacheHitTokens,
               cacheMissTokens,
               cacheHitRatio,
+              costInUsd,
+              costInBrl,
+              costOutUsd,
+              costOutBrl,
               costUsd,
               costBrl,
               subRuns: matchedRuns.length > 0 ? matchedRuns : undefined,
@@ -360,6 +397,13 @@ export class DatabaseService {
         toolName = rec.preview.replace("Tool: ", "").trim();
       }
 
+      const promptTokens = rec.promptTokens || 0;
+      const completionTokens = rec.completionTokens || 0;
+      const costInUsd = rec.cacheHitTokens
+        ? (rec.cacheHitTokens / 1_000_000) * 0.014 + (rec.cacheMissTokens / 1_000_000) * 0.14
+        : (promptTokens / 1_000_000) * 0.14;
+      const costOutUsd = (completionTokens / 1_000_000) * 0.28;
+
       runs.push({
         id: rec.id,
         messageId: rec.id,
@@ -368,11 +412,13 @@ export class DatabaseService {
         timestamp: rec.timestamp,
         charCount: rec.totalTokens * 4,
         tokens: rec.totalTokens,
-        promptTokens: rec.promptTokens,
+        promptTokens,
         cacheHitTokens: rec.cacheHitTokens,
         cacheMissTokens: rec.cacheMissTokens,
-        completionTokens: rec.completionTokens,
-        costUsd: rec.costUsd,
+        completionTokens,
+        costInUsd,
+        costOutUsd,
+        costUsd: rec.costUsd || (costInUsd + costOutUsd),
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
         toolName: toolName || (isTool ? "Ferramenta" : undefined),

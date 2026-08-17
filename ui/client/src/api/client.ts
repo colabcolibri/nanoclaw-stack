@@ -15,6 +15,10 @@ export interface ChatMessage {
   cacheHitTokens?: number
   cacheMissTokens?: number
   cacheHitRatio?: string
+  costInUsd?: number
+  costOutUsd?: number
+  costInBrl?: number
+  costOutBrl?: number
   costUsd?: number
   costBrl?: number
   subRuns?: any[]
