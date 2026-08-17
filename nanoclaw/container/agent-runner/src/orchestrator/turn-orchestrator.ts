@@ -97,6 +97,9 @@ export class TurnOrchestrator {
     let deliveredText = finalContent;
     if (!deliveredText.includes('<message') && !deliveredText.includes('<internal>')) {
       deliveredText = `<message to="${targetDest}">\n${deliveredText}\n</message>`;
+    } else if (deliveredText.includes('<message to=')) {
+      // If the LLM put a raw username like <message to="Srg"> instead of the channel name, sanitize to targetDest
+      deliveredText = deliveredText.replace(/<message\s+to="[^"]*">/gi, `<message to="${targetDest}">`);
     }
 
     // 5. Update session history

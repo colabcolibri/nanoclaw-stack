@@ -49,8 +49,24 @@ export function getAllDestinations(): DestinationEntry[] {
 }
 
 export function findByName(name: string): DestinationEntry | undefined {
-  const row = getInboundDb().prepare('SELECT * FROM destinations WHERE name = ?').get(name) as DestRow | undefined;
-  return row ? rowToEntry(row) : undefined;
+  const db = getInboundDb();
+  // 1. Exact match on name
+  let row = db.prepare('SELECT * FROM destinations WHERE name = ?').get(name) as DestRow | undefined;
+  if (row) return rowToEntry(row);
+
+  // 2. Case-insensitive match on name or display_name
+  row = db
+    .prepare('SELECT * FROM destinations WHERE LOWER(name) = LOWER(?) OR LOWER(display_name) = LOWER(?)')
+    .get(name, name) as DestRow | undefined;
+  if (row) return rowToEntry(row);
+
+  // 3. If there is only one destination registered, route to it safely
+  const all = db.prepare('SELECT * FROM destinations').all() as DestRow[];
+  if (all.length === 1 && all[0]) {
+    return rowToEntry(all[0]);
+  }
+
+  return undefined;
 }
 
 /**
