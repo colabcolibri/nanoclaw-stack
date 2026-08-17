@@ -13,8 +13,68 @@ import type {
 } from './types.js';
 
 interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content?: string;
+  name?: string;
+  tool_call_id?: string;
+  tool_calls?: any[];
+}
+
+interface ExtractedToolCall {
+  id: string;
+  name: string;
+  args: Record<string, any>;
+}
+
+function parseDsmlToolCalls(content: string): ExtractedToolCall[] {
+  const calls: ExtractedToolCall[] = [];
+  if (!content) return calls;
+
+  const invokeRegex = /<[｜|]{1,2}DSML[｜|]{1,2}invoke\s+name=["']([^"']+)["']>([\s\S]*?)<\/[｜|]{1,2}DSML[｜|]{1,2}invoke>/gi;
+  let match;
+  let idx = 1;
+
+  while ((match = invokeRegex.exec(content)) !== null) {
+    const fnName = match[1];
+    const body = match[2];
+    const args: Record<string, any> = {};
+
+    const paramRegex = /<[｜|]{1,2}DSML[｜|]{1,2}parameter\s+name=["']([^"']+)["'](?:\s+string=["']([^"']+)["'])?>([\s\S]*?)<\/[｜|]{1,2}DSML[｜|]{1,2}parameter>/gi;
+    let paramMatch;
+    while ((paramMatch = paramRegex.exec(body)) !== null) {
+      const paramName = paramMatch[1];
+      const isString = paramMatch[2] === 'true';
+      const rawVal = paramMatch[3].trim();
+
+      if (isString) {
+        args[paramName] = rawVal;
+      } else {
+        try {
+          args[paramName] = JSON.parse(rawVal);
+        } catch {
+          args[paramName] = rawVal;
+        }
+      }
+    }
+
+    calls.push({
+      id: `call_dsml_${Date.now()}_${idx++}`,
+      name: fnName,
+      args,
+    });
+  }
+
+  return calls;
+}
+
+function cleanDsmlFromText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<[｜|]{1,2}DSML[｜|]{1,2}tool_calls>[\s\S]*?<\/[｜|]{1,2}DSML[｜|]{1,2}tool_calls>/gi, '')
+    .replace(/<[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
+    .replace(/<\/[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .trim();
 }
 
 export class DeepSeekProvider implements AgentProvider {
@@ -172,32 +232,48 @@ export class DeepSeekProvider implements AgentProvider {
             break;
           }
 
-          // If DeepSeek requested tool execution
-          if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
-            currentMessages.push(assistantMsg);
+          // Extract tool calls (supports both JSON tool_calls and DSML text format)
+          let toolCallsToExecute: ExtractedToolCall[] = [];
 
+          if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
             for (const call of assistantMsg.tool_calls) {
-              const fnName = call.function?.name;
               let fnArgs: any = {};
               try {
                 fnArgs = JSON.parse(call.function?.arguments || '{}');
               } catch {}
+              toolCallsToExecute.push({
+                id: call.id,
+                name: call.function?.name,
+                args: fnArgs,
+              });
+            }
+          } else if (
+            assistantMsg.content &&
+            (assistantMsg.content.includes('DSML') || assistantMsg.content.includes('invoke'))
+          ) {
+            toolCallsToExecute = parseDsmlToolCalls(assistantMsg.content);
+          }
 
+          // If DeepSeek requested tool execution
+          if (toolCallsToExecute.length > 0) {
+            currentMessages.push(assistantMsg);
+
+            for (const call of toolCallsToExecute) {
               yield { type: 'activity' };
-              const toolResult = await executeTool(fnName, fnArgs, input.cwd);
+              const toolResult = await executeTool(call.name, call.args, input.cwd);
 
               currentMessages.push({
                 role: 'tool',
                 tool_call_id: call.id,
-                name: fnName,
+                name: call.name,
                 content: toolResult,
               });
             }
-            // Continue next iteration to let DeepSeek read tool output
+            // Continue next iteration to let DeepSeek read tool output and respond
             continue;
           }
 
-          finalContent = assistantMsg.content || '';
+          finalContent = cleanDsmlFromText(assistantMsg.content || '');
           break;
         }
 
@@ -216,7 +292,8 @@ export class DeepSeekProvider implements AgentProvider {
                   ...currentMessages,
                   {
                     role: 'user',
-                    content: 'Por favor, envie uma resposta final para o usuário informando com clareza o resultado das ações executadas acima.',
+                    content:
+                      'Por favor, envie uma resposta em linguagem natural e amigável para o usuário confirmando com clareza o resultado das ações executadas acima.',
                   },
                 ],
                 stream: false,
@@ -224,13 +301,14 @@ export class DeepSeekProvider implements AgentProvider {
             });
             if (summaryRes.ok) {
               const summaryData = (await summaryRes.json()) as any;
-              finalContent = summaryData.choices?.[0]?.message?.content || '';
+              finalContent = cleanDsmlFromText(summaryData.choices?.[0]?.message?.content || '');
             }
           } catch {}
         }
 
+        finalContent = cleanDsmlFromText(finalContent);
         if (!finalContent || !finalContent.trim()) {
-          finalContent = 'Ação executada com sucesso.';
+          finalContent = 'Ação executada com sucesso no Notion e ambiente.';
         }
 
         // Determine target delivery channel/JID
