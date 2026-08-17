@@ -9,9 +9,10 @@ This directory contains system-level operational playbooks, architecture specifi
 | Document | Description |
 | :--- | :--- |
 | **[ARCHITECTURE_PHILOSOPHY.md](file:///opt/nanoclaw-stack/infra/ARCHITECTURE_PHILOSOPHY.md)** | Core design principles, the satellite pattern, and upstream compatibility rules. |
+| **[MACOS_INTEGRATION.md](file:///opt/nanoclaw-stack/infra/MACOS_INTEGRATION.md)** | Apple Shortcuts setup, global keyboard hotkeys, Siri integration, and SQLite channel isolation. |
 | **[SERVICES.md](file:///opt/nanoclaw-stack/infra/SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
 | **[MAINTENANCE.md](file:///opt/nanoclaw-stack/infra/MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
-| **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, context window management, and provider configuration. |
+| **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, TurnOrchestrator architecture, and response normalization. |
 | **[WHISPER.md](file:///opt/nanoclaw-stack/infra/WHISPER.md)** | Self-hosted audio transcription service configuration and media pipeline. |
 
 ---

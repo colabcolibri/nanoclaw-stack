@@ -58,3 +58,8 @@ Upstream [NanoClaw](https://github.com/nanocoai/nanoclaw) is treated strictly as
 ### 5. Local State & Privacy Preservation
 * **Rule:** Keep secrets, SQLite databases, SSL certificates, and bot memories strictly local on the host server (`.gitignore`).
 * **Why:** The codebase can be open-sourced or maintained publicly on GitHub without risk of credential exposure, while the host server retains full operational state.
+
+### 6. Omnichannel Per-Channel Context Isolation
+* **Rule:** Multi-channel endpoints (Telegram, macOS Shortcuts, Web, CLI) must maintain separate, dedicated SQLite sessions (`v2-sessions/<group>/sess-<channel>/`).
+* **Why:** Prevents cross-device prompt bleeding and context pollution, ensuring interactions on a desktop MacBook and mobile Telegram operate as independent conversational threads while sharing the same underlying tools and databases.
+

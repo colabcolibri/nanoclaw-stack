@@ -51,6 +51,7 @@ nanoclaw-stack/
 │
 └── infra/            # Systemd service playbooks, architecture principles, and ops manuals
     ├── ARCHITECTURE_PHILOSOPHY.md # The satellite pattern & design principles
+    ├── MACOS_INTEGRATION.md       # Apple Shortcuts, Siri, and macOS channel guide
     ├── DEEPSEEK.md                # Model connector & orchestrator specs
     ├── SERVICES.md                # Service topologies and port mappings
     └── MAINTENANCE.md             # Backup strategies and update workflows
