@@ -47,12 +47,17 @@ export const googleGmailTool: AgentTool = {
             type: 'string',
             enum: ['list_messages', 'read_message', 'create_draft', 'send_message'],
             description:
-              'Ação a realizar: list_messages (listar e-mails recentes/filtrados), read_message (ler conteúdo completo por message_id), create_draft (criar rascunho), send_message (enviar e-mail).',
+              'Ação a realizar: list_messages (listar e-mails da caixa de entrada ou busca), read_message (ler conteúdo completo por message_id), create_draft (criar rascunho), send_message (enviar e-mail).',
+          },
+          folder: {
+            type: 'string',
+            enum: ['inbox', 'sent', 'starred', 'all'],
+            description: 'Pasta a consultar (padrão: "inbox" para Caixa de Entrada exclusiva).',
           },
           query: {
             type: 'string',
             description:
-              'Operadores de busca avançada do Gmail combinados. Exemplos: "is:unread subject:relatório", "is:unread from:cliente@empresa.com", "newer_than:3d has:attachment", "subject:\"proposta comercial\" is:unread", "from:financeiro after:2026/08/01", "-promotions is:unread".',
+              'Operadores de busca avançada do Gmail combinados (ex: "is:unread", "newer_than:3d", "from:fulano@empresa.com", "subject:contrato"). Por padrão já pesquisa dentro da Caixa de Entrada (in:inbox).',
           },
           max_results: {
             type: 'number',
@@ -184,13 +189,34 @@ export const googleGmailTool: AgentTool = {
       return JSON.stringify({ status: 'ok', message: 'E-mail enviado com sucesso.', messageId: sendData.id });
     }
 
-    // 3. LIST MESSAGES (DEFAULT)
+    // 3. LIST MESSAGES (DEFAULT: SCOPED TO INBOX EXCLUSIVELY)
     const limit = Math.min(Math.max(Number(args.max_results) || 15, 1), 50);
-    const q = args.query ? `&q=${encodeURIComponent(args.query)}` : '';
+    const folder = args.folder || 'inbox';
 
-    const listRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}${q}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // Build query ensuring INBOX scope unless user explicitly asked for another folder
+    let queryParts: string[] = [];
+    if (folder === 'inbox' && (!args.query || (!args.query.includes('in:') && !args.query.includes('label:')))) {
+      queryParts.push('in:inbox');
+    } else if (folder === 'sent') {
+      queryParts.push('in:sent');
+    } else if (folder === 'starred') {
+      queryParts.push('is:starred');
+    }
+
+    if (args.query && args.query.trim()) {
+      queryParts.push(args.query.trim());
+    }
+
+    const finalQueryString = queryParts.join(' ');
+    const qParam = finalQueryString ? `&q=${encodeURIComponent(finalQueryString)}` : '';
+    const labelParam = folder === 'inbox' ? '&labelIds=INBOX' : '';
+
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}${labelParam}${qParam}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     if (!listRes.ok) {
       return JSON.stringify({ status: 'error', code: listRes.status, text: await listRes.text() });
@@ -227,6 +253,7 @@ export const googleGmailTool: AgentTool = {
 
     return JSON.stringify({
       status: 'ok',
+      folder,
       totalFound: detailed.length,
       estimatedTotal: data.resultSizeEstimate,
       messages: detailed,
