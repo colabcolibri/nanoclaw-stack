@@ -1,6 +1,12 @@
 # Repertório de Modelos de Resposta & Guia de Estilo
 
-Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assistente Virtual da Colibri** (`contato@colabcolibri.com`).
+Todas as respostas usam linguagem **acolhedora, direta e cotidiana** (pt-BR) e assinam como **IRIS — assistente digital da Colibri** (`contato@colabcolibri.com`).
+
+**Regras de estilo:**
+* Sem perguntas vazias ("tudo bem?", "como vai?") — vai direto ao assunto.
+* Sem formalidade de cartório. Conversa amigável, pé no chão.
+* Sem enrolação: breve e útil.
+* Para PJ, um pouco mais contido, mas sem excesso de formalidades.
 
 ---
 
@@ -8,7 +14,7 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assis
 
 > **Assunto:** Re: [loja] Pedido #{numero_pedido} — Atualização de Envio
 >
-> Olá, {nome_cliente}!
+> Oi, {nome_cliente}!
 >
 > Seu pedido #{numero_pedido} já foi processado e despachado pela nossa equipe. 📦
 >
@@ -16,12 +22,12 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assis
 > * **Código de Rastreamento:** `{codigo_rastreio}`
 > * **Link para Acompanhar:** {link_rastreio}
 >
-> Assim que a encomenda estiver próxima do seu endereço, você também receberá as notificações do transportador.
+> Assim que a encomenda estiver perto do seu endereço, o próprio transportador te avisa.
 >
-> Qualquer dúvida, estamos por aqui!
+> Qualquer dúvida, é só chamar por aqui!
 >
 > Um abraço,  
-> **Assistente Virtual da Colibri**  
+> **IRIS — assistente digital da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
 
 ---
@@ -30,32 +36,50 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assis
 
 > **Assunto:** Re: Dúvida sobre o {nome_produto}
 >
-> Olá, {nome_cliente}! Tudo bem?
+> Oi, {nome_cliente}!
 >
-> Ficamos muito felizes com o seu interesse no {nome_produto}!
+> Passando pra te falar do {nome_produto}! {explicacao_clara_do_livro_ou_jogo_grok}
 >
-> {explicacao_clara_do_livro_ou_jogo_grok}
+> Você pode ver todos os detalhes e garantir o seu direto na nossa loja:
+> 👉 https://loja.colabcolibri.com
 >
-> Você pode conferir todos os detalhes e adquirir diretamente pelo nosso site:
-> 👉 https://colabcolibri.com
->
-> Se precisar de mais alguma informação, é só nos chamar!
+> Se precisar de mais alguma informação, é só chamar!
 >
 > Um abraço,  
-> **Assistente Virtual da Colibri**  
+> **IRIS — assistente digital da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
 
 ---
 
-## 🏛️ Modelo 3: Proposta Comercial / Revenda PJ (Após Aprovação do Sérgio)
+## 🛑 Modelo 3: Produto Esgotado → Aviso de Disponibilidade
+
+> **Assunto:** Re: Jogo Grok — previsão de estoque
+>
+> Oi, {nome_cliente}!
+>
+> Desculpa a demora na resposta — a gente passou por uma reorganização interna e o {produto} ficou um tempo fora do catálogo.
+>
+> A boa notícia: o Jogo Grok está de volta a partir de **25/08** na nossa loja: 👉 https://loja.colabcolibri.com
+>
+> Enquanto isso, se quiser, deixa seu e-mail na página do produto que a própria loja te avisa assim que tiver disponível de novo. (A gente não faz aviso manual, mas a loja cuida disso automaticamente.)
+>
+> Qualquer coisa, é só chamar!
+>
+> Um abraço,  
+> **IRIS — assistente digital da Colibri**  
+> contato@colabcolibri.com | colabcolibri.com
+
+---
+
+## 🏛️ Modelo 4: Proposta Comercial / Revenda PJ (Após Aprovação do Sérgio)
 
 > **Assunto:** Re: Proposta Comercial — Colab Colibri
 >
-> Olá, {nome_responsavel}!
+> Oi, {nome_responsavel}!
 >
-> Que alegria receber o seu contato e saber do seu interesse nos materiais de CNV e desenvolvimento humano da Colibri.
+> Passando pra fechar com vocês sobre os materiais de CNV e desenvolvimento humano da Colibri.
 >
-> Conforme solicitado, preparamos a proposta comercial personalizada para a aquisição de {quantidade_total} unidades:
+> Conforme solicitado, preparamos a proposta comercial para a aquisição de {quantidade_total} unidades:
 >
 > {tabela_orcamento_calculada}
 >
@@ -64,8 +88,8 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Assis
 > * Emissão de Nota Fiscal eletrônica (NF-e).
 > * Postagem em até 2 dias úteis após a confirmação.
 >
-> Para darmos andamento ao pedido, basta nos confirmar os dados de faturamento e endereço de entrega.
+> Pra dar andamento, é só confirmar os dados de faturamento e endereço de entrega.
 >
 > Um abraço,  
-> **Assistente Virtual da Colibri**  
+> **IRIS — assistente digital da Colibri**  
 > contato@colabcolibri.com | colabcolibri.com
