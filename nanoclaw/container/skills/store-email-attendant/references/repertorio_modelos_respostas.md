@@ -26,19 +26,20 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equip
 
 ---
 
-## 🃏 Modelo 2: Reposição de Cartas dos Jogos Grok
+## 🛍️ Modelo 2: Dúvidas sobre Conteúdo e Uso dos Produtos
 
-> **Assunto:** Re: [contato] Reposição de Cartas — Jogo Grok
+> **Assunto:** Re: Dúvida sobre o {nome_produto}
 >
 > Olá, {nome_cliente}! Tudo bem?
 >
-> Sentimos muito pelo ocorrido com o seu jogo. Pode ficar tranquilo(a) que providenciaremos a reposição das cartas para você continuar utilizando suas práticas de CNV!
+> Ficamos muito felizes com o seu interesse no {nome_produto}!
 >
-> Para agilizarmos o envio:
-> 1. Quais são os nomes das cartas que precisam de reposição?
-> 2. Qual o melhor endereço de entrega com CEP?
+> {explicacao_clara_do_livro_ou_jogo_grok}
 >
-> Ficamos no seu aguardo para postar o quanto antes.
+> Você pode conferir todos os detalhes e adquirir diretamente pelo nosso site:
+> 👉 https://colabcolibri.com
+>
+> Se precisar de mais alguma informação, é só nos chamar!
 >
 > Um abraço,  
 > **Equipe Colibri**  
@@ -46,17 +47,24 @@ Todas as respostas devem usar linguagem acolhedora, clara e assinar como **Equip
 
 ---
 
-## 🏛️ Modelo 3: Solicitação de Proposta Comercial / Facilitadores
+## 🏛️ Modelo 3: Proposta Comercial / Revenda PJ (Após Aprovação do Sérgio)
 
-> **Assunto:** Re: Solicitação de Proposta Comercial — Jogos Grok / Livros
+> **Assunto:** Re: Proposta Comercial — Colab Colibri
 >
 > Olá, {nome_responsavel}!
 >
-> Que alegria receber o seu contato e saber do seu interesse nos nossos materiais de CNV e desenvolvimento humano.
+> Que alegria receber o seu contato e saber do seu interesse nos materiais de CNV e desenvolvimento humano da Colibri.
 >
-> Recebemos a sua solicitação referente à aquisição de {quantidade} unidades. Nossa equipe já está elaborando a proposta comercial personalizada com as condições especiais para a sua organização.
+> Conforme solicitado, preparamos a proposta comercial personalizada para a aquisição de {quantidade_total} unidades:
 >
-> Retornaremos com o documento completo em breve. Caso tenha algum prazo ou detalhe adicional do edital, fique à vontade para nos informar.
+> {tabela_orcamento_calculada}
+>
+> **Condições Gerais:**
+> * Pagamento via PIX, Boleto Bancário ou Cartão.
+> * Emissão de Nota Fiscal eletrônica (NF-e).
+> * Postagem em até 2 dias úteis após a confirmação.
+>
+> Para darmos andamento ao pedido, basta nos confirmar os dados de faturamento e endereço de entrega.
 >
 > Um abraço,  
 > **Equipe Colibri**  

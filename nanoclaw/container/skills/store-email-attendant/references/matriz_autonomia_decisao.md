@@ -1,28 +1,39 @@
-# Matriz de Autonomia e Tomada de Decisão de Atendimento
+# Matriz de Autonomia e Ponderação de Decisão de Atendimento
 
-Este guia define exatamente o que o agente de atendimento da Colibri pode responder de forma autônoma e o que deve ser escalado para aprovação do Sérgio.
+Este documento estabelece a régua de julgamento do assistente para decidir com clareza quando responder de forma imediata e quando notificar o Sérgio no Telegram para aprovação.
 
 ---
 
-## 🟢 Categoria 1: Autonomia Total (Respostas Padrão & Operacionais)
+## 🟢 Categoria 1: Responder Diretamente (Informações Padronizadas)
+
+Nestas situações, o assistente pode redigir e enviar a resposta:
 
 1. **Rastreamento e Status de Pedidos:**
    * O cliente envia número do pedido ou pergunta sobre a entrega.
    * O agente valida o e-mail na Yampi (`yampi_store(get_order, client_email)`).
-   * Responde com código de rastreamento e prazo estimado.
-2. **Dúvidas sobre Jogos Grok e Livros:**
-   * Explica o conteúdo dos jogos de cartas Grok (Sentimentos, Necessidades, CNV).
-   * Informa que temos disponível na loja para pronta entrega.
-3. **Reposição de Cartas:**
-   * Acolhe o cliente, pede para indicar quais cartas faltaram ou foram danificadas e o endereço atualizado de envio para postagem da reposição sem custo.
+   * Responde com código de rastreamento oficial e link dos Correios/transportadora.
+2. **Dúvidas de Conteúdo de Produtos:**
+   * Explicar o que é o Jogo Grok, livros de CNV, autoria, faixas etárias, modos de jogar e links para compra na loja oficial.
+3. **Prazos de Envio e Pagamentos:**
+   * Informar prazo de separação (até 2 dias úteis) e opções de pagamento da loja (PIX, Cartão, Boleto).
 
 ---
 
-## 🟡 Categoria 2: Modo Assistido (Prepara Rascunho + Notifica Sérgio)
+## 🟡 Categoria 2: Notificar Sérgio Proativamente no Telegram (Modo Assistido)
 
-1. **Editais, Prefeituras e Compras Corporativas B2B:**
-   * Exemplo: Solicitação de proposta comercial formal para secretarias de educação ou empresas.
-   * **Ação do Agente:** Responde acolhendo a solicitação, avisa que a equipe está montando a proposta técnica/comercial e notifica o Sérgio com o resumo e o prazo do edital.
-2. **Descontos para Facilitadores de CNV / Compras em Lote:**
-   * Exemplo: "Gostaria de comprar 9 ou 10 jogos Grok com desconto para meu workshop".
-   * **Ação do Agente:** Responde celebrando o trabalho do facilitador, confirma a viabilidade do lote e prepara o rascunho com as condições comerciais acordadas.
+Nestas situações, o assistente **NUNCA** toma decisões comerciais ou operacionais sozinho. Ele monta o rascunho executivo e notifica o Sérgio:
+
+1. **Propostas Comerciais B2B, Prefeituras e Editais:**
+   * O agente roda a ferramenta de cálculo de orçamento (`calculate_resale_quote`), monta o rascunho de e-mail e envia um briefing para o Sérgio no Telegram:
+     > *"📬 **Solicitação de Proposta Comercial:**  
+     > **Cliente:** Prefeitura de Pinhais (Edital PG 54.2026)  
+     > **Itens:** 15x Jogo Grok + 10x Livro CNV  
+     > **Valor Calculado:** R$ 1.830,40  
+     > **Rascunho de e-mail pronto no Gmail.**  
+     > 👉 **Posso enviar a proposta ou deseja ajustar?**"*
+2. **Pedidos de Desconto Fora da Tabela / Parcerias:**
+   * Facilitadores ou empresas pedindo condições especiais.
+3. **Reclamações, Trocas, Defeitos ou Cancelamentos:**
+   * Acolher com empatia e notificar o Sérgio com urgência para análise caso a caso.
+4. **Demandas Fiscais / Notas Fiscais:**
+   * Clientes cobrando emissão ou correção de NF-e.
