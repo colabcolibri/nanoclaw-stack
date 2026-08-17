@@ -130,7 +130,7 @@ function buildDestinationsSection(mode: SessionMode): string {
   );
   lines.push('');
   lines.push(
-    'Quando o usuário fizer uma solicitação que depende de consulta ou execução de ferramentas (ex: consultar e-mails no Gmail, calcular frete ou preços, buscar no Notion ou banco de dados), NUNCA encerre com mensagens preliminares ou avisos conversacionais vazios (ex: "Vou pesquisar", "Deixa eu ver"). Você DEVE invocar a ferramenta correspondente imediatamente via chamada de função (tool_calls) para obter os dados reais e entregar a resposta conclusiva e completa.'
+    'When a user request requires external data, computation, or action execution via available tools, invoke the required tools directly via function calling (tool_calls) to retrieve the real information and deliver the complete, conclusive result. Never send intermediate conversational placeholders or promises of future action without invoking the corresponding tools.'
   );
   return lines.join('\n');
 }
