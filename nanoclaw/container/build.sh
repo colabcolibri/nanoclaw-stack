@@ -18,6 +18,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+# Pre-build Automated Test Validation Gate
+echo "=== Running Agent Runner Automated Quality & Smoke Tests ==="
+if command -v bun >/dev/null 2>&1; then
+    (cd "$SCRIPT_DIR/agent-runner" && bun test tests/smoke.test.ts) || {
+        echo "❌ CRITICAL ERROR: Agent Runner pre-build tests failed! Build aborted to prevent deployment of broken code."
+        exit 1
+    }
+    echo "✅ All agent tests passed successfully."
+fi
+
 # Derive the image name from the project root so two NanoClaw installs on the
 # same host don't overwrite each other's `nanoclaw-agent:latest` tag. Matches
 # setup/lib/install-slug.sh + src/install-slug.ts.
