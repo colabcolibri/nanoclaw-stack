@@ -13,7 +13,7 @@ export interface EmailPolicy {
 export function loadEmailPolicy(cwd?: string): EmailPolicy {
   const defaults: EmailPolicy = {
     mode: 'draft_approval',
-    signature: 'Assistente Virtual da Colibri <contato@colabcolibri.com>',
+    signature: process.env.EMAIL_DEFAULT_SIGNATURE || '',
     forwardToTelegram: true,
     autoMarkAsRead: false,
   };
@@ -302,13 +302,24 @@ export const googleGmailTool: AgentTool = {
 
       const data = (await res.json()) as any;
 
+      let userEmail = '';
+      try {
+        const profRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profRes.ok) {
+          const prof = (await profRes.json()) as any;
+          userEmail = (prof.emailAddress || '').toLowerCase();
+        }
+      } catch {}
+
       if (isThread && Array.isArray(data.messages) && data.messages.length > 0) {
         const rawMsgs = data.messages;
         const parsedMsgs = rawMsgs.map((m: any, idx: number) => {
           const headers = m.payload?.headers || [];
           const getH = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
           const fromVal = getH('From');
-          const isFromMe = fromVal.includes('colabcolibri') || fromVal.includes('sergio') || fromVal.includes('equipe');
+          const isFromMe = userEmail ? fromVal.toLowerCase().includes(userEmail) : Boolean(m.labelIds?.includes('SENT'));
           const body = extractBody(m.payload) || m.snippet || '';
 
           return {
@@ -359,7 +370,7 @@ export const googleGmailTool: AgentTool = {
       const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
       const bodyText = extractBody(data.payload) || data.snippet || '';
       const fromVal = getHeader('From');
-      const isFromMe = fromVal.includes('colabcolibri') || fromVal.includes('sergio');
+      const isFromMe = userEmail ? fromVal.toLowerCase().includes(userEmail) : Boolean(data.labelIds?.includes('SENT'));
 
       return JSON.stringify({
         status: 'ok',
