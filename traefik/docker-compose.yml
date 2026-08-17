@@ -8,6 +8,6 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /opt/traefik/traefik.yml:/traefik.yml:ro
-      - /opt/traefik/dynamic_conf.yml:/dynamic_conf.yml:ro
-      - /opt/traefik/acme.json:/acme.json
+      - ./traefik.yml:/traefik.yml:ro
+      - ./dynamic_conf.yml:/dynamic_conf.yml:ro
+      - ./acme.json:/acme.json
