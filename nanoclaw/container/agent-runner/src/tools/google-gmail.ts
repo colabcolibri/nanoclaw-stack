@@ -86,13 +86,28 @@ function extractBody(payload: any): string {
   return '';
 }
 
+function stripEmailQuotesAndBoilerplate(text: string): string {
+  if (!text) return '';
+  let cleaned = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\n(?:On\s.+?wrote|Em\s.+?escreveu):[\s\S]*/i, '')
+    .replace(/^\s*>+.*$/gm, '')
+    .replace(/This email and any files transmitted with it are confidential[\s\S]*/i, '')
+    .replace(/Esta mensagem contém informações confidenciais[\s\S]*/i, '')
+    .trim();
+  if (cleaned.length > 1800) {
+    cleaned = cleaned.slice(0, 1797) + '...';
+  }
+  return cleaned;
+}
+
 /**
  * Formats email body to ensure continuous flowing text per paragraph without
  * awkward line-breaks/enters in the middle of sentences.
  */
 function formatEmailBody(raw: string): string {
   if (!raw) return '';
-  const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const normalized = stripEmailQuotesAndBoilerplate(raw);
   const paragraphs = normalized.split(/\n\s*\n/);
 
   const cleanedParagraphs = paragraphs.map((para) => {
@@ -490,8 +505,8 @@ export const googleGmailTool: AgentTool = {
       });
     }
 
-    // 5. LIST CONVERSATIONS/THREADS
-    const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 50, 1), 100);
+    // 5. LIST CONVERSATIONS/THREADS (TOKEN OPTIMIZED)
+    const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 12, 1), 30);
     const folder = args.folder || 'inbox';
 
     let queryParts: string[] = [];
@@ -544,17 +559,17 @@ export const googleGmailTool: AgentTool = {
                 headers.find((h: any) => h.name.toLowerCase() === hn.toLowerCase())?.value || '';
 
               const isUnread = msgs.some((m: any) => m.labelIds && m.labelIds.includes('UNREAD'));
+              let snip = (t.snippet || lastMsg?.snippet || '').trim();
+              if (snip.length > 90) snip = snip.slice(0, 87) + '...';
 
               return {
                 id: lastMsg?.id || t.id,
                 thread_id: t.id,
                 from: getHeader('From'),
-                to: getHeader('To'),
-                subject: getHeader('Subject'),
+                subject: getHeader('Subject') || '(Sem assunto)',
                 date: getHeader('Date'),
-                messagesInThread: msgs.length,
-                isUnread,
-                snippet: t.snippet || lastMsg?.snippet || '',
+                unread: isUnread,
+                snippet: snip,
               };
             }
           } catch {}
@@ -565,10 +580,8 @@ export const googleGmailTool: AgentTool = {
 
     return JSON.stringify({
       status: 'ok',
-      folder,
-      totalConversations: detailed.length,
-      estimatedTotal: data.resultSizeEstimate,
-      conversations: detailed,
+      total: detailed.length,
+      threads: detailed,
     });
   },
 };
