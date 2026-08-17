@@ -115,66 +115,87 @@ export class TurnOrchestrator {
   }
 
   /**
-   * Intelligently synthesizes a human-readable, domain-rich response from executed tool results.
+   * Universally and polymorphically synthesizes any tool execution outputs into structured, human-readable markdown.
    */
   private static synthesizeFromToolHistory(messages: any[]): string {
     const toolMessages = messages.filter((m) => m.role === 'tool' && m.content);
     if (toolMessages.length === 0) {
-      return 'Tudo pronto! A solicitação foi concluída.';
+      return 'Tudo pronto! As consultas e operações foram concluídas com sucesso.';
     }
 
     const sections: string[] = [];
 
     for (const tm of toolMessages) {
-      try {
-        const parsed = typeof tm.content === 'string' ? JSON.parse(tm.content) : tm.content;
+      const toolName = tm.name || 'Operação';
+      const rawContent = tm.content;
 
-        // 1. Resale Quote calculation
-        if (parsed.formattedProposalMarkdown) {
-          sections.push(parsed.formattedProposalMarkdown);
+      if (!rawContent || (typeof rawContent === 'string' && !rawContent.trim())) continue;
+
+      // Case A: Raw text already in Markdown format (tables, headers, lists)
+      if (typeof rawContent === 'string' && (rawContent.includes('# ') || rawContent.includes('| :') || rawContent.includes('\n- ') || rawContent.includes('\n* '))) {
+        sections.push(rawContent.trim());
+        continue;
+      }
+
+      // Case B: Try parsing JSON objects
+      try {
+        const data = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+
+        // 1. Explicit formatted proposal or summary string
+        if (data.formattedProposalMarkdown) {
+          sections.push(data.formattedProposalMarkdown);
+          continue;
+        }
+        if (data.markdown || data.formattedText || data.summary) {
+          sections.push(data.markdown || data.formattedText || data.summary);
           continue;
         }
 
-        // 2. Gmail results
-        if (parsed.conversations && Array.isArray(parsed.conversations)) {
-          if (parsed.conversations.length === 0) {
-            sections.push('📬 **Caixa de Entrada:** Nenhuma conversa não lida pendente no momento.');
+        // 2. Arrays / Lists of Items (Notion records, Gmail threads, Google Calendar events, products, tasks)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]));
+        if (Array.isArray(data) || (arrayKey && Array.isArray(data[arrayKey]))) {
+          const list: any[] = Array.isArray(data) ? data : data[arrayKey!];
+          if (list.length === 0) {
+            sections.push(`📋 **${toolName}:** Nenhum item ou registro pendente encontrado.`);
           } else {
-            const list = parsed.conversations
-              .slice(0, 5)
-              .map(
-                (c: any) =>
-                  `• **De:** ${c.from || 'Desconhecido'} | **Assunto:** ${c.subject || '(Sem assunto)'} ${c.needsReply ? '🔴 *(Precisa de Resposta)*' : '🟢'}`
-              )
-              .join('\n');
-            sections.push(`📬 **E-mails Encontrados (${parsed.conversations.length}):**\n${list}`);
+            const formattedItems = list.slice(0, 10).map((item, idx) => {
+              if (typeof item === 'string') return `• ${item}`;
+              // Extract best display attributes
+              const title = item.title || item.name || item.subject || item.summary || item.product || item.action || `Item ${idx + 1}`;
+              const sub = item.from || item.status || item.date || item.price || item.customer_name || item.recurrence || '';
+              const detail = item.needsReply ? '🔴 *(Requer resposta)*' : (sub ? `(${sub})` : '');
+              return `• **${title}** ${detail}`;
+            });
+            const more = list.length > 10 ? `\n*(...e mais ${list.length - 10} itens)*` : '';
+            sections.push(`📋 **Resultado (${toolName} — ${list.length} itens):**\n${formattedItems.join('\n')}${more}`);
           }
           continue;
         }
 
-        // 3. Yampi Order Tracking
-        if (parsed.order_number || parsed.status_alias) {
-          sections.push(
-            `📦 **Pedido #${parsed.order_number || ''}**\n• Status: **${parsed.status_alias || 'Em processamento'}**\n• Cliente: ${parsed.customer_name || ''}\n• Rastreio: ${parsed.tracking_url || parsed.tracking_code || 'Aguardando despacho'}`
-          );
-          continue;
+        // 3. Single Object with key-value properties
+        if (typeof data === 'object' && data !== null) {
+          if (data.message && Object.keys(data).length <= 2) {
+            sections.push(`✅ **${toolName}:** ${data.message}`);
+            continue;
+          }
+
+          const entries = Object.entries(data)
+            .filter(([k, v]) => v !== null && v !== undefined && k !== 'status' && typeof v !== 'object')
+            .map(([k, v]) => `• **${k.replace(/_/g, ' ')}:** ${v}`);
+
+          if (entries.length > 0) {
+            const header = data.message ? `✅ **${data.message}**\n` : `📋 **Dados (${toolName}):**\n`;
+            sections.push(`${header}${entries.join('\n')}`);
+            continue;
+          }
         }
 
-        // 4. Product search / Stock check
-        if (parsed.stock !== undefined || parsed.available !== undefined) {
-          sections.push(
-            `🛍️ **Disponibilidade:** Produto ${parsed.product_name || ''} — Saldo em estoque: **${parsed.stock ?? 0} unidades**.`
-          );
-          continue;
-        }
-
-        // 5. General message fallback
-        if (parsed.message) {
-          sections.push(parsed.message);
-        }
+        // Fallback JSON stringification
+        sections.push(`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
       } catch {
-        if (typeof tm.content === 'string' && tm.content.trim().length > 10) {
-          sections.push(tm.content.trim());
+        // Case C: Non-JSON raw string
+        if (typeof rawContent === 'string' && rawContent.trim()) {
+          sections.push(rawContent.trim());
         }
       }
     }
