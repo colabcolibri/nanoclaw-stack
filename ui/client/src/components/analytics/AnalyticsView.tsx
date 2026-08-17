@@ -65,25 +65,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         subtitle={t('subtitle')}
         actions={
           <>
-            {/* Currency Selector (BRL default / USD option) */}
-            <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl gap-1 shadow-xs">
-              <Button
-                variant={currency === 'BRL' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 text-xs px-2.5 font-bold cursor-pointer"
-                onClick={() => setCurrency('BRL')}
-              >
-                🇧🇷 BRL (R$)
-              </Button>
-              <Button
-                variant={currency === 'USD' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 text-xs px-2.5 font-bold cursor-pointer"
-                onClick={() => setCurrency('USD')}
-              >
-                🇺🇸 USD ($)
-              </Button>
-            </div>
 
             {/* Tab Selector */}
             <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl gap-1 shadow-xs">
