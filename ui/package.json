@@ -5,6 +5,8 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
+    "build:client": "cd client && bun run build",
+    "dev:client": "cd client && bun run dev",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts"
   },

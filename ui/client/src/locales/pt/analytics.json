@@ -1,0 +1,22 @@
+{
+  "title": "Extrato Detalhado de Consumo & Execuções",
+  "subtitle": "Acompanhe tanto as mensagens finais quanto cada run intermediária e chamada de ferramenta.",
+  "tabMessages": "💬 Mensagens Finais",
+  "tabRuns": "🔄 Runs Intermediárias",
+  "totalCostUsd": "Custo Total (USD)",
+  "totalTokens": "Total de Tokens",
+  "totalCalls": "Total de Interações",
+  "baseRate": "Tarifa Base",
+  "type": "Tipo",
+  "dateTime": "Data / Hora",
+  "channel": "Canal",
+  "sender": "Remetente",
+  "characters": "Caracteres",
+  "costUsd": "Custo USD",
+  "costBrl": "Custo BRL",
+  "message": "Mensagem",
+  "stepType": "Tipo de Passo",
+  "runId": "ID da Run / Turn",
+  "toolContent": "Conteúdo / Ferramenta",
+  "noLogs": "Nenhum registro de consumo encontrado."
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Soul, Persona Directives & Persistent Memory",
+  "subtitle": "Edit core agent personality prompts, OKF durable memory facts, and behavioral modules.",
+  "selectDoc": "Select a document to edit",
+  "savePrompt": "Save Instructions",
+  "savedSuccess": "Document saved successfully!",
+  "saveError": "Failed to save document.",
+  "editorTab": "Markdown Editor",
+  "previewTab": "Rendered Preview",
+  "charCount": "{{count}} characters",
+  "tokenCount": "~{{count}} tokens",
+  "lineCount": "{{count}} lines",
+  "emptyDoc": "No instructions defined for this document."
+}

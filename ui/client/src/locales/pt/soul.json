@@ -1,0 +1,14 @@
+{
+  "title": "Editor de Alma, Persona & Memória Permanente",
+  "subtitle": "Edite as diretrizes de personalidade, fatos de memória OKF e módulos de comportamento.",
+  "selectDoc": "Selecione um documento para editar",
+  "savePrompt": "Salvar Alterações",
+  "savedSuccess": "Documento salvo com sucesso!",
+  "saveError": "Erro ao salvar o documento.",
+  "editorTab": "Editor Markdown",
+  "previewTab": "Pré-visualização Renderizada",
+  "charCount": "{{count}} caracteres",
+  "tokenCount": "~{{count}} tokens",
+  "lineCount": "{{count}} linhas",
+  "emptyDoc": "Nenhuma instrução definida para este documento."
+}

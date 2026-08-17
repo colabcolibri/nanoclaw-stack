@@ -1,0 +1,22 @@
+{
+  "title": "Histórico de Conversas por Canal",
+  "subtitle": "Filtre para visualizar a conversa individual do seu MacBook, do Telegram ou a visão geral.",
+  "filterAll": "🌐 Todos",
+  "filterTelegram": "📱 Telegram",
+  "filterMacos": "💻 macOS (MacBook)",
+  "filterCli": "💻 Terminal",
+  "filterWeb": "🌐 Web",
+  "noMessages": "Nenhuma mensagem encontrada para o filtro selecionado.",
+  "copySuccess": "Texto copiado para a área de transferência!",
+  "copyError": "Não foi possível copiar o texto.",
+  "inspectorTitle": "Detalhes da Mensagem",
+  "messageId": "ID da Mensagem",
+  "messageType": "Tipo",
+  "messageSender": "Remetente",
+  "messageChannel": "Canal",
+  "messageTimestamp": "Data e Hora",
+  "messageRaw": "Conteúdo Integral",
+  "tokens": "Consumo",
+  "you": "Você",
+  "assistant": "Barão"
+}

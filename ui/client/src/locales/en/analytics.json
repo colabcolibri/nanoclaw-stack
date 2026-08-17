@@ -1,0 +1,22 @@
+{
+  "title": "Usage & Execution Statement",
+  "subtitle": "Track both final delivered messages and intermediate tool execution turns.",
+  "tabMessages": "💬 Delivered Messages",
+  "tabRuns": "🔄 Intermediate Runs",
+  "totalCostUsd": "Total Cost (USD)",
+  "totalTokens": "Total Tokens",
+  "totalCalls": "Total Interactions",
+  "baseRate": "Base Tariff",
+  "type": "Type",
+  "dateTime": "Date / Time",
+  "channel": "Channel",
+  "sender": "Sender",
+  "characters": "Characters",
+  "costUsd": "Cost USD",
+  "costBrl": "Cost BRL",
+  "message": "Message",
+  "stepType": "Step Type",
+  "runId": "Run / Turn ID",
+  "toolContent": "Tool Content / Payload",
+  "noLogs": "No usage logs found."
+}

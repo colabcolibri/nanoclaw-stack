@@ -1,0 +1,14 @@
+{
+  "title": "Parâmetros do Modelo & Conectores",
+  "subtitle": "Configure o modelo LLM ativo, endpoint base da API, nome do assistente e chaves de acesso.",
+  "assistantName": "Nome do Assistente",
+  "provider": "Provedor de Execução (Provider)",
+  "model": "Modelo de IA (LLM Model)",
+  "baseUrl": "Endpoint Base URL",
+  "apiKeyStatus": "Status da API Key",
+  "keyConfigured": "Chave Configurada",
+  "keyPlaceholder": "Nova chave (deixe vazio para manter a atual)",
+  "save": "Salvar Parâmetros",
+  "savedSuccess": "Parâmetros salvos com sucesso!",
+  "saveError": "Erro ao salvar configurações."
+}

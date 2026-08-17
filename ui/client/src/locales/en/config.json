@@ -1,0 +1,14 @@
+{
+  "title": "Model Parameters & Connectors",
+  "subtitle": "Configure the active LLM engine, base API endpoint, assistant persona name, and credentials.",
+  "assistantName": "Assistant Name",
+  "provider": "Execution Provider",
+  "model": "LLM Model",
+  "baseUrl": "Base API Endpoint",
+  "apiKeyStatus": "API Key Status",
+  "keyConfigured": "Key Configured",
+  "keyPlaceholder": "New API key (leave empty to retain current key)",
+  "save": "Save Parameters",
+  "savedSuccess": "Parameters saved successfully!",
+  "saveError": "Failed to save configuration."
+}
