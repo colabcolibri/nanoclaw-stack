@@ -197,16 +197,47 @@ export class DeepSeekProvider implements AgentProvider {
             continue;
           }
 
-          finalContent = assistantMsg.content || '';
-          break;
+        // If after tool execution finalContent is still empty, request a final summary
+        if (!finalContent || !finalContent.trim()) {
+          try {
+            const summaryRes = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  ...currentMessages,
+                  {
+                    role: 'user',
+                    content: 'Por favor, envie uma resposta final para o usuário informando com clareza o resultado das ações executadas acima.',
+                  },
+                ],
+                stream: false,
+              }),
+            });
+            if (summaryRes.ok) {
+              const summaryData = (await summaryRes.json()) as any;
+              finalContent = summaryData.choices?.[0]?.message?.content || '';
+            }
+          } catch {}
         }
+
+        if (!finalContent || !finalContent.trim()) {
+          finalContent = 'Ação executada com sucesso.';
+        }
+
+        // Determine target delivery channel/JID
+        const fromMatch = input.prompt.match(/from="([^"]+)"/);
+        const chatJidMatch = input.prompt.match(/chatJid="([^"]+)"/);
+        const targetDest = fromMatch ? fromMatch[1] : (chatJidMatch ? chatJidMatch[1] : (input.chatJid || 'telegram'));
 
         // Ensure response is wrapped in <message to="..."> for NanoClaw delivery
         let deliveredContent = finalContent;
-        if (deliveredContent && !deliveredContent.includes('<message') && !deliveredContent.includes('<internal>')) {
-          const fromMatch = input.prompt.match(/from="([^"]+)"/);
-          const targetDest = fromMatch ? fromMatch[1] : 'telegram';
-          deliveredContent = `<message to="${targetDest}">${deliveredContent}</message>`;
+        if (!deliveredContent.includes('<message') && !deliveredContent.includes('<internal>')) {
+          deliveredContent = `<message to="${targetDest}">\n${deliveredContent}\n</message>`;
         }
 
         // Update history (configurable via DEEPSEEK_HISTORY_LIMIT, default 50 messages)
@@ -224,7 +255,7 @@ export class DeepSeekProvider implements AgentProvider {
 
         yield {
           type: 'result',
-          text: deliveredContent || '(empty response)',
+          text: deliveredContent,
           isError: false,
         };
       } catch (err: any) {
