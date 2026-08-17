@@ -250,25 +250,47 @@ export class GroupManager {
       } catch {}
     }
 
+    const PROVIDER_ENV_MAP: Record<string, { keyName: string; modelName: string; urlName: string; defaultUrl: string }> = {
+      deepseek: { keyName: "DEEPSEEK_API_KEY", modelName: "DEEPSEEK_MODEL", urlName: "DEEPSEEK_BASE_URL", defaultUrl: "https://api.deepseek.com" },
+      groq: { keyName: "GROQ_API_KEY", modelName: "GROQ_MODEL", urlName: "GROQ_BASE_URL", defaultUrl: "https://api.groq.com/openai/v1" },
+      claude: { keyName: "ANTHROPIC_API_KEY", modelName: "ANTHROPIC_MODEL", urlName: "ANTHROPIC_BASE_URL", defaultUrl: "https://api.anthropic.com" },
+      openrouter: { keyName: "OPENROUTER_API_KEY", modelName: "OPENROUTER_MODEL", urlName: "OPENROUTER_BASE_URL", defaultUrl: "https://openrouter.ai/api/v1" },
+      opencode: { keyName: "OPENCODE_API_KEY", modelName: "OPENCODE_MODEL", urlName: "OPENCODE_BASE_URL", defaultUrl: "http://127.0.0.1:4096" },
+    };
+
     const envMap = this.readNanoClawEnv();
-    const deepseekKey = envMap["DEEPSEEK_API_KEY"] || "";
-    const maskedKey = deepseekKey ? `${deepseekKey.slice(0, 6)}...${deepseekKey.slice(-4)}` : "";
+    const activeProvider = containerCfg.provider || envMap["NANOCLAW_AGENT_PROVIDER"] || "deepseek";
+
+    const keysStatus: Record<string, { hasKey: boolean; masked: string }> = {};
+    for (const [p, mapping] of Object.entries(PROVIDER_ENV_MAP)) {
+      const rawKey = envMap[mapping.keyName] || "";
+      keysStatus[p] = {
+        hasKey: Boolean(rawKey && rawKey.trim().length > 0),
+        masked: rawKey && rawKey.trim().length > 8 ? `${rawKey.slice(0, 5)}...${rawKey.slice(-4)}` : (rawKey ? "••••••••" : ""),
+      };
+    }
+
+    const currentMapping = PROVIDER_ENV_MAP[activeProvider] || PROVIDER_ENV_MAP.deepseek;
+    const currentKey = envMap[currentMapping.keyName] || "";
+    const hasApiKey = Boolean(currentKey && currentKey.trim().length > 0);
+    const maskedKey = hasApiKey && currentKey.length > 8 ? `${currentKey.slice(0, 5)}...${currentKey.slice(-4)}` : (hasApiKey ? "••••••••" : "");
 
     return {
       ...containerCfg,
-      provider: containerCfg.provider || envMap["NANOCLAW_AGENT_PROVIDER"] || "deepseek",
-      model: containerCfg.model || envMap["DEEPSEEK_MODEL"] || "deepseek-v4-flash",
-      assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Barão",
-      baseUrl: envMap["DEEPSEEK_BASE_URL"] || "https://api.deepseek.com",
-      hasApiKey: !!deepseekKey,
+      provider: activeProvider,
+      model: containerCfg.model || envMap[currentMapping.modelName] || (activeProvider === "groq" ? "openai/gpt-oss-120b" : "deepseek-v4-flash"),
+      assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Íris",
+      baseUrl: envMap[currentMapping.urlName] || currentMapping.defaultUrl,
+      hasApiKey,
       maskedApiKey: maskedKey,
+      keysStatus,
       hasTelegramToken: !!envMap["TELEGRAM_BOT_TOKEN"],
     };
   }
 
   static saveConfig(folder: string, newConfig: any): boolean {
     const configFile = path.join(CONFIG.GROUPS_PATH, path.basename(folder), "container.json");
-    let current = {};
+    let current: any = {};
     if (fs.existsSync(configFile)) {
       try {
         current = JSON.parse(fs.readFileSync(configFile, "utf-8"));
@@ -283,12 +305,24 @@ export class GroupManager {
       DatabaseService.updateContainerConfig(merged.agentGroupId, merged);
     }
 
+    const PROVIDER_ENV_MAP: Record<string, { keyName: string; modelName: string; urlName: string }> = {
+      deepseek: { keyName: "DEEPSEEK_API_KEY", modelName: "DEEPSEEK_MODEL", urlName: "DEEPSEEK_BASE_URL" },
+      groq: { keyName: "GROQ_API_KEY", modelName: "GROQ_MODEL", urlName: "GROQ_BASE_URL" },
+      claude: { keyName: "ANTHROPIC_API_KEY", modelName: "ANTHROPIC_MODEL", urlName: "ANTHROPIC_BASE_URL" },
+      openrouter: { keyName: "OPENROUTER_API_KEY", modelName: "OPENROUTER_MODEL", urlName: "OPENROUTER_BASE_URL" },
+      opencode: { keyName: "OPENCODE_API_KEY", modelName: "OPENCODE_MODEL", urlName: "OPENCODE_BASE_URL" },
+    };
+
     const envUpdates: Record<string, string> = {};
-    if (newConfig.provider) envUpdates["NANOCLAW_AGENT_PROVIDER"] = newConfig.provider;
-    if (newConfig.model) envUpdates["DEEPSEEK_MODEL"] = newConfig.model;
+    const provider = newConfig.provider || current.provider || "deepseek";
+    envUpdates["NANOCLAW_AGENT_PROVIDER"] = provider;
+
     if (newConfig.assistantName) envUpdates["NANOCLAW_AGENT_NAME"] = newConfig.assistantName;
-    if (newConfig.apiKey && newConfig.apiKey.trim()) envUpdates["DEEPSEEK_API_KEY"] = newConfig.apiKey.trim();
-    if (newConfig.baseUrl && newConfig.baseUrl.trim()) envUpdates["DEEPSEEK_BASE_URL"] = newConfig.baseUrl.trim();
+
+    const mapping = PROVIDER_ENV_MAP[provider] || PROVIDER_ENV_MAP.deepseek;
+    if (newConfig.model) envUpdates[mapping.modelName] = newConfig.model;
+    if (newConfig.baseUrl && newConfig.baseUrl.trim()) envUpdates[mapping.urlName] = newConfig.baseUrl.trim();
+    if (newConfig.apiKey && newConfig.apiKey.trim()) envUpdates[mapping.keyName] = newConfig.apiKey.trim();
 
     if (Object.keys(envUpdates).length > 0) {
       this.writeNanoClawEnv(envUpdates);

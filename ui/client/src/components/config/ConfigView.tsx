@@ -79,7 +79,7 @@ export const ConfigView: React.FC = () => {
     model: 'deepseek-v4-flash',
     baseUrl: 'https://api.deepseek.com',
   })
-  const [maskedKey, setMaskedKey] = useState<string>('••••••••••••')
+  const [keysStatus, setKeysStatus] = useState<Record<string, { hasKey: boolean; masked: string }>>({})
   const [newApiKey, setNewApiKey] = useState<string>('')
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [showAdvancedUrl, setShowAdvancedUrl] = useState<boolean>(false)
@@ -102,8 +102,8 @@ export const ConfigView: React.FC = () => {
           model: data.config.model || meta.defaultModel,
           baseUrl: data.config.baseUrl || meta.defaultBaseUrl,
         })
-        if (data.config.maskedKey) {
-          setMaskedKey(data.config.maskedKey)
+        if (data.config.keysStatus) {
+          setKeysStatus(data.config.keysStatus)
         }
       }
     } catch {}
@@ -130,6 +130,7 @@ export const ConfigView: React.FC = () => {
       await ApiClient.saveConfig('barao', payload)
       setToast({ text: t('savedSuccess'), type: 'success' })
       setNewApiKey('')
+      await loadConfig()
       setTimeout(() => setToast(null), 3000)
     } catch {
       setToast({ text: t('saveError'), type: 'error' })
@@ -141,6 +142,7 @@ export const ConfigView: React.FC = () => {
 
   const activeMeta = PROVIDERS_META[config.provider] || PROVIDERS_META.deepseek
   const availableModels = activeMeta.models
+  const activeKeyInfo = keysStatus[config.provider] || { hasKey: false, masked: '' }
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1 max-w-2xl">
@@ -225,14 +227,23 @@ export const ConfigView: React.FC = () => {
               <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
                 {t('apiKeyStatus')}
               </label>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="success">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>{t('keyConfigured')}</span>
-                </Badge>
-                <code className="text-xs font-mono text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded border border-[var(--accent-border)] font-bold">
-                  {maskedKey}
-                </code>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {activeKeyInfo.hasKey ? (
+                  <>
+                    <Badge variant="success">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>{t('keyConfigured')}</span>
+                    </Badge>
+                    <code className="text-xs font-mono text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded border border-[var(--accent-border)] font-bold">
+                      {activeKeyInfo.masked}
+                    </code>
+                  </>
+                ) : (
+                  <Badge variant="warning" className="bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Nenhuma chave configurada para {activeMeta.name}</span>
+                  </Badge>
+                )}
               </div>
               <input
                 type="password"
