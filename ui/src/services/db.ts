@@ -336,7 +336,7 @@ export class DatabaseService {
                 .query(
                   `SELECT id, kind, timestamp, status, process_after, recurrence, trigger, channel_type, platform_id, content 
                    FROM messages_in 
-                   WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status != 'cancelled'
+                   WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status = 'pending'
                    ORDER BY timestamp DESC`
                 )
                 .all() as any[];
