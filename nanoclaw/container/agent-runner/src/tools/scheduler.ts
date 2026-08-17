@@ -40,7 +40,7 @@ export const schedulerTool: AgentTool = {
     function: {
       name: 'schedule_followup',
       description:
-        'Agenda continuações, ações futuras ou rotinas recorrentes de forma autônoma no sistema sem depender de esperar o cron geral. Use quando precisar continuar uma tarefa daqui a X minutos ou configurar rotinas recorrentes.',
+        'Schedules future agent task follow-ups, delayed background executions, or recurring cron routines autonomously.',
       parameters: {
         type: 'object',
         properties: {
@@ -48,27 +48,27 @@ export const schedulerTool: AgentTool = {
             type: 'string',
             enum: ['schedule_delayed_task', 'schedule_recurring_routine', 'list_scheduled_tasks', 'cancel_task'],
             description:
-              'Ação a realizar: schedule_delayed_task (executar follow-up em X minutos), schedule_recurring_routine (rotina periódica cron), list_scheduled_tasks (listar agendamentos ativos), cancel_task (cancelar por ID).',
+              'Action to perform: "schedule_delayed_task" (execute follow-up in X minutes), "schedule_recurring_routine" (periodic cron routine), "list_scheduled_tasks" (list active schedules), "cancel_task" (cancel by ID).',
           },
           delay_minutes: {
             type: 'number',
-            description: 'Tempo de espera em minutos para a execução futura (ex: 5, 15, 60).',
+            description: 'Delay time in minutes for future execution (e.g. 5, 15, 60).',
           },
           run_at: {
             type: 'string',
-            description: 'Data e hora exata em formato ISO (ex: "2026-08-17T18:00:00Z").',
+            description: 'Exact ISO timestamp for execution (e.g. "2026-08-17T18:00:00Z").',
           },
           cron: {
             type: 'string',
-            description: 'Expressão cron para rotina recorrente (ex: "0 * * * *" para a cada 1 hora).',
+            description: 'Cron expression for recurring routine (e.g. "0 * * * *" for every hour).',
           },
           prompt: {
             type: 'string',
-            description: 'Instrução clara do que o agente deve verificar ou executar quando for acordado no momento agendado.',
+            description: 'Clear prompt instruction for the agent when awakened at the scheduled time.',
           },
           task_id: {
             type: 'string',
-            description: 'ID da tarefa para cancelamento.',
+            description: 'Task ID to cancel.',
           },
         },
         required: ['action'],

@@ -34,7 +34,7 @@ export const yampiTool: AgentTool = {
     function: {
       name: 'yampi_store',
       description:
-        'Acessa a loja virtual Yampi para consultar catálogo de produtos, verificar disponibilidade de estoque e consultar status de pedidos com trava de segurança de privacidade.',
+        'Accesses Yampi e-commerce platform to search products catalog, check real-time stock availability, and track customer orders with privacy verification.',
       parameters: {
         type: 'object',
         properties: {
@@ -49,60 +49,36 @@ export const yampiTool: AgentTool = {
               'list_recent_orders',
             ],
             description:
-              'Ação a realizar na Yampi: search_products (buscar produtos), get_product (detalhes do produto), check_product_quantity (verificar estoque seguro), get_order (status de pedido), get_client_orders (histórico por e-mail), list_recent_orders.',
-          },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                nameOrSku: { type: 'string', description: 'Nome do produto ou SKU (ex: "grok", "livro trabalho").' },
-                quantity: { type: 'number', description: 'Quantidade desejada.' },
-              },
-              required: ['nameOrSku', 'quantity'],
-            },
-            description: 'Lista de itens para cálculo de orçamento de revenda.',
-          },
-          buyer_name: {
-            type: 'string',
-            description: 'Nome da pessoa ou Razão Social da empresa para o orçamento.',
-          },
-          buyer_document: {
-            type: 'string',
-            description: 'CPF ou CNPJ para emissão do orçamento.',
-          },
-          is_consignment: {
-            type: 'boolean',
-            description: 'Se true, calcula os preços pela modalidade de consignação (tabela 1-10 un).',
+              'Action to perform: "search_products", "get_product", "check_product_quantity" (safe stock level check), "get_order" (order tracking), "get_client_orders" (order history by email), "list_recent_orders".',
           },
           query: {
             type: 'string',
-            description: 'Nome, SKU ou termo de busca do produto.',
+            description: 'Product name, SKU, or search term.',
           },
           product_id: {
             type: 'string',
-            description: 'ID do produto na Yampi.',
+            description: 'Numeric product ID in Yampi.',
           },
           requested_quantity: {
             type: 'number',
-            description: 'Quantidade que o cliente deseja comprar para verificar viabilidade.',
+            description: 'Unit quantity requested to verify stock feasibility.',
           },
           order_number: {
             type: 'string',
-            description: 'Número do pedido (ex: "446652", "11").',
+            description: 'Order number (e.g. "446652", "11").',
           },
           client_email: {
             type: 'string',
             description:
-              'E-mail do cliente solicitante (OBRIGATÓRIO quando for atendimento ao cliente para trava de segurança).',
+              'Customer email address (required for customer-facing order tracking for privacy protection).',
           },
           status: {
             type: 'string',
-            description: 'Status do pedido (ex: "paid", "delivered", "shipped", "cancelled").',
+            description: 'Order status filter (e.g. "paid", "delivered", "shipped", "cancelled").',
           },
           limit: {
             type: 'number',
-            description: 'Limite de resultados (padrão 10).',
+            description: 'Maximum number of results to return (default 10).',
           },
         },
         required: ['action'],

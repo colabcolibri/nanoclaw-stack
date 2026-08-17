@@ -43,42 +43,42 @@ export const notionTool: AgentTool = {
     type: 'function',
     function: {
       name: 'notion',
-      description: 'Gerencia páginas, anotações, documentos e bancos de dados (tabelas) no Notion.',
+      description: 'Manages pages, notes, documents, and databases (tables) in Notion.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['create_page', 'create_database', 'update_database', 'update_page', 'search', 'query_database', 'append_content', 'get_page'],
-            description: 'Ação a ser executada no Notion: create_page (criar nova página/nota ou linha em tabela), update_page (atualizar campos de uma página/linha existente), create_database (criar nova tabela), update_database (alterar colunas, adicionar campos, renomear propriedades da tabela), search (buscar páginas ou bases), query_database (consultar linhas/registros), append_content (adicionar blocos/textos a uma página), get_page (ler conteúdo e propriedades de uma página)',
+            description: 'Action to perform: "create_page" (create new page/note or database row), "update_page" (update fields of existing page/row), "create_database" (create new table), "update_database" (alter columns/properties), "search" (search workspace), "query_database" (query table rows), "append_content" (append markdown blocks to a page), "get_page" (retrieve page content and properties).',
           },
           title: {
             type: 'string',
-            description: 'Título da página, nota ou banco de dados',
+            description: 'Title of the page, note, or database.',
           },
           parent_id: {
             type: 'string',
-            description: 'ID da página pai (ou do banco de dados) onde a página/tabela será criada',
+            description: 'ID of parent page or database container.',
           },
           database_id: {
             type: 'string',
-            description: 'ID do banco de dados (tabela) a ser consultado ou onde o registro será inserido',
+            description: 'ID of the database to query or insert records into.',
           },
           page_id: {
             type: 'string',
-            description: 'ID da página existente a ser lida ou onde o conteúdo será adicionado',
+            description: 'ID of existing page to read, update, or append to.',
           },
           query: {
             type: 'string',
-            description: 'Termo de busca para a ação search',
+            description: 'Search query string.',
           },
           content: {
             type: 'string',
-            description: 'Conteúdo em texto/markdown da nota ou parágrafos a serem adicionados',
+            description: 'Markdown text content or paragraphs to add to the page.',
           },
           properties: {
             type: 'object',
-            description: 'Propriedades estruturadas para o registro ou colunas da tabela',
+            description: 'Structured properties/fields for database rows or column definitions.',
           },
         },
         required: ['action'],

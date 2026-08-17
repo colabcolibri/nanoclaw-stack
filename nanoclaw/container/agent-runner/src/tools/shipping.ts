@@ -1,4 +1,44 @@
+import fs from 'fs';
+import path from 'path';
 import type { AgentTool } from './types.js';
+
+interface ShippingConfig {
+  originCep: string;
+  originCityState?: string;
+  priceMarginPercent: number;
+  daysBuffer: number;
+}
+
+function loadShippingConfig(cwd?: string): ShippingConfig {
+  const defaults: ShippingConfig = {
+    originCep: '12243-380',
+    originCityState: 'São José dos Campos - SP',
+    priceMarginPercent: 30,
+    daysBuffer: 3,
+  };
+
+  const possiblePaths = [
+    cwd ? path.join(cwd, 'shipping_config.json') : null,
+    '/workspace/group/shipping_config.json',
+    '/workspace/agent/shipping_config.json',
+    '/opt/nanoclaw-stack/nanoclaw/groups/barao/shipping_config.json',
+  ].filter(Boolean) as string[];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        return {
+          originCep: data.originCep || defaults.originCep,
+          originCityState: data.originCityState || defaults.originCityState,
+          priceMarginPercent: Number(data.priceMarginPercent) ?? defaults.priceMarginPercent,
+          daysBuffer: Number(data.daysBuffer) ?? defaults.daysBuffer,
+        };
+      } catch {}
+    }
+  }
+  return defaults;
+}
 
 interface ShippingOption {
   service: string;
@@ -59,32 +99,32 @@ export const correiosShippingTool: AgentTool = {
     function: {
       name: 'correios_shipping',
       description:
-        'Calcula estimativas oficiais de frete dos Correios (PAC e SEDEX) para qualquer CEP do Brasil. Aplica automaticamente a margem de segurança operacional da Colibri (+30% no valor e +3 dias úteis no prazo de entrega).',
+        'Calculates official Brazilian Postal Service (Correios - PAC and SEDEX) shipping rates and delivery estimates for any Brazilian postal code (CEP). Automatically applies operational margin (+30% price buffer and +3 business days).',
       parameters: {
         type: 'object',
         properties: {
           destination_cep: {
             type: 'string',
-            description: 'CEP de destino do comprador (ex: "01310-100" ou "01310100").',
+            description: 'Destination postal code (CEP) of the buyer (e.g. "01310-100" or "01310100").',
           },
           origin_cep: {
             type: 'string',
-            description: 'CEP de origem de despacho da loja (padrão: "01310-100").',
+            description: 'Origin dispatch postal code (CEP) of the store (defaults to configured origin).',
           },
           weight_kg: {
             type: 'number',
-            description: 'Peso total estimado da encomenda em kg (ex: 0.5, 1.2, 3.5). Padrão: 1.0 kg.',
+            description: 'Total estimated package weight in kilograms (e.g. 0.5, 1.2, 3.5). Default: 1.0 kg.',
           },
           items: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
-                nameOrSku: { type: 'string', description: 'Nome ou SKU do item' },
-                quantity: { type: 'number', description: 'Quantidade' },
+                nameOrSku: { type: 'string', description: 'Product name or SKU' },
+                quantity: { type: 'number', description: 'Quantity' },
               },
             },
-            description: 'Lista de produtos para cálculo automático do peso da caixa.',
+            description: 'List of items to automatically compute total package box weight.',
           },
         },
         required: ['destination_cep'],
@@ -92,6 +132,11 @@ export const correiosShippingTool: AgentTool = {
     },
   },
   execute: async (args: any, _cwd: string) => {
+    const cfg = loadShippingConfig(_cwd);
+    const originCep = String(args.origin_cep || cfg.originCep || '12243-380');
+    const priceMarginMultiplier = 1 + (Number(cfg.priceMarginPercent ?? 30) / 100);
+    const daysBuffer = Number(cfg.daysBuffer ?? 3);
+
     const rawCep = String(args.destination_cep || '').replace(/\D/g, '');
     if (rawCep.length !== 8) {
       return JSON.stringify({
@@ -120,7 +165,7 @@ export const correiosShippingTool: AgentTool = {
     }
 
     const state = (locationData.state || 'SP').toUpperCase();
-    const isSpCapital = state === 'SP' && rawCep.startsWith('01') || rawCep.startsWith('02') || rawCep.startsWith('03') || rawCep.startsWith('04') || rawCep.startsWith('05') || rawCep.startsWith('08');
+    const isSpCapital = state === 'SP' && (rawCep.startsWith('01') || rawCep.startsWith('02') || rawCep.startsWith('03') || rawCep.startsWith('04') || rawCep.startsWith('05') || rawCep.startsWith('08'));
     
     const rateKey = state === 'SP' ? (isSpCapital ? 'SP_CAPITAL' : 'SP_INTERIOR') : (REGION_RATES[state] ? state : 'MG');
     const baseRate = REGION_RATES[rateKey] || REGION_RATES.SP_INTERIOR;
@@ -145,12 +190,12 @@ export const correiosShippingTool: AgentTool = {
     const rawPac = Math.round(baseRate.pacBase * weightFactor * 100) / 100;
     const rawSedex = Math.round(baseRate.sedexBase * weightFactor * 100) / 100;
 
-    // Business Rules: +30% price markup & +3 business days buffer
-    const estimatedPacPrice = Math.round(rawPac * 1.30 * 100) / 100;
-    const estimatedSedexPrice = Math.round(rawSedex * 1.30 * 100) / 100;
+    // Business Rules: Price markup & business days buffer
+    const estimatedPacPrice = Math.round(rawPac * priceMarginMultiplier * 100) / 100;
+    const estimatedSedexPrice = Math.round(rawSedex * priceMarginMultiplier * 100) / 100;
 
-    const estimatedPacDays = baseRate.pacDays + 3;
-    const estimatedSedexDays = baseRate.sedexDays + 3;
+    const estimatedPacDays = baseRate.pacDays + daysBuffer;
+    const estimatedSedexDays = baseRate.sedexDays + daysBuffer;
 
     const locationStr = [locationData.neighborhood, locationData.city, locationData.state].filter(Boolean).join(' - ') || state;
 

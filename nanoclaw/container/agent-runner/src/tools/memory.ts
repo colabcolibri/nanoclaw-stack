@@ -7,22 +7,22 @@ export const memoryTool: AgentTool = {
     function: {
       name: 'manage_memory',
       description:
-        'Gerencia a memória de longo prazo do assistente. Use para memorizar fatos importantes, preferências do usuário, decisões de negócio ou regras permanentes que devem ser lembradas em conversas futuras.',
+        'Manages the persistent long-term memory of the assistant. Use to record critical user preferences, business rules, decisions, or key facts across sessions.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['remember', 'recall'],
-            description: 'remember (gravar nova informação permanente) ou recall (consultar memórias gravadas).',
+            description: '"remember" to store new permanent fact, or "recall" to search stored memories.',
           },
           fact: {
             type: 'string',
-            description: 'O fato, preferência ou aprendizado a ser memorizado de forma permanente.',
+            description: 'The fact, user preference, or learned information to store permanently.',
           },
           category: {
             type: 'string',
-            description: 'Categoria do fato (ex: "Preferências", "Clientes", "Negócios", "Pessoal").',
+            description: 'Category for the fact (e.g. "Preferences", "Clients", "Business", "Personal").',
           },
         },
         required: ['action'],

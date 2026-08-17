@@ -7,38 +7,38 @@ export const resalePricingTool: AgentTool = {
     function: {
       name: 'resale_pricing',
       description:
-        'Motor Oficial de Precificação e Orçamentos de Revenda PJ da Colab Colibri. Calcula propostas comerciais para empresas, escolas, prefeituras e compras por atacado aplicando as faixas oficiais de desconto progressivo (-30% a -38%).',
+        'Official B2B/Wholesale Pricing & Quote Engine. Calculates commercial proposals for corporate clients, schools, and bulk buyers applying progressive discount tiers.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['calculate_quote', 'list_table'],
-            description: 'Ação: "calculate_quote" para calcular uma proposta comercial, ou "list_table" para listar a tabela de preços oficial.',
+            description: 'Action: "calculate_quote" to compute a commercial proposal, or "list_table" to view the official pricing table.',
           },
           items: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
-                nameOrSku: { type: 'string', description: 'Nome do produto ou SKU (ex: "Jogo Grok", "JG001", "Livro CNV")' },
-                quantity: { type: 'number', description: 'Quantidade de unidades desejadas' },
+                nameOrSku: { type: 'string', description: 'Product name or SKU (e.g. "Jogo Grok", "JG001", "Livro CNV")' },
+                quantity: { type: 'number', description: 'Desired unit quantity' },
               },
               required: ['nameOrSku', 'quantity'],
             },
-            description: 'Lista de produtos e quantidades para o cálculo do orçamento.',
+            description: 'List of items and quantities for quote calculation.',
           },
           buyer_name: {
             type: 'string',
-            description: 'Nome da empresa, prefeitura, escola ou responsável pelo orçamento.',
+            description: 'Name of the buyer, school, company or organization.',
           },
           buyer_document: {
             type: 'string',
-            description: 'CNPJ ou CPF do comprador (se informado).',
+            description: 'Tax ID (CNPJ/CPF) of the buyer (if provided).',
           },
           buyer_address: {
             type: 'string',
-            description: 'Endereço completo ou CEP de entrega do comprador (se informado).',
+            description: 'Delivery address or postal code (CEP) of the buyer (if provided).',
           },
         },
         required: ['action'],

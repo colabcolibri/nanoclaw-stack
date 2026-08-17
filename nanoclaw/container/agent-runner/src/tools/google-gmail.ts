@@ -93,7 +93,7 @@ export const googleGmailTool: AgentTool = {
     function: {
       name: 'google_gmail',
       description:
-        'Acessa a caixa de entrada do Gmail para listar conversas (threads), buscar e-mails com filtros avançados, ler o conteúdo completo de uma mensagem/thread, criar rascunhos ou enviar respostas.',
+        'Accesses Gmail to list conversation threads, search messages with advanced operators, read full message/thread contents, create drafts, or send email replies.',
       parameters: {
         type: 'object',
         properties: {
@@ -101,37 +101,37 @@ export const googleGmailTool: AgentTool = {
             type: 'string',
             enum: ['list_messages', 'read_message', 'create_draft', 'send_message'],
             description:
-              'Ação a realizar: list_messages (listar conversas da caixa de entrada ou busca), read_message (ler conteúdo completo por message_id ou thread_id), create_draft (criar rascunho), send_message (enviar e-mail).',
+              'Action to perform: "list_messages" (list inbox/search conversations), "read_message" (read full email content by message_id or thread_id), "create_draft" (create a draft), "send_message" (send email).',
           },
           folder: {
             type: 'string',
             enum: ['inbox', 'sent', 'starred', 'all'],
-            description: 'Pasta a consultar (padrão: "inbox" para Caixa de Entrada exclusiva).',
+            description: 'Folder to query (default: "inbox").',
           },
           query: {
             type: 'string',
             description:
-              'Operadores de busca avançada do Gmail combinados (ex: "is:unread", "newer_than:3d", "from:fulano@empresa.com", "subject:contrato"). Por padrão pesquisa dentro da Caixa de Entrada (in:inbox).',
+              'Gmail search operators (e.g. "is:unread", "newer_than:3d", "from:user@example.com", "subject:quote"). Default searches within Inbox.',
           },
           max_results: {
             type: 'number',
-            description: 'Quantidade máxima de conversas a retornar ao listar (padrão 50, máximo 100).',
+            description: 'Maximum number of conversations to return (default 50, max 100).',
           },
           message_id: {
             type: 'string',
-            description: 'ID da mensagem ou thread para ler na íntegra (obrigatório para read_message).',
+            description: 'Message ID or Thread ID to read in full (required for read_message).',
           },
           to: {
             type: 'string',
-            description: 'E-mail do destinatário para envio ou rascunho.',
+            description: 'Recipient email address for sending or creating a draft.',
           },
           subject: {
             type: 'string',
-            description: 'Assunto do e-mail.',
+            description: 'Subject line of the email.',
           },
           body: {
             type: 'string',
-            description: 'Conteúdo/corpo do e-mail.',
+            description: 'Text content/body of the email.',
           },
         },
         required: ['action'],

@@ -77,7 +77,7 @@ export class TurnOrchestrator {
             {
               role: 'user',
               content:
-                'Com base nos resultados das ferramentas acima, elabore a resposta final completa, amigável, calorosa e detalhada para o usuário, incluindo todas as tabelas ou dados necessários.',
+                'Based on the tool execution results above, synthesize the complete, helpful, and detailed final response for the user, including all necessary markdown tables, links, or computed data.',
             },
           ],
           false

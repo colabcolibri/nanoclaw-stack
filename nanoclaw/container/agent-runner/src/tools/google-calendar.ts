@@ -6,42 +6,42 @@ export const googleCalendarTool: AgentTool = {
     type: 'function',
     function: {
       name: 'google_calendar',
-      description: 'Consulta, agenda ou gerencia eventos em todas as agendas do Google Calendar do usuário (pessoal, trabalho, compartilhadas, equipe).',
+      description: 'Queries, creates, and manages events across all user Google Calendars (primary, personal, team, shared).',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['list_calendars', 'list_events', 'create_event', 'search_events'],
-            description: 'Ação a realizar: list_calendars (listar todas as agendas disponíveis com seus IDs e nomes), list_events (listar próximos eventos de todas as agendas ou de uma específica), search_events (buscar eventos por texto/assunto em todas as agendas), create_event (criar novo evento)',
+            description: 'Action to perform: "list_calendars" (list available calendars), "list_events" (list upcoming events), "search_events" (search events by title/text), "create_event" (schedule new event).',
           },
           calendar_id: {
             type: 'string',
-            description: 'ID da agenda (ex: "primary", ou o ID retornado por list_calendars). Se omitido em list_events/search_events, busca em todas as agendas ativas do usuário.',
+            description: 'Calendar ID (e.g. "primary", or ID from list_calendars). If omitted, searches across all active user calendars.',
           },
           query: {
             type: 'string',
-            description: 'Termo de busca (para search_events) ou título/assunto do evento (para create_event)',
+            description: 'Search term (for search_events) or event summary/title (for create_event).',
           },
           date: {
             type: 'string',
-            description: 'Data do evento ou filtro de data inicial (ISO 8601 ou YYYY-MM-DD)',
+            description: 'Event date or start date filter (ISO 8601 or YYYY-MM-DD).',
           },
           start_time: {
             type: 'string',
-            description: 'Horário de início ISO 8601 (para create_event)',
+            description: 'Start time ISO 8601 (for create_event).',
           },
           end_time: {
             type: 'string',
-            description: 'Horário de término ISO 8601 (para create_event)',
+            description: 'End time ISO 8601 (for create_event).',
           },
           description: {
             type: 'string',
-            description: 'Descrição ou detalhes adicionais do evento',
+            description: 'Description or meeting details of the event.',
           },
           location: {
             type: 'string',
-            description: 'Local ou link da reunião',
+            description: 'Meeting location, physical address, or virtual meeting link.',
           },
         },
         required: ['action'],

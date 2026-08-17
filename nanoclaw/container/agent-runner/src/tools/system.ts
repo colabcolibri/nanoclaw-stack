@@ -11,11 +11,11 @@ export const runCommandTool: AgentTool = {
     type: 'function',
     function: {
       name: 'run_command',
-      description: 'Executa um comando bash / Linux dentro do ambiente seguro do contêiner para consultar status, arquivos, scripts ou ferramentas.',
+      description: 'Executes a bash/Linux shell command inside the container environment to query status, files, scripts, or system utilities.',
       parameters: {
         type: 'object',
         properties: {
-          command: { type: 'string', description: 'O comando shell a ser executado' },
+          command: { type: 'string', description: 'The shell command line to execute' },
         },
         required: ['command'],
       },
@@ -23,7 +23,7 @@ export const runCommandTool: AgentTool = {
   },
   execute: async (args: any, cwd: string): Promise<string> => {
     const { stdout, stderr } = await execAsync(args.command, { cwd, timeout: 30000 });
-    return stdout || stderr || '(comando executado com sucesso sem saída)';
+    return stdout || stderr || '(command executed successfully with no output)';
   },
 };
 
@@ -32,11 +32,11 @@ export const readFileTool: AgentTool = {
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Lê o conteúdo de um arquivo do workspace.',
+      description: 'Reads the contents of a file from the workspace filesystem.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Caminho do arquivo' },
+          path: { type: 'string', description: 'Path of the file to read' },
         },
         required: ['path'],
       },
