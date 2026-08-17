@@ -411,6 +411,7 @@ export class ApiRouter {
       return jsonResponse({
         stats: DatabaseService.getSystemStats(),
         logs: DatabaseService.getUsageLogs(limit),
+        apiLedger: DatabaseService.getRealTokenRecords(limit),
       });
     }
 

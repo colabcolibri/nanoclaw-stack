@@ -112,6 +112,35 @@ export class DatabaseService {
     return result;
   }
 
+  static getRealTokenRecords(limit = 200): any[] {
+    const records: any[] = [];
+    const searchDirs = [
+      path.join(CONFIG.GROUPS_PATH),
+      path.join(CONFIG.DATA_PATH, "v2-sessions"),
+      "/opt/nanoclaw-stack/nanoclaw/groups",
+    ];
+
+    for (const baseDir of searchDirs) {
+      if (!fs.existsSync(baseDir)) continue;
+      const ledgerFiles = glob.sync(`${baseDir}/**/token_ledger.jsonl`);
+      for (const file of ledgerFiles) {
+        try {
+          const content = fs.readFileSync(file, "utf-8");
+          const lines = content.split("\n").filter((l) => l.trim().length > 0);
+          for (const line of lines) {
+            try {
+              const rec = JSON.parse(line);
+              records.push(rec);
+            } catch {}
+          }
+        } catch {}
+      }
+    }
+
+    records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return records.slice(0, limit);
+  }
+
   static getSystemStats(): any {
     let totalSessions = 0;
     let totalUsers = 0;
@@ -130,11 +159,36 @@ export class DatabaseService {
 
     const messages = this.getUsageLogs(1000);
     const runs = this.getDetailedRuns(1000);
+    const realLedger = this.getRealTokenRecords(1000);
+
     const totalInbound = messages.filter((m) => m.type === "user").length;
     const totalOutbound = messages.filter((m) => m.type === "assistant").length;
-    const totalTokens = messages.reduce((acc, m) => acc + (m.tokens || 0), 0);
-    const totalCostUsd = messages.reduce((acc, m) => acc + (m.costUsd || 0), 0);
-    const totalCostBrl = totalCostUsd * 5.7;
+
+    // Real API Token Metrics from DeepSeek
+    let totalPromptTokens = 0;
+    let totalCacheHitTokens = 0;
+    let totalCacheMissTokens = 0;
+    let totalCompletionTokens = 0;
+    let totalTokens = 0;
+    let totalCostUsd = 0;
+
+    if (realLedger.length > 0) {
+      for (const rec of realLedger) {
+        totalPromptTokens += Number(rec.promptTokens || 0);
+        totalCacheHitTokens += Number(rec.cacheHitTokens || 0);
+        totalCacheMissTokens += Number(rec.cacheMissTokens || 0);
+        totalCompletionTokens += Number(rec.completionTokens || 0);
+        totalTokens += Number(rec.totalTokens || 0);
+        totalCostUsd += Number(rec.costUsd || 0);
+      }
+    } else {
+      // Fallback to chat messages tokens if ledger is fresh
+      totalTokens = messages.reduce((acc, m) => acc + (m.tokens || 0), 0);
+      totalCostUsd = (totalTokens / 1_000_000) * 0.44;
+    }
+
+    const totalCostBrl = totalCostUsd * 5.75;
+    const cacheHitRatio = totalPromptTokens > 0 ? Math.round((totalCacheHitTokens / totalPromptTokens) * 100) : 0;
 
     return {
       totalSessions,
@@ -142,12 +196,19 @@ export class DatabaseService {
       activeGroups,
       totalMessages: messages.length,
       totalRuns: runs.length,
+      totalApiCalls: realLedger.length,
       totalInbound,
       totalOutbound,
+      promptTokens: totalPromptTokens,
+      cacheHitTokens: totalCacheHitTokens,
+      cacheMissTokens: totalCacheMissTokens,
+      completionTokens: totalCompletionTokens,
+      cacheHitRatio: `${cacheHitRatio}%`,
       estimatedTokens: totalTokens,
+      totalTokens,
       estimatedCostUsd: totalCostUsd.toFixed(5),
       estimatedCostBrl: totalCostBrl.toFixed(4),
-      modelName: "DeepSeek V4 Flash / Chat",
+      modelName: "DeepSeek V4 Flash (Peak Pricing: $0.014 hit / $0.44 miss / $1.32 out)",
     };
   }
 

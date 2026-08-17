@@ -3,6 +3,7 @@ import path from 'path';
 import { AGENT_TOOLS } from '../tools/index.js';
 import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
+import { TokenLedger } from '../services/token-ledger.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import { registerProvider } from './provider-registry.js';
 import type {
@@ -143,6 +144,7 @@ export class DeepSeekProvider implements AgentProvider {
             payload.tools = AGENT_TOOLS;
           }
 
+          const startTime = Date.now();
           const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -151,6 +153,7 @@ export class DeepSeekProvider implements AgentProvider {
             },
             body: JSON.stringify(payload),
           });
+          const latencyMs = Date.now() - startTime;
 
           if (!res.ok) {
             const errText = await res.text();
@@ -159,6 +162,16 @@ export class DeepSeekProvider implements AgentProvider {
 
           const data = (await res.json()) as any;
           const msg = data.choices?.[0]?.message || {};
+          const usage = data.usage || {};
+
+          // Record real token consumption and exact Peak pricing
+          try {
+            TokenLedger.record(input.cwd, model, usage, {
+              toolCallsCount: msg.tool_calls?.length || 0,
+              latencyMs,
+              preview: msg.content || (msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : ''),
+            });
+          } catch {}
 
           try {
             const logDir = path.join(input.cwd, 'logs');
@@ -168,6 +181,8 @@ export class DeepSeekProvider implements AgentProvider {
               logFile,
               `[${new Date().toISOString()}] ${JSON.stringify({
                 event: 'deepseek_response',
+                latencyMs,
+                usage,
                 content: msg.content,
                 tool_calls: msg.tool_calls?.map((tc: any) => ({ name: tc.function?.name, args: tc.function?.arguments })),
               })}\n`,
