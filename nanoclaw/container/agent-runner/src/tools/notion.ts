@@ -49,8 +49,8 @@ export const notionTool: AgentTool = {
         properties: {
           action: {
             type: 'string',
-            enum: ['create_page', 'create_database', 'search', 'query_database', 'append_content', 'get_page'],
-            description: 'Ação a ser executada no Notion: create_page (criar nova página ou nota), create_database (criar nova tabela/banco de dados), search (buscar páginas ou bases), query_database (consultar linhas/registros de uma tabela), append_content (adicionar blocos/textos a uma página), get_page (ler conteúdo e propriedades de uma página)',
+            enum: ['create_page', 'create_database', 'update_database', 'update_page', 'search', 'query_database', 'append_content', 'get_page'],
+            description: 'Ação a ser executada no Notion: create_page (criar nova página/nota ou linha em tabela), update_page (atualizar campos de uma página/linha existente), create_database (criar nova tabela), update_database (alterar colunas, adicionar campos, renomear propriedades da tabela), search (buscar páginas ou bases), query_database (consultar linhas/registros), append_content (adicionar blocos/textos a uma página), get_page (ler conteúdo e propriedades de uma página)',
           },
           title: {
             type: 'string',
@@ -392,6 +392,63 @@ export const notionTool: AgentTool = {
           url: pageData.url,
           created_time: pageData.created_time,
           content: contentLines.join('\n'),
+        });
+      }
+
+      // 7. Update Database Schema (add/modify/rename/remove columns)
+      if (args.action === 'update_database') {
+        const dbId = args.database_id || auth.defaultDatabaseId;
+        if (!dbId) {
+          return JSON.stringify({ status: 'error', error: 'database_id é obrigatório para atualizar estrutura da tabela.' });
+        }
+
+        const payload: any = {};
+        if (args.title) {
+          payload.title = [{ type: 'text', text: { content: args.title } }];
+        }
+        if (args.properties && Object.keys(args.properties).length > 0) {
+          payload.properties = args.properties;
+        }
+
+        const updateRes = await fetch(`https://api.notion.com/v1/databases/${dbId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        if (!updateRes.ok) {
+          return JSON.stringify({ status: 'error', code: updateRes.status, text: await updateRes.text() });
+        }
+        const updatedDb = (await updateRes.json()) as any;
+        return JSON.stringify({
+          status: 'ok',
+          id: updatedDb.id,
+          url: updatedDb.url,
+          message: 'Estrutura / Colunas do banco de dados no Notion atualizadas com sucesso.',
+        });
+      }
+
+      // 8. Update Page Properties
+      if (args.action === 'update_page') {
+        if (!args.page_id) {
+          return JSON.stringify({ status: 'error', error: 'page_id é obrigatório para atualizar campos da página/registro.' });
+        }
+
+        const updatePageRes = await fetch(`https://api.notion.com/v1/pages/${args.page_id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ properties: args.properties || {} }),
+        });
+
+        if (!updatePageRes.ok) {
+          return JSON.stringify({ status: 'error', code: updatePageRes.status, text: await updatePageRes.text() });
+        }
+        const updatedPage = (await updatePageRes.json()) as any;
+        return JSON.stringify({
+          status: 'ok',
+          id: updatedPage.id,
+          url: updatedPage.url,
+          message: 'Página / Registro atualizado com sucesso no Notion.',
         });
       }
 
