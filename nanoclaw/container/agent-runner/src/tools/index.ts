@@ -7,6 +7,7 @@ import { yampiTool } from './yampi.js';
 import { memoryTool } from './memory.js';
 import { schedulerTool } from './scheduler.js';
 import { resalePricingTool } from './resale-pricing.js';
+import { correiosShippingTool } from './shipping.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -16,6 +17,7 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   notion: notionTool,
   yampi_store: yampiTool,
   resale_pricing: resalePricingTool,
+  correios_shipping: correiosShippingTool,
   manage_memory: memoryTool,
   schedule_followup: schedulerTool,
 };
