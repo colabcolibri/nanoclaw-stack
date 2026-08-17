@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { AGENT_TOOLS, executeTool } from '../tools/index.js';
-import { writeMessageOut } from '../db/messages-out.js';
+import { AGENT_TOOLS } from '../tools/index.js';
+import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import { registerProvider } from './provider-registry.js';
 import type {
@@ -13,69 +13,12 @@ import type {
   ProviderExchange,
 } from './types.js';
 
-interface Message {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content?: string;
-  name?: string;
-  tool_call_id?: string;
-  tool_calls?: any[];
-}
-
-interface ExtractedToolCall {
-  id: string;
-  name: string;
-  args: Record<string, any>;
-}
-
-function parseDsmlToolCalls(content: string): ExtractedToolCall[] {
-  const calls: ExtractedToolCall[] = [];
-  if (!content) return calls;
-
-  const invokeRegex = /<[｜|]{1,2}DSML[｜|]{1,2}invoke\s+name=["']([^"']+)["']>([\s\S]*?)<\/[｜|]{1,2}DSML[｜|]{1,2}invoke>/gi;
-  let match;
-  let idx = 1;
-
-  while ((match = invokeRegex.exec(content)) !== null) {
-    const fnName = match[1];
-    const body = match[2];
-    const args: Record<string, any> = {};
-
-    const paramRegex = /<[｜|]{1,2}DSML[｜|]{1,2}parameter\s+name=["']([^"']+)["'](?:\s+string=["']([^"']+)["'])?>([\s\S]*?)<\/[｜|]{1,2}DSML[｜|]{1,2}parameter>/gi;
-    let paramMatch;
-    while ((paramMatch = paramRegex.exec(body)) !== null) {
-      const paramName = paramMatch[1];
-      const isString = paramMatch[2] === 'true';
-      const rawVal = paramMatch[3].trim();
-
-      if (isString) {
-        args[paramName] = rawVal;
-      } else {
-        try {
-          args[paramName] = JSON.parse(rawVal);
-        } catch {
-          args[paramName] = rawVal;
-        }
-      }
-    }
-
-    calls.push({
-      id: `call_dsml_${Date.now()}_${idx++}`,
-      name: fnName,
-      args,
-    });
-  }
-
-  return calls;
-}
-
-function cleanDsmlFromText(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/<[｜|]{1,2}DSML[｜|]{1,2}tool_calls>[\s\S]*?<\/[｜|]{1,2}DSML[｜|]{1,2}tool_calls>/gi, '')
-    .replace(/<[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
-    .replace(/<\/[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
-    .replace(/<think>[\s\S]*?<\/think>/gi, '')
-    .trim();
+interface McpServerConfig {
+  type?: string;
+  command?: string;
+  args?: string[];
+  url?: string;
+  [key: string]: any;
 }
 
 export class DeepSeekProvider implements AgentProvider {
@@ -100,7 +43,7 @@ export class DeepSeekProvider implements AgentProvider {
       process.env.DEEPSEEK_MODEL ||
       options.model ||
       'deepseek-v4-flash';
-    this.assistantName = options.assistantName || 'Assistant';
+    this.assistantName = options.assistantName || 'Barão';
     this.mcpServers = options.mcpServers || {};
   }
 
@@ -113,7 +56,7 @@ export class DeepSeekProvider implements AgentProvider {
   }
 
   onExchangeComplete?(exchange: ProviderExchange): void {
-    // Optional logging/exchange hook
+    // Optional telemetry/logging hook
   }
 
   query(input: QueryInput): AgentQuery {
@@ -123,7 +66,7 @@ export class DeepSeekProvider implements AgentProvider {
     let aborted = false;
 
     // Load or initialize conversation history from continuation
-    let history: Message[] = [];
+    let history: any[] = [];
     if (input.continuation) {
       try {
         const parsed = JSON.parse(input.continuation);
@@ -135,7 +78,7 @@ export class DeepSeekProvider implements AgentProvider {
       }
     }
 
-    // Prepare system instructions
+    // Build system instructions
     const systemParts: string[] = [
       `You are ${this.assistantName}, a helpful, intelligent personal AI assistant running on NanoClaw.`,
     ];
@@ -150,8 +93,9 @@ export class DeepSeekProvider implements AgentProvider {
       try {
         if (fs.existsSync(f)) {
           const content = fs.readFileSync(f, 'utf-8').trim();
-          if (content && !systemParts.includes(content)) {
+          if (content) {
             systemParts.push(content);
+            break;
           }
         }
       } catch {}
@@ -161,23 +105,7 @@ export class DeepSeekProvider implements AgentProvider {
       systemParts.push(input.systemContext.instructions);
     }
 
-    if (this.mcpServers && Object.keys(this.mcpServers).length > 0) {
-      const activeTools = Object.keys(this.mcpServers).filter((k) => k !== "nanoclaw");
-      if (activeTools.length > 0) {
-        systemParts.push(
-          `## Ferramentas e Integrações MCP Conectadas no Ambiente:\n` +
-            activeTools.map((t) => `- **${t}**: Integração oficial Google ${t.toUpperCase()} configurada via MCP.`).join("\n") +
-            `\nVocê possui essas integrações MCP conectadas para Google Calendar, Gmail e Drive.`
-        );
-      }
-    }
-
-    // Build message list
-    const messages: Message[] = [
-      { role: 'system', content: systemParts.join('\n\n') },
-      ...history,
-      { role: 'user', content: input.prompt },
-    ];
+    const self = this;
 
     async function* executeTurn(): AsyncGenerator<ProviderEvent> {
       yield { type: 'activity' };
@@ -193,13 +121,20 @@ export class DeepSeekProvider implements AgentProvider {
 
       try {
         const url = `${baseURL}/chat/completions`;
-        let currentMessages: any[] = [...messages];
-        let finalContent = '';
-        const maxToolIterations = 5;
 
-        for (let iter = 0; iter < maxToolIterations; iter++) {
-          if (aborted) break;
-          yield { type: 'activity' };
+        // Direct HTTP Completion Function implementing standard contract
+        const completeFn = async (currentMessages: any[], enableTools: boolean) => {
+          if (aborted) throw new Error('Query aborted');
+
+          const payload: any = {
+            model,
+            messages: currentMessages,
+            stream: false,
+          };
+
+          if (enableTools && AGENT_TOOLS.length > 0) {
+            payload.tools = AGENT_TOOLS;
+          }
 
           const res = await fetch(url, {
             method: 'POST',
@@ -207,172 +142,60 @@ export class DeepSeekProvider implements AgentProvider {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-              model,
-              messages: currentMessages,
-              tools: AGENT_TOOLS,
-              stream: false,
-            }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
             const errText = await res.text();
-            yield {
-              type: 'result',
-              text: `DeepSeek API Error (${res.status}): ${errText}`,
-              isError: true,
-            };
-            return;
+            throw new Error(`DeepSeek API Error (${res.status}): ${errText}`);
           }
 
           const data = (await res.json()) as any;
-          const choice = data.choices?.[0];
-          const assistantMsg = choice?.message;
+          const msg = data.choices?.[0]?.message || {};
+          return {
+            content: msg.content,
+            tool_calls: msg.tool_calls,
+          };
+        };
 
-          if (!assistantMsg) {
-            break;
-          }
-
-          // Extract tool calls (supports both JSON tool_calls and DSML text format)
-          let toolCallsToExecute: ExtractedToolCall[] = [];
-
-          if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
-            for (const call of assistantMsg.tool_calls) {
-              let fnArgs: any = {};
-              try {
-                fnArgs = JSON.parse(call.function?.arguments || '{}');
-              } catch {}
-              toolCallsToExecute.push({
-                id: call.id,
-                name: call.function?.name,
-                args: fnArgs,
-              });
-            }
-          } else if (
-            assistantMsg.content &&
-            (assistantMsg.content.includes('DSML') || assistantMsg.content.includes('invoke'))
-          ) {
-            toolCallsToExecute = parseDsmlToolCalls(assistantMsg.content);
-          }
-
-          // If DeepSeek requested tool execution
-          if (toolCallsToExecute.length > 0) {
-            currentMessages.push(assistantMsg);
-
-            // If assistant produced natural text before running tool, deliver it immediately
-            const preText = cleanDsmlFromText(assistantMsg.content || '');
-            if (preText && preText.length > 3) {
-              try {
-                const fromMatch = input.prompt.match(/from="([^"]+)"/);
-                const chatJidMatch = input.prompt.match(/chatJid="([^"]+)"/);
-                const targetDest = fromMatch ? fromMatch[1] : (chatJidMatch ? chatJidMatch[1] : null);
-                if (targetDest) {
-                  writeMessageOut({
-                    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                    kind: 'chat',
-                    platform_id: targetDest.startsWith('telegram:') ? targetDest : null,
-                    channel_type: 'telegram',
-                    content: preText,
-                  });
-                }
-              } catch {}
-            }
-
-            for (const call of toolCallsToExecute) {
-              yield { type: 'activity' };
-              const toolResult = await executeTool(call.name, call.args, input.cwd);
-
-              currentMessages.push({
-                role: 'tool',
-                tool_call_id: call.id,
-                name: call.name,
-                content: toolResult,
-              });
-            }
-            // Continue next iteration to let DeepSeek read tool output and respond
-            continue;
-          }
-
-          finalContent = cleanDsmlFromText(assistantMsg.content || '');
-          break;
-        }
-
-        // If after tool execution finalContent is still empty, request a final summary
-        if (!finalContent || !finalContent.trim()) {
-          try {
-            const summaryRes = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey}`,
-              },
-              body: JSON.stringify({
-                model,
-                messages: [
-                  ...currentMessages,
-                  {
-                    role: 'user',
-                    content:
-                      'Por favor, envie uma resposta em linguagem natural e amigável para o usuário confirmando com clareza o resultado das ações executadas acima.',
-                  },
-                ],
-                stream: false,
-              }),
-            });
-            if (summaryRes.ok) {
-              const summaryData = (await summaryRes.json()) as any;
-              finalContent = cleanDsmlFromText(summaryData.choices?.[0]?.message?.content || '');
-            }
-          } catch {}
-        }
-
-        finalContent = cleanDsmlFromText(finalContent);
-        if (!finalContent || !finalContent.trim()) {
-          finalContent = 'Ação executada com sucesso no Notion e ambiente.';
-        }
-
-        // Determine target delivery channel/JID
-        const fromMatch = input.prompt.match(/from="([^"]+)"/);
-        const chatJidMatch = input.prompt.match(/chatJid="([^"]+)"/);
-        const targetDest = fromMatch ? fromMatch[1] : (chatJidMatch ? chatJidMatch[1] : (input.chatJid || 'telegram'));
-
-        // Ensure response is wrapped in <message to="..."> for NanoClaw delivery
-        let deliveredContent = finalContent;
-        if (!deliveredContent.includes('<message') && !deliveredContent.includes('<internal>')) {
-          deliveredContent = `<message to="${targetDest}">\n${deliveredContent}\n</message>`;
-        }
-
-        // Update history (configurable via DEEPSEEK_HISTORY_LIMIT, default 50 messages)
         const historyLimit = Math.max(10, parseInt(process.env.DEEPSEEK_HISTORY_LIMIT || '50', 10));
-        const updatedHistory: Message[] = [
-          ...history,
-          { role: 'user', content: input.prompt },
-          { role: 'assistant', content: deliveredContent },
-        ].slice(-historyLimit);
+
+        const turnResult = await TurnOrchestrator.runTurn(
+          completeFn,
+          {
+            prompt: input.prompt,
+            cwd: input.cwd,
+            chatJid: input.chatJid,
+            history,
+            systemInstructions: systemParts.join('\n\n'),
+            historyLimit,
+          },
+          () => {
+            // Signal activity heartbeat on each step
+          }
+        );
 
         yield {
           type: 'init',
-          continuation: JSON.stringify(updatedHistory),
+          continuation: JSON.stringify(turnResult.updatedHistory),
         };
 
         yield {
           type: 'result',
-          text: deliveredContent,
+          text: turnResult.deliveredText,
           isError: false,
         };
       } catch (err: any) {
         yield {
           type: 'result',
-          text: `DeepSeek Connection Error: ${err.message || String(err)}`,
+          text: `DeepSeek Error: ${err.message || String(err)}`,
           isError: true,
         };
       }
     }
 
     return {
-      push: (_msg: string) => {
-        // Handled via auto-wrap
-      },
+      push: (_msg: string) => {},
       end: () => {},
       abort: () => {
         aborted = true;
