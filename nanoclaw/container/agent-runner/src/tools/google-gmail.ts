@@ -190,7 +190,7 @@ export const googleGmailTool: AgentTool = {
     }
 
     // 3. LIST MESSAGES (DEFAULT: SCOPED TO INBOX EXCLUSIVELY)
-    const limit = Math.min(Math.max(Number(args.max_results) || 15, 1), 50);
+    const limit = Math.min(Math.max(Number(args.max_results) || 25, 1), 100);
     const folder = args.folder || 'inbox';
 
     // Build query ensuring INBOX scope unless user explicitly asked for another folder
