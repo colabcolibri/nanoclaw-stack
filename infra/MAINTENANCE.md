@@ -1,51 +1,51 @@
-# 🛠️ GUIA DE MANUTENÇÃO, ATUALIZAÇÕES E BACKUP
+# 🛠️ Maintenance, Updates & Backup Guide
 
-Este guia fornece os comandos essenciais para manutenção diária e atualizações seguras da infraestrutura.
+This guide provides essential commands for day-to-day maintenance, service monitoring, and safe infrastructure updates.
 
 ---
 
-## 1. Comandos do Dia a Dia
+## 1. Daily Operations & Service Management
 
-### Status dos Serviços:
+### Service Status:
 ```bash
 systemctl status nanoclaw.service
 systemctl status whisper-asr.service
 ```
 
-### Reiniciar Serviços:
+### Restarting Services:
 ```bash
-# Reiniciar o NanoClaw (Telegram / Barão)
+# Restart the NanoClaw engine
 systemctl restart nanoclaw.service
 
-# Reiniciar o Whisper Local (Áudio / Voz)
+# Restart the local Whisper speech transcription service
 systemctl restart whisper-asr.service
 ```
 
-### Visualizar Logs em Tempo Real:
+### Viewing Logs in Real Time:
 ```bash
-# Logs do assistente e mensagens do Telegram
+# NanoClaw engine logs
 journalctl -u nanoclaw.service -f
 
-# Logs do Whisper
+# Whisper ASR container logs
 docker logs whisper-asr -f --tail 30
 ```
 
 ---
 
-## 2. Como Atualizar pelo Git com Segurança
+## 2. Safe Git Update Procedures
 
-A infraestrutura foi desenhada para que os seus dados, configurações e adaptadores fiquem completamente isolados do repositório base:
+The infrastructure is designed so that your local configurations, state databases, and agent definitions are completely isolated from upstream repository updates:
 
-* **O que é protegido e nunca é sobrescrito:**
-  * `.env` (Chaves de API e tokens)
-  * `data/` (Bancos de dados SQLite e sessões)
-  * `groups/` (Personalidade, alma e memórias do Barão)
-  * `infra/` (Esta documentação)
-  * `/opt/whisper-service/` (Serviço de voz local)
+* **Protected Local Paths (Excluded from Git / Never Overwritten):**
+  * `.env` (API keys, web secrets, tokens)
+  * `data/` (SQLite databases, session histories, CLI sockets)
+  * `groups/` (Agent personality directives, instructions, memories)
+  * `infra/` (Operational playbooks)
+  * Local auxiliary services
 
-### Procedimento de Atualização:
+### Update Procedure:
 ```bash
-cd /opt/nanoclaw
+cd /opt/nanoclaw-stack/nanoclaw
 git pull
 pnpm install
 systemctl restart nanoclaw.service
@@ -53,15 +53,17 @@ systemctl restart nanoclaw.service
 
 ---
 
-## 3. Procedimento de Backup Recomendado
+## 3. Recommended Backup Procedure
 
-Para fazer um backup completo de todas as conversas, banco de dados, chaves e personalidade do Barão, basta arquivar as seguintes pastas:
+To perform a complete backup of all conversation history, databases, API keys, and agent memories, archive the local state directories:
 
 ```bash
 tar -czvf /root/nanoclaw-backup-$(date +%F).tar.gz \
-  /opt/nanoclaw/.env \
-  /opt/nanoclaw/data \
-  /opt/nanoclaw/groups \
-  /opt/infra \
-  /opt/whisper-service
+  /opt/nanoclaw-stack/nanoclaw/.env \
+  /opt/nanoclaw-stack/nanoclaw/data \
+  /opt/nanoclaw-stack/nanoclaw/groups \
+  /opt/nanoclaw-stack/ui/.env \
+  /opt/nanoclaw-stack/infra \
+  /opt/nanoclaw-stack/whisper
 ```
+

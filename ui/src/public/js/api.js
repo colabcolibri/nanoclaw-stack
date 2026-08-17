@@ -124,6 +124,24 @@ export class ApiClient {
     });
   }
 
+  static getNotionStatus(group = "barao") {
+    return this.request(`/api/integrations/notion/status?folder=${group}`);
+  }
+
+  static connectNotion(group = "barao", apiKey, defaultDatabaseId = "") {
+    return this.request("/api/integrations/notion/connect", {
+      method: "POST",
+      body: JSON.stringify({ folder: group, apiKey, defaultDatabaseId }),
+    });
+  }
+
+  static disconnectNotion(group = "barao") {
+    return this.request("/api/integrations/notion/disconnect", {
+      method: "POST",
+      body: JSON.stringify({ folder: group }),
+    });
+  }
+
   static getServiceStatus() {
     return this.request("/api/service/status");
   }

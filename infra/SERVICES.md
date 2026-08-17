@@ -1,74 +1,74 @@
-# ⚙️ SERVIÇOS DO SISTEMA
+# ⚙️ System Services & Daemon Topology
 
-Este documento descreve os serviços gerenciados pelo `systemd` e containers Docker ativos.
+This document describes the services managed by `systemd` and the active Docker container topologies.
 
 ---
 
-## 1. Serviço Principal: `nanoclaw.service`
+## 1. Primary Engine Service: `nanoclaw.service`
 
-* **Arquivo de Unidade:** `/etc/systemd/system/nanoclaw.service`
-* **Diretório de Trabalho:** `/opt/nanoclaw`
-* **Executável:** `/opt/nanoclaw/node_modules/.bin/tsx src/index.ts`
-* **Portas Internas:**
-  * `3000` (Webhook Server / API Local)
-  * Sockets Unix: `/opt/nanoclaw/data/cli.sock`, `/opt/nanoclaw/data/ncl.sock`
-* **Função:**
-  * Gerencia o canal do Telegram via Long Polling (`@slbarao_bot`).
-  * Processa a fila de mensagens e gerencia as sessões SQLite em `data/v2-sessions/`.
-  * Cria e acorda containers Docker sob demanda para o grupo **Barão**.
+* **Unit File:** `/etc/systemd/system/nanoclaw.service`
+* **Working Directory:** `/opt/nanoclaw-stack/nanoclaw` (or `/opt/nanoclaw`)
+* **Executable:** `node_modules/.bin/tsx src/index.ts`
+* **Internal Ports & Sockets:**
+  * `3000` (Webhook Server / Local API)
+  * Unix Sockets: `data/cli.sock`, `data/ncl.sock`
+* **Role & Responsibility:**
+  * Manages the Telegram channel via Long Polling.
+  * Handles message queuing and manages SQLite sessions in `data/v2-sessions/`.
+  * Spawns and manages on-demand Docker execution containers for configured agent groups.
 
-### Comandos Úteis:
+### Useful Commands:
 ```bash
-# Verificar status
+# Check service status
 systemctl status nanoclaw.service
 
-# Reiniciar serviço
+# Restart service
 systemctl restart nanoclaw.service
 
-# Ver logs em tempo real
+# Follow logs in real-time
 journalctl -u nanoclaw.service -f
 
-# Ver últimas 50 linhas de log
+# Inspect the last 50 log lines
 journalctl -u nanoclaw.service -n 50 --no-pager
 ```
 
 ---
 
-## 2. Serviço de Áudio / Voz: `whisper-asr.service`
+## 2. Audio & Speech Transcription Service: `whisper-asr.service`
 
-* **Arquivo de Unidade:** `/etc/systemd/system/whisper-asr.service`
-* **Diretório de Trabalho:** `/opt/whisper-service`
-* **Orquestração:** Docker Compose (`/opt/whisper-service/docker-compose.yml`)
+* **Unit File:** `/etc/systemd/system/whisper-asr.service`
+* **Working Directory:** `/opt/nanoclaw-stack/whisper` (or `/opt/whisper-service`)
+* **Orchestration:** Docker Compose
 * **Container Name:** `whisper-asr`
-* **Porta:** `127.0.0.1:9000` (Apenas localhost, 100% privado)
-* **Imagem:** `onerahmet/openai-whisper-asr-webservice:latest`
-* **Configuração:** `ASR_MODEL=base`, `ASR_ENGINE=openai_whisper`
-* **Função:** Recebe áudios `.ogg` enviados pelo Telegram e transcreve para texto em milissegundos sem custos de API.
+* **Port:** `127.0.0.1:9000` (Localhost only, 100% private)
+* **Image:** `onerahmet/openai-whisper-asr-webservice:latest`
+* **Configuration:** `ASR_MODEL=base`, `ASR_ENGINE=openai_whisper`
+* **Role & Responsibility:** Receives incoming `.ogg` audio notes from chat channels and transcribes them to text in milliseconds with zero external API costs.
 
-### Comandos Úteis:
+### Useful Commands:
 ```bash
-# Verificar status
+# Check service status
 systemctl status whisper-asr.service
 
-# Reiniciar serviço
+# Restart service
 systemctl restart whisper-asr.service
 
-# Logs do container
+# Follow container logs
 docker logs whisper-asr --tail 30 -f
 
-# Testar transcrição via curl
+# Test transcription via curl
 curl -s -X POST "http://127.0.0.1:9000/asr?task=transcribe&language=pt&output=txt" \
   -H "accept: text/plain" \
-  -F "audio_file=@/caminho/do/audio.ogg"
+  -F "audio_file=@/path/to/audio.ogg"
 ```
 
 ---
 
-## 3. Container do Agente: `nanoclaw-agent-v2-3282970f:latest`
+## 3. Ephemeral Agent Container: `nanoclaw-agent-v2-*:latest`
 
-* **Execução:** Sob demanda (o host inicia o container quando chega mensagem e o encerra após o processamento).
-* **Montagens principais:**
-  * `/workspace/group` -> `/opt/nanoclaw/groups/barao/`
-  * `/workspace/agent` -> `/opt/nanoclaw/data/v2-sessions/<session_id>/`
-  * `/app/src` -> `/opt/nanoclaw/container/agent-runner/src`
-* **Executável interno:** `bun /app/src/index.ts`
+* **Execution:** On-demand (the host runtime spawns the container when a message arrives and tears it down after execution completes).
+* **Key Mounts:**
+  * `/workspace/group` -> Host agent group storage (`nanoclaw/groups/<bot_name>/`)
+  * `/workspace/agent` -> Host session storage (`nanoclaw/data/v2-sessions/<session_id>/`)
+  * `/app/src` -> Modular container runner (`nanoclaw/container/agent-runner/src`)
+* **Internal Runtime:** `bun /app/src/index.ts`

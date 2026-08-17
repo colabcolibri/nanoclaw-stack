@@ -5,6 +5,7 @@ import { GroupManager } from "../services/groups.js";
 import { DatabaseService } from "../services/db.js";
 import { SystemService } from "../services/system.js";
 import { GoogleAuthService } from "../services/google-auth.js";
+import { NotionAuthService } from "../services/notion-auth.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   const list: Record<string, string> = {};
@@ -178,6 +179,23 @@ export class ApiRouter {
     if (url.pathname === "/api/integrations/google/disconnect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
       return jsonResponse({ success: GoogleAuthService.disconnect(body.folder || "barao") });
+    }
+
+    // Notion Integration
+    if (url.pathname === "/api/integrations/notion/status" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      return jsonResponse(NotionAuthService.getStatus(folder));
+    }
+
+    if (url.pathname === "/api/integrations/notion/connect" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { folder?: string; apiKey?: string; defaultDatabaseId?: string };
+      const res = await NotionAuthService.connect(body.folder || "barao", body.apiKey || "", body.defaultDatabaseId);
+      return jsonResponse(res, res.success ? 200 : 400);
+    }
+
+    if (url.pathname === "/api/integrations/notion/disconnect" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { folder?: string };
+      return jsonResponse({ success: NotionAuthService.disconnect(body.folder || "barao") });
     }
 
     // Chat & Stats

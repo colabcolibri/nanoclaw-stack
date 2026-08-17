@@ -2,12 +2,14 @@ import type { AgentTool, ToolDefinition } from './types.js';
 import { runCommandTool, readFileTool } from './system.js';
 import { googleCalendarTool } from './google-calendar.js';
 import { googleGmailTool } from './google-gmail.js';
+import { notionTool } from './notion.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
   read_file: readFileTool,
   google_calendar: googleCalendarTool,
   google_gmail: googleGmailTool,
+  notion: notionTool,
 };
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);

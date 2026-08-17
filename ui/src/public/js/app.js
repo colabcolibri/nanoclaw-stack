@@ -99,6 +99,16 @@ class App {
     document.getElementById("btn-connect-google")?.addEventListener("click", () => this.handleConnectGoogle());
     document.getElementById("btn-disconnect-google")?.addEventListener("click", () => this.handleDisconnectGoogle());
 
+    // Notion Integration
+    document.getElementById("btn-toggle-notion-modal")?.addEventListener("click", () => {
+      document.getElementById("notion-config-drawer")?.classList.toggle("hidden");
+    });
+    document.getElementById("btn-cancel-notion")?.addEventListener("click", () => {
+      document.getElementById("notion-config-drawer")?.classList.add("hidden");
+    });
+    document.getElementById("btn-save-notion")?.addEventListener("click", () => this.handleSaveNotion());
+    document.getElementById("btn-disconnect-notion")?.addEventListener("click", () => this.handleDisconnectNotion());
+
     // Save Config
     document.getElementById("form-config")?.addEventListener("submit", (e) => this.handleSaveConfig(e));
 
@@ -320,6 +330,7 @@ class App {
     this.loadSkills();
     this.loadMcps();
     this.loadGoogleStatus();
+    this.loadNotionStatus();
     this.loadConfig();
     this.loadServiceStatus();
     this.startLogsAutoRefresh();
@@ -886,6 +897,7 @@ class App {
       Toast.show("Servidores MCP salvos com sucesso!");
       this.loadMcps();
       this.loadGoogleStatus();
+      this.loadNotionStatus();
     } catch (err) {
       Toast.show(err.message, "error");
     }
@@ -938,6 +950,77 @@ class App {
       await ApiClient.disconnectGoogle(this.currentGroup);
       Toast.show("Conta Google desconectada");
       this.loadGoogleStatus();
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
+  }
+
+  static async loadNotionStatus() {
+    try {
+      const data = await ApiClient.getNotionStatus(this.currentGroup);
+      const badge = document.getElementById("notion-status-badge");
+      const desc = document.getElementById("notion-status-desc");
+      const btnToggle = document.getElementById("btn-toggle-notion-modal");
+      const btnDisconnect = document.getElementById("btn-disconnect-notion");
+      const inputKey = document.getElementById("input-notion-api-key");
+      const inputDb = document.getElementById("input-notion-db-id");
+
+      if (data.connected) {
+        if (badge) {
+          badge.innerText = `Conectado (${data.botName || data.maskedKey})`;
+          badge.style.background = "rgba(16, 185, 129, 0.15)";
+          badge.style.color = "var(--success)";
+        }
+        if (desc) desc.innerText = `Integração ativa. O Barão pode criar páginas, atas de reunião e consultar tabelas no Notion.`;
+        if (btnToggle) btnToggle.innerHTML = "<span>⚙️ Alterar Configuração</span>";
+        if (btnDisconnect) btnDisconnect.classList.remove("hidden");
+        if (inputDb && data.defaultDatabaseId) inputDb.value = data.defaultDatabaseId;
+      } else {
+        if (badge) {
+          badge.innerText = "Desconectado";
+          badge.style.background = "rgba(239, 68, 68, 0.15)";
+          badge.style.color = "var(--danger)";
+        }
+        if (desc) desc.innerText = "Permite ao Barão criar notas estruturadas, salvar resumos e gerenciar tabelas no Notion.";
+        if (btnToggle) btnToggle.innerHTML = "<span>⚙️ Configurar Notion</span>";
+        if (btnDisconnect) btnDisconnect.classList.add("hidden");
+        if (inputKey) inputKey.value = "";
+      }
+    } catch {}
+  }
+
+  static async handleSaveNotion() {
+    const inputKey = document.getElementById("input-notion-api-key");
+    const inputDb = document.getElementById("input-notion-db-id");
+    const apiKey = inputKey?.value?.trim();
+    const defaultDatabaseId = inputDb?.value?.trim();
+
+    if (!apiKey) {
+      Toast.show("Insira o token de integração do Notion (secret_...)", "error");
+      return;
+    }
+
+    try {
+      Toast.show("Testando conexão com o Notion...", "info");
+      const res = await ApiClient.connectNotion(this.currentGroup, apiKey, defaultDatabaseId);
+      if (res.success) {
+        Toast.show(`🎉 Notion conectado com sucesso! (${res.botName || 'Pronto'})`);
+        document.getElementById("notion-config-drawer")?.classList.add("hidden");
+        this.loadNotionStatus();
+      } else {
+        Toast.show(res.error || "Erro ao conectar com o Notion", "error");
+      }
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
+  }
+
+  static async handleDisconnectNotion() {
+    if (!confirm("Deseja realmente desconectar a integração com o Notion?")) return;
+    try {
+      await ApiClient.disconnectNotion(this.currentGroup);
+      Toast.show("Notion desconectado");
+      this.loadNotionStatus();
     } catch (err) {
       Toast.show(err.message, "error");
     }
