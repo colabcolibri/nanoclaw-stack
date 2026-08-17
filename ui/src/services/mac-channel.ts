@@ -128,14 +128,27 @@ export class MacChannelService {
       soulContent = fs.readFileSync(soulFile, 'utf-8').trim();
     }
 
-    // Load available skill instructions (e.g. notion-notes)
+    // Load available skill instructions and references
     const skillsDir = path.join(CONFIG.NANOCLAW_PATH, 'container', 'skills');
     const skillParts: string[] = [];
     if (fs.existsSync(skillsDir)) {
       for (const skillName of fs.readdirSync(skillsDir)) {
-        const skillMd = path.join(skillsDir, skillName, 'SKILL.md');
+        const skillFolder = path.join(skillsDir, skillName);
+        const skillMd = path.join(skillFolder, 'SKILL.md');
         if (fs.existsSync(skillMd)) {
-          skillParts.push(fs.readFileSync(skillMd, 'utf-8').trim());
+          let content = fs.readFileSync(skillMd, 'utf-8').trim();
+          const refDir = path.join(skillFolder, 'references');
+          if (fs.existsSync(refDir)) {
+            const refFiles = fs.readdirSync(refDir).filter((f) => f.endsWith('.md') || f.endsWith('.txt'));
+            if (refFiles.length > 0) {
+              content += '\n\n### Documentos de Referência Disponíveis:\n';
+              for (const rf of refFiles) {
+                const refContent = fs.readFileSync(path.join(refDir, rf), 'utf-8').trim();
+                content += `\n#### Referência: ${rf}\n${refContent}\n`;
+              }
+            }
+          }
+          skillParts.push(content);
         }
       }
     }

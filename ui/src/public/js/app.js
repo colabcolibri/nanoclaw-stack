@@ -899,25 +899,94 @@ class App {
       if (data.mode === "custom" && modeCustom) modeCustom.checked = true;
 
       container.innerHTML = this.cachedSkills
-        .map(
-          (s) => `
-        <div class="skill-card ${s.enabled ? "active" : ""}">
-          <div class="skill-card-top">
-            <span class="skill-name">🛠️ ${s.name}</span>
-            <label class="switch">
-              <input type="checkbox" class="skill-toggle" data-name="${s.name}" ${s.enabled ? "checked" : ""}>
-              <span class="slider"></span>
-            </label>
-          </div>
-          <p class="skill-desc">${s.description}</p>
-        </div>
-      `
-        )
+        .map((s) => {
+          const refCount = s.references ? s.references.length : 0;
+          const refBadge = refCount > 0
+            ? `<span class="badge-status" style="font-size:10px; padding:2px 6px; background:rgba(56, 189, 248, 0.15); color:var(--accent);">📂 ${refCount} ref(s)</span>`
+            : "";
+
+          return `
+            <div class="skill-card ${s.enabled ? "active" : ""}">
+              <div class="skill-card-top">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="skill-name">🧩 ${s.name}</span>
+                  ${refBadge}
+                </div>
+                <label class="switch">
+                  <input type="checkbox" class="skill-toggle" data-name="${s.name}" ${s.enabled ? "checked" : ""}>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <p class="skill-desc">${s.description}</p>
+              <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+                <button class="btn btn-secondary btn-inspect-skill" data-name="${s.name}" style="font-size:11px; padding:4px 10px;">
+                  🔍 Ver SKILL.md & Referências
+                </button>
+              </div>
+            </div>
+          `;
+        })
         .join("");
 
       document.querySelectorAll(".skill-toggle").forEach((t) => {
         t.addEventListener("change", () => {
           if (modeCustom) modeCustom.checked = true;
+        });
+      });
+
+      // Bind Inspect Skill Buttons
+      document.querySelectorAll(".btn-inspect-skill").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const skillName = e.currentTarget.dataset.name;
+          const skill = this.cachedSkills.find((s) => s.name === skillName);
+          if (!skill) return;
+
+          let refHtml = "";
+          if (skill.references && skill.references.length > 0) {
+            refHtml = `
+              <div style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:12px;">
+                <h4 style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:8px;">📂 Arquivos na pasta <code>references/</code>:</h4>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  ${skill.references.map((r) => `
+                    <details style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px;">
+                      <summary style="cursor:pointer; font-size:12px; font-weight:600; color:var(--accent); outline:none;">
+                        📄 ${r.name} (${(r.sizeBytes / 1024).toFixed(1)} KB)
+                      </summary>
+                      <div style="margin-top:10px; font-size:12px; line-height:1.6; white-space:pre-wrap; font-family:var(--font-mono); background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); max-height:250px; overflow-y:auto;">
+                        ${r.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                      </div>
+                    </details>
+                  `).join("")}
+                </div>
+              </div>
+            `;
+          } else {
+            refHtml = `
+              <div style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:12px; font-size:12px; color:var(--text-dim);">
+                <em>Nenhum arquivo adicional na pasta <code>references/</code>. Todas as instruções residem diretamente no SKILL.md.</em>
+              </div>
+            `;
+          }
+
+          LateralSheet.open({
+            title: `🧩 Detalhes da Skill: ${skill.name}`,
+            contentHtml: `
+              <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                <div><strong>Nome:</strong> <code>${skill.name}</code></div>
+                <div><strong>Diretório:</strong> <code>nanoclaw/container/skills/${skill.name}/</code></div>
+                <div><strong>Descrição:</strong> <span style="color:var(--text-muted);">${skill.description}</span></div>
+                
+                <div style="margin-top:10px;">
+                  <h4 style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:6px;">📄 Manual Principal (<code>SKILL.md</code>):</h4>
+                  <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px; font-size:12px; max-height:300px; overflow-y:auto; font-family:var(--font-mono); white-space:pre-wrap;">
+                    ${(skill.skillMdContent || "Sem conteúdo SKILL.md").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                  </div>
+                </div>
+
+                ${refHtml}
+              </div>
+            `,
+          });
         });
       });
     } catch {}

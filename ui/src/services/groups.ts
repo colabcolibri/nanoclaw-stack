@@ -303,23 +303,85 @@ export class GroupManager {
     const isAll = enabledConfig === "all";
     const enabledList = Array.isArray(enabledConfig) ? enabledConfig : [];
 
-    const descriptions: Record<string, string> = {
-      "agent-browser": "Navegação web e extração de dados via Puppeteer/Playwright.",
-      "frontend-engineer": "Assistência em desenvolvimento frontend e componentes.",
-      "onecli-gateway": "Gateway e ponte para execução de comandos OneCLI.",
-      "self-customize": "Auto-aprendizado e evolução dinâmica de instruções.",
-      welcome: "Fluxo de boas-vindas e introdução.",
-    };
+    const skills: Array<{
+      name: string;
+      description: string;
+      enabled: boolean;
+      skillMdContent: string;
+      references: Array<{ name: string; relativePath: string; sizeBytes: number; content: string }>;
+      scripts: Array<{ name: string; relativePath: string; sizeBytes: number }>;
+    }> = [];
 
-    const skills: { name: string; description: string; enabled: boolean }[] = [];
     if (fs.existsSync(CONFIG.SKILLS_PATH)) {
       const entries = fs.readdirSync(CONFIG.SKILLS_PATH, { withFileTypes: true });
       for (const ent of entries) {
         if (ent.isDirectory()) {
+          const skillDir = path.join(CONFIG.SKILLS_PATH, ent.name);
+          const skillMdPath = path.join(skillDir, "SKILL.md");
+          let description = "Habilidade do assistente.";
+          let skillMdContent = "";
+
+          if (fs.existsSync(skillMdPath)) {
+            skillMdContent = fs.readFileSync(skillMdPath, "utf-8");
+            // Parse YAML frontmatter description
+            const descMatch = skillMdContent.match(/description:\s*([^\n\r]+)/i);
+            if (descMatch && descMatch[1]) {
+              description = descMatch[1].trim();
+            } else {
+              const firstHeading = skillMdContent.match(/^#\s+(.+)$/m);
+              if (firstHeading && firstHeading[1]) description = firstHeading[1].trim();
+            }
+          }
+
+          // Scan references/
+          const references: Array<{ name: string; relativePath: string; sizeBytes: number; content: string }> = [];
+          const refDir = path.join(skillDir, "references");
+          if (fs.existsSync(refDir)) {
+            try {
+              const refFiles = fs.readdirSync(refDir, { withFileTypes: true });
+              for (const rf of refFiles) {
+                if (rf.isFile()) {
+                  const fullPath = path.join(refDir, rf.name);
+                  const stat = fs.statSync(fullPath);
+                  const content = fs.readFileSync(fullPath, "utf-8");
+                  references.push({
+                    name: rf.name,
+                    relativePath: `references/${rf.name}`,
+                    sizeBytes: stat.size,
+                    content,
+                  });
+                }
+              }
+            } catch {}
+          }
+
+          // Scan scripts/
+          const scripts: Array<{ name: string; relativePath: string; sizeBytes: number }> = [];
+          const scriptDir = path.join(skillDir, "scripts");
+          if (fs.existsSync(scriptDir)) {
+            try {
+              const scFiles = fs.readdirSync(scriptDir, { withFileTypes: true });
+              for (const sf of scFiles) {
+                if (sf.isFile()) {
+                  const fullPath = path.join(scriptDir, sf.name);
+                  const stat = fs.statSync(fullPath);
+                  scripts.push({
+                    name: sf.name,
+                    relativePath: `scripts/${sf.name}`,
+                    sizeBytes: stat.size,
+                  });
+                }
+              }
+            } catch {}
+          }
+
           skills.push({
             name: ent.name,
-            description: descriptions[ent.name] || "Ferramenta nativa do contêiner NanoClaw.",
+            description,
             enabled: isAll || enabledList.includes(ent.name),
+            skillMdContent,
+            references,
+            scripts,
           });
         }
       }
