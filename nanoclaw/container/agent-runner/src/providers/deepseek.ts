@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { AGENT_TOOLS, executeTool } from '../tools/index.js';
+import { writeMessageOut } from '../db/messages-out.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import { registerProvider } from './provider-registry.js';
 import type {
@@ -257,6 +258,25 @@ export class DeepSeekProvider implements AgentProvider {
           // If DeepSeek requested tool execution
           if (toolCallsToExecute.length > 0) {
             currentMessages.push(assistantMsg);
+
+            // If assistant produced natural text before running tool, deliver it immediately
+            const preText = cleanDsmlFromText(assistantMsg.content || '');
+            if (preText && preText.length > 3) {
+              try {
+                const fromMatch = input.prompt.match(/from="([^"]+)"/);
+                const chatJidMatch = input.prompt.match(/chatJid="([^"]+)"/);
+                const targetDest = fromMatch ? fromMatch[1] : (chatJidMatch ? chatJidMatch[1] : null);
+                if (targetDest) {
+                  writeMessageOut({
+                    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    kind: 'chat',
+                    platform_id: targetDest.startsWith('telegram:') ? targetDest : null,
+                    channel_type: 'telegram',
+                    content: preText,
+                  });
+                }
+              } catch {}
+            }
 
             for (const call of toolCallsToExecute) {
               yield { type: 'activity' };
