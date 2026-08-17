@@ -12,10 +12,13 @@ export interface DeepSeekUsage {
   prompt_tokens_details?: { cached_tokens?: number };
 }
 
-export const DEEPSEEK_PRICING: Record<
-  string,
-  { cacheHitPerMillion: number; cacheMissPerMillion: number; outputPerMillion: number }
-> = {
+export interface ModelRate {
+  cacheHitPerMillion: number;
+  cacheMissPerMillion: number;
+  outputPerMillion: number;
+}
+
+export const MODEL_PRICING: Record<string, ModelRate> = {
   'deepseek-v4-flash': {
     cacheHitPerMillion: 0.014, // Peak: $0.014 / 1M
     cacheMissPerMillion: 0.44, // Peak: $0.44 / 1M
@@ -68,6 +71,8 @@ export const DEEPSEEK_PRICING: Record<
   },
 };
 
+export const DEEPSEEK_PRICING = MODEL_PRICING;
+
 export interface TokenRecord {
   id: string;
   timestamp: string;
@@ -105,7 +110,7 @@ export class TokenLedger {
     costBrl: number;
   } {
     const key = model.toLowerCase().trim();
-    const rates = DEEPSEEK_PRICING[key] || DEEPSEEK_PRICING['deepseek-v4-flash'];
+    const rates = MODEL_PRICING[key] || MODEL_PRICING['deepseek-v4-flash'];
 
     const promptTokens = Number(usage.prompt_tokens || 0);
     const cacheHitTokens = Number(usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0);
