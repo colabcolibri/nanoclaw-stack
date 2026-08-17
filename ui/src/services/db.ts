@@ -241,40 +241,6 @@ export class DatabaseService {
       }
     } catch {}
 
-    // Read Mac channel messages
-    try {
-      const macFiles = glob.sync(`${CONFIG.GROUPS_PATH}/**/mac_channel.json`);
-      for (const macPath of macFiles) {
-        if (fs.existsSync(macPath)) {
-          const raw = fs.readFileSync(macPath, "utf-8");
-          const data = JSON.parse(raw);
-          if (data.history && Array.isArray(data.history)) {
-            for (const h of data.history) {
-              const text = h.content || "";
-              const charCount = text.length;
-              const tokens = Math.max(1, Math.round(charCount / 3.5));
-              const isUser = h.role === "user";
-              const costUsd = isUser ? (tokens / 1_000_000) * 0.14 : (tokens / 1_000_000) * 0.28;
-              const costBrl = costUsd * 5.7;
-
-              messages.push({
-                id: h.id || `mac-${Math.random().toString(36).slice(2, 8)}`,
-                type: isUser ? "user" : "assistant",
-                timestamp: h.timestamp || data.updatedAt || new Date().toISOString(),
-                channel: "macos",
-                senderName: isUser ? "MacBook (Sérgio)" : "Barão",
-                text,
-                charCount,
-                tokens,
-                costUsd,
-                costBrl,
-              });
-            }
-          }
-        }
-      }
-    } catch {}
-
     messages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return messages.slice(0, limit);
   }

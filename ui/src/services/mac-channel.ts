@@ -188,10 +188,11 @@ export class MacChannelService {
     const userMsgId = `msg-mac-in-${Date.now()}`;
     const assistantMsgId = `msg-mac-out-${Date.now() + 1}`;
 
-    // Persist to central SQLite Database (v2.db & v2-sessions/sess-mac-barao)
+    // Persist to central SQLite Database (v2.db & v2-sessions/ag-4c9ad14f-4032-4305-8efc-0cd8b700042c/sess-macos-sergio)
     try {
       const { Database } = await import('bun:sqlite');
-      const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', 'sess-mac-barao');
+      const agentGroupId = 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c';
+      const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', agentGroupId, 'sess-macos-sergio');
       if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
       const inDbPath = path.join(sessionDir, 'inbound.db');
