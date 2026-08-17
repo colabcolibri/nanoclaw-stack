@@ -11,6 +11,7 @@ export interface TurnOptions {
   history: Array<{ role: string; content?: string; [key: string]: any }>;
   systemInstructions: string;
   historyLimit?: number;
+  maxIterations?: number;
 }
 
 export interface LLMResponse {

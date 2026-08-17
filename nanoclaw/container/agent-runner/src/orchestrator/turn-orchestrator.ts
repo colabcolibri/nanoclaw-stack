@@ -22,7 +22,7 @@ export class TurnOrchestrator {
     let currentMessages = [...messages];
     let finalContent = '';
     let toolsRunCount = 0;
-    const maxIterations = 6;
+    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 15, 1), 30);
 
     for (let iter = 0; iter < maxIterations; iter++) {
       onActivity?.();
