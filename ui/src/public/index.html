@@ -187,12 +187,19 @@
           <div class="chat-container">
             <div class="chat-header">
               <div>
-                <span style="font-size:14px; font-weight:700;">📱 Histórico de Conversas em Tempo Real</span>
-                <p style="font-size:11px; color:var(--text-dim); margin-top:2px;">Clique em qualquer balão para inspecionar metadados na gaveta lateral.</p>
+                <span style="font-size:14px; font-weight:700;">💬 Histórico de Conversas por Canal</span>
+                <p style="font-size:11px; color:var(--text-dim); margin-top:2px;">Filtre para visualizar a conversa individual do seu MacBook, do Telegram ou a visão geral.</p>
               </div>
-              <button class="btn btn-secondary" id="btn-refresh-chat" style="font-size:12px; padding:6px 14px;">
-                🔄 Atualizar
-              </button>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:2px;">
+                  <button class="btn btn-secondary active chat-channel-filter" data-channel="all" style="font-size:11px; padding:4px 10px; border:none;">🌐 Todos</button>
+                  <button class="btn btn-secondary chat-channel-filter" data-channel="telegram" style="font-size:11px; padding:4px 10px; border:none;">📱 Telegram</button>
+                  <button class="btn btn-secondary chat-channel-filter" data-channel="macos" style="font-size:11px; padding:4px 10px; border:none;">💻 macOS (MacBook)</button>
+                </div>
+                <button class="btn btn-secondary" id="btn-refresh-chat" style="font-size:12px; padding:6px 14px;">
+                  🔄 Atualizar
+                </button>
+              </div>
             </div>
             <div class="chat-history" id="chat-bubbles-container"></div>
           </div>

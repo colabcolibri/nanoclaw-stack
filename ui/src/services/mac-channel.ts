@@ -184,15 +184,95 @@ export class MacChannelService {
       break;
     }
 
-    if (!finalContent || !finalContent.trim()) {
-      finalContent = 'Ação concluída com sucesso.';
+    const now = new Date().toISOString();
+    const userMsgId = `msg-mac-in-${Date.now()}`;
+    const assistantMsgId = `msg-mac-out-${Date.now() + 1}`;
+
+    // Persist to central SQLite Database (v2.db & v2-sessions/sess-mac-barao)
+    try {
+      const { Database } = await import('bun:sqlite');
+      const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', 'sess-mac-barao');
+      if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+
+      const inDbPath = path.join(sessionDir, 'inbound.db');
+      const outDbPath = path.join(sessionDir, 'outbound.db');
+
+      // Initialize inbound & outbound SQLite DBs if needed
+      const inDb = new Database(inDbPath);
+      inDb.run(`CREATE TABLE IF NOT EXISTS messages_in (
+        id TEXT PRIMARY KEY,
+        seq INTEGER,
+        in_reply_to TEXT,
+        timestamp TEXT NOT NULL,
+        deliver_after TEXT,
+        recurrence TEXT,
+        kind TEXT NOT NULL,
+        platform_id TEXT,
+        channel_type TEXT,
+        thread_id TEXT,
+        content TEXT NOT NULL
+      )`);
+
+      const outDb = new Database(outDbPath);
+      outDb.run(`CREATE TABLE IF NOT EXISTS messages_out (
+        id TEXT PRIMARY KEY,
+        seq INTEGER,
+        in_reply_to TEXT,
+        timestamp TEXT NOT NULL,
+        deliver_after TEXT,
+        recurrence TEXT,
+        kind TEXT NOT NULL,
+        platform_id TEXT,
+        channel_type TEXT,
+        thread_id TEXT,
+        content TEXT NOT NULL
+      )`);
+
+      // Insert User Inbound message
+      inDb.run(
+        `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          userMsgId,
+          now,
+          'chat',
+          'macos',
+          'mac:sergio',
+          JSON.stringify({ text: prompt, sender: 'MacBook (Sérgio)', channel: 'macos' }),
+        ]
+      );
+      inDb.close();
+
+      // Insert Assistant Outbound message
+      outDb.run(
+        `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          assistantMsgId,
+          now,
+          'chat',
+          'macos',
+          'mac:sergio',
+          `<message to="mac:sergio">\n${finalContent}\n</message>`,
+        ]
+      );
+      outDb.close();
+
+      // Register session in central v2.db
+      if (fs.existsSync(CONFIG.DB_PATH)) {
+        const centralDb = new Database(CONFIG.DB_PATH);
+        try {
+          centralDb.run(
+            `INSERT INTO sessions (id, agent_group_id, created_at, updated_at) VALUES (?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
+            ['sess-mac-barao', 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c', now, now]
+          );
+        } catch {}
+        centralDb.close();
+      }
+    } catch (dbErr) {
+      console.error('[MacChannelService] SQLite persistence error:', dbErr);
     }
 
-    const now = new Date().toISOString();
-    const userMsgId = `mac-in-${Date.now()}`;
-    const assistantMsgId = `mac-out-${Date.now() + 1}`;
-
-    // Persist continuous session history (keep last 50 messages)
+    // Persist continuous session history in JSON state file
     state.history = [
       ...state.history,
       {

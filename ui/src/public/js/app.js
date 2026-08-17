@@ -128,6 +128,17 @@ class App {
       }
     });
 
+    // Chat Channel Filter Buttons
+    document.querySelectorAll(".chat-channel-filter").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".chat-channel-filter").forEach((b) => b.classList.remove("active"));
+        const targetBtn = e.currentTarget;
+        targetBtn.classList.add("active");
+        this.currentChatFilter = targetBtn.dataset.channel || "all";
+        this.loadChat();
+      });
+    });
+
     // Save Config
     document.getElementById("form-config")?.addEventListener("submit", (e) => this.handleSaveConfig(e));
 
@@ -687,18 +698,27 @@ class App {
       .replace(/\n/g, "<br>");
   }
 
+  static currentChatFilter = "all";
+
   static async loadChat() {
     const container = document.getElementById("chat-bubbles-container");
     if (!container) return;
 
     try {
-      const data = await ApiClient.getChatMessages(100);
-      if (!data.messages || data.messages.length === 0) {
-        container.innerHTML = "<div style='text-align:center; color:var(--text-dim); margin-top:40px;'>Nenhuma mensagem trocada ainda.</div>";
+      const data = await ApiClient.getChatMessages(150);
+      let list = data.messages || [];
+
+      if (this.currentChatFilter && this.currentChatFilter !== "all") {
+        list = list.filter((m) => m.channel === this.currentChatFilter);
+      }
+
+      if (list.length === 0) {
+        const channelName = this.currentChatFilter === "macos" ? "macOS (MacBook)" : (this.currentChatFilter === "telegram" ? "Telegram" : "");
+        container.innerHTML = `<div style='text-align:center; color:var(--text-dim); margin-top:40px;'>Nenhuma mensagem encontrada para o canal ${channelName || 'selecionado'}.</div>`;
         return;
       }
 
-      container.innerHTML = data.messages
+      container.innerHTML = list
         .map((m) => {
           const isUser = m.type === "user";
           const timeStr = new Date(m.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
