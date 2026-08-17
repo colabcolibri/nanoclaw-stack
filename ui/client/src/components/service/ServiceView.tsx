@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, RefreshCw, Smartphone, Key, Check, Copy, Activity, ShieldCheck } from 'lucide-react'
+import { Cpu, RefreshCw, Smartphone, Key, Check, Copy, Activity, ShieldCheck, CheckCircle2 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -97,10 +97,11 @@ export const ServiceView: React.FC = () => {
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-500" />
-                <span>⚡ Daemon do Host & Contêineres Docker</span>
+                <span>Daemon do Host & Contêineres Docker</span>
               </CardTitle>
               <Badge variant={statusInfo.active ? 'success' : 'destructive'}>
-                {statusInfo.active ? 'Daemon Online' : 'Daemon Inativo'}
+                <CheckCircle2 className="w-3 h-3" />
+                <span>{statusInfo.active ? 'Daemon Online' : 'Daemon Inativo'}</span>
               </Badge>
             </div>
             <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
@@ -150,7 +151,8 @@ export const ServiceView: React.FC = () => {
                       >
                         <span className="font-semibold text-[var(--accent)]">{text}</span>
                         <Badge variant="success" className="text-[10px] py-0 px-2 shrink-0">
-                          Ativo
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Ativo</span>
                         </Badge>
                       </div>
                     )
@@ -166,7 +168,7 @@ export const ServiceView: React.FC = () => {
               className="w-full gap-2 h-10 mt-4 text-xs font-bold shadow-xs cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRestarting ? 'animate-spin' : ''}`} />
-              <span>{isRestarting ? 'Reiniciando...' : '🔄 Reiniciar Serviço NanoClaw'}</span>
+              <span>{isRestarting ? 'Reiniciando...' : 'Reiniciar Serviço NanoClaw'}</span>
             </Button>
           </CardContent>
         </Card>
@@ -177,7 +179,7 @@ export const ServiceView: React.FC = () => {
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-[var(--accent)]" />
-                <span>📱 Pareamento do Telegram</span>
+                <span>Pareamento do Telegram</span>
               </CardTitle>
               <Badge variant="default">1-Clique</Badge>
             </div>
@@ -215,7 +217,7 @@ export const ServiceView: React.FC = () => {
               className="w-full gap-2 h-10 mt-4 text-xs font-bold shadow-xs cursor-pointer"
             >
               <Key className="w-4 h-4" />
-              <span>{isGeneratingPairing ? 'Gerando Código...' : '🔑 Gerar Código de Pareamento'}</span>
+              <span>{isGeneratingPairing ? 'Gerando Código...' : 'Gerar Código de Pareamento'}</span>
             </Button>
           </CardContent>
         </Card>

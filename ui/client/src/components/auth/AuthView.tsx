@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Mail, Key, ArrowRight, Check } from 'lucide-react'
+import { Mail, Key, ArrowRight, Check, Zap } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -49,8 +49,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-main)] flex items-center justify-center p-4 transition-colors">
       <Card className="w-full max-w-md border-[var(--border-main)] bg-[var(--bg-card)] shadow-2xl overflow-hidden">
         <CardHeader className="p-6 text-center border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)]">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
-            ⚡
+          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Zap className="w-6 h-6 text-[var(--accent)]" />
           </div>
           <CardTitle className="text-xl font-bold text-[var(--text-main)]">
             NanoClaw UAI
