@@ -12,6 +12,8 @@ interface TopbarProps {
   onToggleSidebar: () => void
   onLogout: () => void
   onOpenInfo: () => void
+  currency?: 'BRL' | 'USD'
+  onToggleCurrency?: (curr: 'BRL' | 'USD') => void
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
@@ -21,6 +23,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   onToggleSidebar,
   onLogout,
   onOpenInfo,
+  currency = 'BRL',
+  onToggleCurrency,
 }) => {
   const { t, i18n } = useTranslation('common')
   const { theme, toggleTheme } = useTheme()
@@ -65,12 +69,36 @@ export const Topbar: React.FC<TopbarProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Currency Switcher in Header (BRL / USD) */}
+        {onToggleCurrency && (
+          <div className="flex p-0.5 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-lg gap-0.5 shadow-xs">
+            <Button
+              variant={currency === 'BRL' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs px-2 font-bold cursor-pointer"
+              onClick={() => onToggleCurrency('BRL')}
+              title="Exibir todos os valores em Reais (BRL)"
+            >
+              🇧🇷 BRL
+            </Button>
+            <Button
+              variant={currency === 'USD' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs px-2 font-bold cursor-pointer"
+              onClick={() => onToggleCurrency('USD')}
+              title="Exibir todos os valores em Dólar (USD)"
+            >
+              🇺🇸 USD
+            </Button>
+          </div>
+        )}
+
         {/* Theme Toggle (Light / Dark) */}
         <Button
           variant="outline"
           size="sm"
           onClick={toggleTheme}
-          className="h-8 w-8 p-0 border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)]"
+          className="h-8 w-8 p-0 border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] cursor-pointer"
           title={theme === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
         >
           {theme === 'dark' ? (
@@ -85,7 +113,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="outline"
           size="sm"
           onClick={toggleLanguage}
-          className="h-8 gap-1.5 text-xs font-mono border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)]"
+          className="h-8 gap-1.5 text-xs font-mono border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] cursor-pointer"
           title={t('language')}
         >
           <Globe className="w-3.5 h-3.5 text-[var(--accent)]" />
@@ -97,7 +125,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onOpenInfo}
-          className="h-8 gap-1.5 text-xs border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] hidden sm:flex"
+          className="h-8 gap-1.5 text-xs border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] hidden sm:flex cursor-pointer"
         >
           <Info className="w-3.5 h-3.5" />
           <span>{t('details')}</span>
@@ -108,11 +136,11 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
-          className="h-8 text-xs text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 gap-1.5 px-2.5"
+          className="h-8 gap-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10 cursor-pointer"
           title={t('logout')}
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">{t('logout')}</span>
+          <span className="hidden sm:inline">{t('logout')}</span>
         </Button>
       </div>
     </header>

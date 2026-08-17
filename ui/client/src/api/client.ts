@@ -19,11 +19,21 @@ export interface SystemStats {
   totalInbound: number
   totalOutbound: number
   estimatedTokens: number
+  totalTokens?: number
+  promptTokens?: number
+  cacheHitTokens?: number
+  cacheMissTokens?: number
+  completionTokens?: number
+  cacheHitRatio?: string
+  totalApiCalls?: number
+  totalRuns?: number
+  usdToBrlRate?: number
   estimatedCostUsd: string
   estimatedCostBrl: string
   serviceStatus: string
   servicePid: string
   agentName: string
+  modelName?: string
 }
 
 export interface MarkdownDoc {

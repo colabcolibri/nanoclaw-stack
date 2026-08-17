@@ -8,10 +8,20 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
-export const AnalyticsView: React.FC = () => {
+interface AnalyticsViewProps {
+  currency?: 'BRL' | 'USD'
+  onToggleCurrency?: (c: 'BRL' | 'USD') => void
+}
+
+export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
+  currency: parentCurrency,
+  onToggleCurrency,
+}) => {
   const { t } = useTranslation('analytics')
   const [activeTab, setActiveTab] = useState<'messages' | 'runs'>('messages')
-  const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL')
+  const [internalCurrency, setInternalCurrency] = useState<'BRL' | 'USD'>('BRL')
+  const currency = parentCurrency || internalCurrency
+  const setCurrency = onToggleCurrency || setInternalCurrency
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [runs, setRuns] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)

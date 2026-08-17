@@ -40,6 +40,7 @@ function getInitialView(): ViewType {
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL')
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem('nanoclaw_sidebar_state')
     if (saved === 'open') return true
@@ -74,6 +75,7 @@ function AppContent() {
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
+
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false)
@@ -113,11 +115,21 @@ function AppContent() {
         totalInbound: statsData.totalInbound || 0,
         totalOutbound: statsData.totalOutbound || 0,
         estimatedTokens: statsData.estimatedTokens || 0,
+        totalTokens: statsData.totalTokens,
+        promptTokens: statsData.promptTokens,
+        cacheHitTokens: statsData.cacheHitTokens,
+        cacheMissTokens: statsData.cacheMissTokens,
+        completionTokens: statsData.completionTokens,
+        cacheHitRatio: statsData.cacheHitRatio,
+        totalApiCalls: statsData.totalApiCalls,
+        totalRuns: statsData.totalRuns,
+        usdToBrlRate: statsData.usdToBrlRate,
         estimatedCostUsd: statsData.estimatedCostUsd || '0.00',
         estimatedCostBrl: statsData.estimatedCostBrl || '0.00',
         serviceStatus: isActive ? 'Online' : 'Offline',
         servicePid: pidStr,
         agentName: statsData.agentName || 'Barão',
+        modelName: statsData.modelName,
       })
       setMessages(messagesData.messages || [])
     } catch (err: any) {
@@ -166,13 +178,15 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-main)] flex flex-col transition-colors">
-      {/* Top Header */}
+      {/* Top Header with Global Currency Selector */}
       <Topbar
         agentName={stats?.agentName || 'Barão'}
         isOnline={stats?.serviceStatus === 'Online'}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={toggleSidebar}
         onLogout={handleLogout}
+        currency={currency}
+        onToggleCurrency={setCurrency}
         onOpenInfo={() => {
           if (messages.length > 0) {
             handleInspectMessage(messages[0])
@@ -190,8 +204,8 @@ function AppContent() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-64px)] flex flex-col transition-all duration-300">
-          {/* Top Metric Cards */}
-          <StatsGrid stats={stats} />
+          {/* Top Metric Cards (Respects Selected Currency) */}
+          <StatsGrid stats={stats} currency={currency} />
 
           {/* Active View Container */}
           <div className="flex-1 flex flex-col">
@@ -204,7 +218,7 @@ function AppContent() {
               />
             )}
 
-            {activeView === 'usage' && <AnalyticsView />}
+            {activeView === 'usage' && <AnalyticsView currency={currency} onToggleCurrency={setCurrency} />}
             {activeView === 'soul' && <SoulView />}
             {activeView === 'skills' && <SkillsView />}
             {activeView === 'mcps' && <McpsView />}
