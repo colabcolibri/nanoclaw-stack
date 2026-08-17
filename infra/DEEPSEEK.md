@@ -17,7 +17,7 @@ Diferente de wrappers pesados (como OpenCode ou OneCLI), o provedor **`deepseek`
 
 | Variável de Ambiente | Valor Atual | Descrição |
 | :--- | :--- | :--- |
-| `DEEPSEEK_API_KEY` | `sk-44018ef...` | Chave de autenticação oficial da DeepSeek. |
+| `DEEPSEEK_API_KEY` | `sk-...` | Chave de autenticação oficial da DeepSeek. |
 | `DEEPSEEK_MODEL` | `deepseek-v4-flash` | Modelo de última geração (1M tokens de contexto). |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | Endpoint oficial da API. |
 | `DEEPSEEK_HISTORY_LIMIT` | `20` | Quantidade de mensagens recentes mantidas no histórico imediato. |
