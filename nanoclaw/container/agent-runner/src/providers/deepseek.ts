@@ -105,6 +105,13 @@ export class DeepSeekProvider implements AgentProvider {
       systemParts.push(input.systemContext.instructions);
     }
 
+    // Inject Long-Term Semantic Memory (SRP: MemoryManager)
+    const { MemoryManager } = await import('../services/memory.js');
+    const coreMemory = MemoryManager.loadCoreMemory(input.cwd);
+    if (coreMemory) {
+      systemParts.push(coreMemory);
+    }
+
     const self = this;
 
     async function* executeTurn(): AsyncGenerator<ProviderEvent> {

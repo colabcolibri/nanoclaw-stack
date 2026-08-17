@@ -172,11 +172,17 @@ export class MacChannelService {
       path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'orchestrator', 'turn-orchestrator.ts')
     );
 
+    const { MemoryManager } = await import(
+      path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'memory.ts')
+    );
+    const coreMemory = MemoryManager.loadCoreMemory(groupDir);
+
     const systemParts = [
       soulContent,
+      coreMemory,
       skillParts.length > 0 ? `## Habilidades e Skills Disponíveis:\n${skillParts.join('\n\n')}` : '',
       `Você está conversando diretamente com o usuário através do canal macOS (MacBook).`,
-      `Você possui ferramentas nativas conectadas para Notion, Google Calendar e Gmail. Sempre execute a ferramenta apropriada quando solicitado.`,
+      `Você possui ferramentas nativas conectadas para Notion, Google Calendar, Gmail, Yampi Store e Memória. Sempre execute a ferramenta apropriada quando solicitado.`,
     ].filter(Boolean);
 
     // Completion function contract
