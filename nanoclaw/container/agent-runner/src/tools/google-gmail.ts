@@ -224,32 +224,36 @@ export const googleGmailTool: AgentTool = {
 
     const data = (await listRes.json()) as any;
     const msgList = data.messages || [];
-    const detailed = [];
 
-    for (const m of msgList) {
-      try {
-        const detailRes = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=To`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (detailRes.ok) {
-          const d = (await detailRes.json()) as any;
-          const headers = d.payload?.headers || [];
-          const getHeader = (hn: string) =>
-            headers.find((h: any) => h.name.toLowerCase() === hn.toLowerCase())?.value || '';
-          detailed.push({
-            id: m.id,
-            from: getHeader('From'),
-            to: getHeader('To'),
-            subject: getHeader('Subject'),
-            date: getHeader('Date'),
-            snippet: d.snippet,
-          });
-        }
-      } catch {}
-    }
+    const detailed = (
+      await Promise.all(
+        msgList.map(async (m: any) => {
+          try {
+            const detailRes = await fetch(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=To`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (detailRes.ok) {
+              const d = (await detailRes.json()) as any;
+              const headers = d.payload?.headers || [];
+              const getHeader = (hn: string) =>
+                headers.find((h: any) => h.name.toLowerCase() === hn.toLowerCase())?.value || '';
+              return {
+                id: m.id,
+                from: getHeader('From'),
+                to: getHeader('To'),
+                subject: getHeader('Subject'),
+                date: getHeader('Date'),
+                snippet: d.snippet,
+              };
+            }
+          } catch {}
+          return null;
+        })
+      )
+    ).filter(Boolean);
 
     return JSON.stringify({
       status: 'ok',
