@@ -39,7 +39,7 @@ export const googleGmailTool: AgentTool = {
     function: {
       name: 'google_gmail',
       description:
-        'Acessa a caixa de entrada do Gmail para listar mensagens, buscar e-mails com filtros avançados, ler o conteúdo completo de uma mensagem, criar rascunhos ou enviar respostas.',
+        'Acessa a caixa de entrada do Gmail para listar conversas (threads), buscar e-mails com filtros avançados, ler o conteúdo completo de uma mensagem/thread, criar rascunhos ou enviar respostas.',
       parameters: {
         type: 'object',
         properties: {
@@ -47,7 +47,7 @@ export const googleGmailTool: AgentTool = {
             type: 'string',
             enum: ['list_messages', 'read_message', 'create_draft', 'send_message'],
             description:
-              'Ação a realizar: list_messages (listar e-mails da caixa de entrada ou busca), read_message (ler conteúdo completo por message_id), create_draft (criar rascunho), send_message (enviar e-mail).',
+              'Ação a realizar: list_messages (listar conversas da caixa de entrada ou busca), read_message (ler conteúdo completo por message_id ou thread_id), create_draft (criar rascunho), send_message (enviar e-mail).',
           },
           folder: {
             type: 'string',
@@ -57,15 +57,15 @@ export const googleGmailTool: AgentTool = {
           query: {
             type: 'string',
             description:
-              'Operadores de busca avançada do Gmail combinados (ex: "is:unread", "newer_than:3d", "from:fulano@empresa.com", "subject:contrato"). Por padrão já pesquisa dentro da Caixa de Entrada (in:inbox).',
+              'Operadores de busca avançada do Gmail combinados (ex: "is:unread", "newer_than:3d", "from:fulano@empresa.com", "subject:contrato"). Por padrão pesquisa dentro da Caixa de Entrada (in:inbox).',
           },
           max_results: {
             type: 'number',
-            description: 'Quantidade máxima de e-mails a retornar ao listar (padrão 15, máximo 50).',
+            description: 'Quantidade máxima de conversas a retornar ao listar (padrão 50, máximo 100).',
           },
           message_id: {
             type: 'string',
-            description: 'ID do e-mail para ler na íntegra (obrigatório para read_message).',
+            description: 'ID da mensagem ou thread para ler na íntegra (obrigatório para read_message).',
           },
           to: {
             type: 'string',
@@ -96,32 +96,40 @@ export const googleGmailTool: AgentTool = {
 
     const action = args.action || 'list_messages';
 
-    // 1. READ MESSAGE
+    // 1. READ MESSAGE OR THREAD
     if (action === 'read_message') {
       const msgId = args.message_id || args.id;
       if (!msgId) {
         return JSON.stringify({ status: 'error', error: 'Parâmetro message_id é obrigatório para read_message.' });
       }
 
-      const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`, {
+      // Try fetching as message first, fallback to thread
+      let res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!res.ok) {
+        res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${msgId}?format=full`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
 
       if (!res.ok) {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
       const data = (await res.json()) as any;
-      const headers = data.payload?.headers || [];
+      const targetPayload = data.payload || (data.messages && data.messages[data.messages.length - 1]?.payload);
+      const headers = targetPayload?.headers || [];
       const getHeader = (name: string) =>
         headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
-      const bodyText = extractBody(data.payload) || data.snippet || '';
+      const bodyText = extractBody(targetPayload) || data.snippet || '';
 
       return JSON.stringify({
         status: 'ok',
         id: data.id,
-        threadId: data.threadId,
+        threadId: data.threadId || data.id,
         from: getHeader('From'),
         to: getHeader('To'),
         subject: getHeader('Subject'),
@@ -189,11 +197,10 @@ export const googleGmailTool: AgentTool = {
       return JSON.stringify({ status: 'ok', message: 'E-mail enviado com sucesso.', messageId: sendData.id });
     }
 
-    // 3. LIST MESSAGES (DEFAULT: SCOPED TO INBOX EXCLUSIVELY)
-    const limit = Math.min(Math.max(Number(args.max_results) || 25, 1), 100);
+    // 3. LIST CONVERSATIONS/THREADS (MIRRORS EXACT GMAIL UI CONVERSATIONS)
+    const limit = Math.min(Math.max(Number(args.max_results) || 50, 1), 100);
     const folder = args.folder || 'inbox';
 
-    // Build query ensuring INBOX scope unless user explicitly asked for another folder
     let queryParts: string[] = [];
     if (folder === 'inbox' && (!args.query || (!args.query.includes('in:') && !args.query.includes('label:')))) {
       queryParts.push('in:inbox');
@@ -211,8 +218,9 @@ export const googleGmailTool: AgentTool = {
     const qParam = finalQueryString ? `&q=${encodeURIComponent(finalQueryString)}` : '';
     const labelParam = folder === 'inbox' ? '&labelIds=INBOX' : '';
 
+    // Fetch THREADS from Gmail API (matches Gmail Web UI 1-to-1)
     const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}${labelParam}${qParam}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${limit}${labelParam}${qParam}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -223,30 +231,38 @@ export const googleGmailTool: AgentTool = {
     }
 
     const data = (await listRes.json()) as any;
-    const msgList = data.messages || [];
+    const threadList = data.threads || [];
 
     const detailed = (
       await Promise.all(
-        msgList.map(async (m: any) => {
+        threadList.map(async (t: any) => {
           try {
             const detailRes = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=To`,
+              `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
             if (detailRes.ok) {
               const d = (await detailRes.json()) as any;
-              const headers = d.payload?.headers || [];
+              const msgs = d.messages || [];
+              const lastMsg = msgs[msgs.length - 1];
+              const headers = lastMsg?.payload?.headers || [];
               const getHeader = (hn: string) =>
                 headers.find((h: any) => h.name.toLowerCase() === hn.toLowerCase())?.value || '';
+
+              const isUnread = msgs.some((m: any) => m.labelIds && m.labelIds.includes('UNREAD'));
+
               return {
-                id: m.id,
+                id: lastMsg?.id || t.id,
+                thread_id: t.id,
                 from: getHeader('From'),
                 to: getHeader('To'),
                 subject: getHeader('Subject'),
                 date: getHeader('Date'),
-                snippet: d.snippet,
+                messagesInThread: msgs.length,
+                isUnread,
+                snippet: t.snippet || lastMsg?.snippet || '',
               };
             }
           } catch {}
@@ -258,9 +274,9 @@ export const googleGmailTool: AgentTool = {
     return JSON.stringify({
       status: 'ok',
       folder,
-      totalFound: detailed.length,
+      totalConversations: detailed.length,
       estimatedTotal: data.resultSizeEstimate,
-      messages: detailed,
+      conversations: detailed,
     });
   },
 };
