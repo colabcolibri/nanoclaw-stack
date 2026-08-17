@@ -26,17 +26,23 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
         </div>
       </div>
 
-      {/* Real API Tokens */}
+      {/* Real API Tokens (In / Out Separados) */}
       <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-xs transition-colors">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
-          <span>Total de Tokens (Real API)</span>
+          <span>Tokens (Entrada / Saída)</span>
           <Cpu className="w-4 h-4 text-emerald-500" />
         </div>
-        <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
-          {(stats?.totalTokens ?? stats?.estimatedTokens ?? 0).toLocaleString()}
+        <div className="text-lg sm:text-xl font-bold text-[var(--text-main)] my-1 font-mono flex items-center gap-1.5 flex-wrap">
+          <span className="text-sky-500 font-bold" title="Tokens de Entrada">
+            {(stats?.promptTokens || 0).toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">in</span>
+          </span>
+          <span className="text-[var(--text-dim)]">•</span>
+          <span className="text-purple-500 font-bold" title="Tokens de Saída">
+            {(stats?.completionTokens || 0).toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">out</span>
+          </span>
         </div>
         <div className="text-[11px] text-[var(--text-dim)] font-mono">
-          Cache Hit: {stats?.cacheHitRatio || '0%'} • {(stats?.promptTokens || 0).toLocaleString()} in • {(stats?.completionTokens || 0).toLocaleString()} out
+          Total: {(stats?.totalTokens ?? stats?.estimatedTokens ?? 0).toLocaleString()} • Cache Hit: {stats?.cacheHitRatio || '0%'}
         </div>
       </div>
 

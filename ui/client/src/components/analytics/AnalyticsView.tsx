@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, RefreshCw, Wrench, ChevronRight, X, Clock, Zap, Cpu, DollarSign, CheckCircle2 } from 'lucide-react'
+import { BarChart3, RefreshCw, Wrench, ChevronRight, X, Clock, Zap } from 'lucide-react'
 import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -102,6 +102,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* Metric Breakdown Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Cost Card */}
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">
             {currency === 'BRL' ? 'Custo Total (BRL)' : 'Custo Total (USD)'}
@@ -118,16 +119,24 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         </div>
 
+        {/* Tokens In / Out Separated Card */}
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
-          <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalTokens')}</div>
-          <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
-            {(stats?.totalTokens ?? stats?.estimatedTokens ?? 0).toLocaleString()}
+          <div className="text-xs font-semibold text-[var(--text-muted)]">Tokens (Entrada / Saída)</div>
+          <div className="text-lg sm:text-xl font-bold text-[var(--text-main)] my-1 font-mono flex items-center gap-1.5 flex-wrap">
+            <span className="text-sky-500 font-bold" title="Tokens de Entrada (Prompt)">
+              {((stats?.promptTokens || 0)).toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">in</span>
+            </span>
+            <span className="text-[var(--text-dim)]">•</span>
+            <span className="text-purple-500 font-bold" title="Tokens de Saída (Completion)">
+              {((stats?.completionTokens || 0)).toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">out</span>
+            </span>
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            Cache Hit: {stats?.cacheHitRatio || '0%'} • {((stats?.promptTokens || 0)).toLocaleString()} in • {((stats?.completionTokens || 0)).toLocaleString()} out
+            Total: {(stats?.totalTokens ?? stats?.estimatedTokens ?? 0).toLocaleString()} • Cache Hit: {stats?.cacheHitRatio || '0%'}
           </div>
         </div>
 
+        {/* Total Calls */}
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalCalls')}</div>
           <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
@@ -138,6 +147,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         </div>
 
+        {/* Base Rate Card */}
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{t('baseRate')}</div>
           <div className="text-sm font-bold text-emerald-500 my-1">
@@ -218,7 +228,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <th className="p-3.5 px-4 font-bold">{t('stepType')}</th>
                     <th className="p-3.5 px-4 font-bold">{t('dateTime')}</th>
                     <th className="p-3.5 px-4 font-bold">{t('runId')}</th>
-                    <th className="p-3.5 px-4 font-bold">Tokens</th>
+                    <th className="p-3.5 px-4 font-bold">Tokens (In / Out)</th>
                     <th className="p-3.5 px-4 font-bold">Custo ({currency})</th>
                     <th className="p-3.5 px-4 font-bold">Detalhes da Tool / Ação</th>
                     <th className="p-3.5 px-4 font-bold text-right">Ação</th>
@@ -248,8 +258,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         <td className="p-3.5 px-4 font-mono text-[var(--text-dim)] text-[10px]">
                           {r.id?.slice(0, 16)}
                         </td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-main)] font-bold">
-                          {(r.tokens || 0).toLocaleString()}
+                        <td className="p-3.5 px-4 font-mono text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sky-500 font-bold">{((r.promptTokens || 0)).toLocaleString()} <span className="text-[10px] text-[var(--text-muted)] font-normal">in</span></span>
+                            <span className="text-[var(--text-dim)]">•</span>
+                            <span className="text-purple-500 font-bold">{((r.completionTokens || 0)).toLocaleString()} <span className="text-[10px] text-[var(--text-muted)] font-normal">out</span></span>
+                          </div>
+                          <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                            Total: {((r.tokens || 0)).toLocaleString()}
+                          </div>
                         </td>
                         <td className="p-3.5 px-4 font-mono text-emerald-500 font-bold">
                           {formatCost(r.costUsd, r.costBrl)}
@@ -314,8 +331,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Tokens Entrada (Prompt)</div>
-                  <div className="text-base font-bold text-[var(--text-main)] font-mono mt-0.5">
+                  <div className="text-[11px] text-sky-500 font-bold">📥 Tokens Entrada (In)</div>
+                  <div className="text-base font-bold text-sky-500 font-mono mt-0.5">
                     {(selectedRun.promptTokens || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] font-mono">
@@ -323,9 +340,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Tokens Saída (Completion)</div>
-                  <div className="text-base font-bold text-[var(--text-main)] font-mono mt-0.5">
+                  <div className="text-[11px] text-purple-500 font-bold">📤 Tokens Saída (Out)</div>
+                  <div className="text-base font-bold text-purple-500 font-mono mt-0.5">
                     {(selectedRun.completionTokens || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] font-mono">
+                    Total: {((selectedRun.tokens || 0)).toLocaleString()}
                   </div>
                 </div>
               </div>
