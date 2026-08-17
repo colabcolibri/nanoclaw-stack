@@ -124,6 +124,17 @@ export class ApiClient {
     });
   }
 
+  static getEmailPolicy(group = "barao") {
+    return this.request(`/api/integrations/google/policy?folder=${group}`);
+  }
+
+  static saveEmailPolicy(group = "barao", mode, signature) {
+    return this.request("/api/integrations/google/policy", {
+      method: "POST",
+      body: JSON.stringify({ folder: group, mode, signature }),
+    });
+  }
+
   static getNotionStatus(group = "barao") {
     return this.request(`/api/integrations/notion/status?folder=${group}`);
   }

@@ -1,5 +1,45 @@
+import fs from 'fs';
+import path from 'path';
 import type { AgentTool } from './types.js';
 import { getGoogleToken } from './google-auth.js';
+
+export interface EmailPolicy {
+  mode: 'draft_approval' | 'auto_safe' | 'notify_only';
+  signature?: string;
+  forwardToTelegram?: boolean;
+  autoMarkAsRead?: boolean;
+}
+
+export function loadEmailPolicy(cwd?: string): EmailPolicy {
+  const defaults: EmailPolicy = {
+    mode: 'draft_approval',
+    signature: 'Assistente Virtual da Colibri <contato@colabcolibri.com>',
+    forwardToTelegram: true,
+    autoMarkAsRead: false,
+  };
+
+  const possiblePaths = [
+    cwd ? path.join(cwd, 'email_policy.json') : null,
+    '/workspace/group/email_policy.json',
+    '/workspace/agent/email_policy.json',
+    '/opt/nanoclaw-stack/nanoclaw/groups/barao/email_policy.json',
+  ].filter(Boolean) as string[];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        return {
+          mode: data.mode || defaults.mode,
+          signature: data.signature || defaults.signature,
+          forwardToTelegram: data.forwardToTelegram ?? defaults.forwardToTelegram,
+          autoMarkAsRead: data.autoMarkAsRead ?? defaults.autoMarkAsRead,
+        };
+      } catch {}
+    }
+  }
+  return defaults;
+}
 
 function decodeBase64Url(data: string): string {
   try {
@@ -195,6 +235,15 @@ export const googleGmailTool: AgentTool = {
 
     // 2. CREATE DRAFT OR SEND MESSAGE
     if (action === 'create_draft' || action === 'send_message') {
+      const policy = loadEmailPolicy(cwd);
+
+      if (policy.mode === 'notify_only') {
+        return JSON.stringify({
+          status: 'policy_blocked',
+          message: 'POLÍTICA DE E-MAIL ATIVA (Apenas Notificar): O envio ou criação de rascunhos pelo Gmail está desativado pela política do sistema.',
+        });
+      }
+
       if (!args.to || !args.subject || !args.body) {
         return JSON.stringify({
           status: 'error',
@@ -202,8 +251,14 @@ export const googleGmailTool: AgentTool = {
         });
       }
 
+      // DETERMINISTIC SAFETY INTERCEPTION:
+      // If mode is 'draft_approval' and no explicit operator approval flag is passed, force 'create_draft'
+      const isExplicitApproved = Boolean(args.force_approved || args.operator_approved);
+      const isInterceptedToDraft = action === 'send_message' && policy.mode === 'draft_approval' && !isExplicitApproved;
+      const effectiveAction = isInterceptedToDraft ? 'create_draft' : action;
+
       const utf8Subject = `=?utf-8?B?${Buffer.from(args.subject).toString('base64')}?=`;
-      const fromAlias = args.from_alias || 'Assistente Virtual da Colibri <contato@colabcolibri.com>';
+      const fromAlias = args.from_alias || policy.signature || 'Assistente Virtual da Colibri <contato@colabcolibri.com>';
       const emailLines = [
         `From: ${fromAlias}`,
         `To: ${args.to}`,
@@ -225,7 +280,7 @@ export const googleGmailTool: AgentTool = {
         messagePayload.threadId = args.thread_id || args.threadId;
       }
 
-      if (action === 'create_draft') {
+      if (effectiveAction === 'create_draft') {
         const draftRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
           method: 'POST',
           headers: {
@@ -239,7 +294,13 @@ export const googleGmailTool: AgentTool = {
           return JSON.stringify({ status: 'error', code: draftRes.status, text: await draftRes.text() });
         }
         const draftData = (await draftRes.json()) as any;
-        return JSON.stringify({ status: 'ok', message: 'Rascunho criado com sucesso no Gmail.', draftId: draftData.id });
+        return JSON.stringify({
+          status: isInterceptedToDraft ? 'draft_created_for_approval' : 'ok',
+          message: isInterceptedToDraft
+            ? 'TRAVA DE SEGURANÇA DETERMINÍSTICA ATIVA: O modo "Rascunho & Aprovação" está ativo. A mensagem foi gravada como Rascunho no Gmail para aprovação prévia do Sérgio no Telegram antes do envio definitivo.'
+            : 'Rascunho criado com sucesso no Gmail.',
+          draftId: draftData.id,
+        });
       }
 
       const sendRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {

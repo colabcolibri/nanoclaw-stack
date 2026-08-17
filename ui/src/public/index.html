@@ -437,6 +437,9 @@
               </div>
               <div style="display:flex; align-items:center; gap:10px;">
                 <span id="google-status-badge" class="badge-status" style="background:rgba(239, 68, 68, 0.15); color:var(--danger);">Desconectado</span>
+                <button class="btn btn-secondary hidden" id="btn-toggle-email-policy" style="font-size:12px; padding:6px 14px;">
+                  <span>⚙️ Política de E-mails</span>
+                </button>
                 <button class="btn" id="btn-connect-google" style="font-size:12px; padding:6px 14px;">
                   <span>🔗 Conectar Conta Google</span>
                 </button>
@@ -445,6 +448,31 @@
                 </button>
               </div>
             </div>
+
+            <!-- Email Automation Policy Form (collapsible) -->
+            <form id="email-policy-drawer" class="hidden" onsubmit="return false;" autocomplete="off" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:12px; margin-bottom:12px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Modo de Atendimento Autônomo de E-mails</label>
+                  <select id="select-email-policy-mode" class="form-select" style="font-size:12px; font-weight:600;">
+                    <option value="draft_approval">🟡 Rascunho no Gmail & Aprovação no Telegram (Recomendado)</option>
+                    <option value="auto_safe">🟢 Resposta Autônoma em Casos Seguros + Aprovação em Orçamentos</option>
+                    <option value="notify_only">👁️ Apenas Notificar no Telegram (Sem Ação no Gmail)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Remetente Oficial (Alias)</label>
+                  <input type="text" id="input-email-signature" class="form-input" style="font-size:12px;" value="Assistente Virtual da Colibri <contato@colabcolibri.com>">
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <p style="font-size:11px; color:var(--text-dim);">No modo seguro, o Harness bloqueia envios diretos e cria rascunho com aviso no Telegram.</p>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn btn-secondary" id="btn-cancel-email-policy" style="font-size:12px; padding:5px 12px;">Fechar</button>
+                  <button type="button" class="btn" id="btn-save-email-policy" style="font-size:12px; padding:5px 14px;">Salvar Política</button>
+                </div>
+              </div>
+            </form>
           </div>
 
           <!-- NOTION INTEGRATION CARD -->

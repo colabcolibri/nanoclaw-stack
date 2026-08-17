@@ -220,6 +220,51 @@ export class ApiRouter {
       return jsonResponse({ success: GoogleAuthService.disconnect(body.folder || "barao") });
     }
 
+    if (url.pathname === "/api/integrations/google/policy" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const filePath = path.join(CONFIG.GROUPS_PATH, folder, "email_policy.json");
+      const defaults = {
+        mode: "draft_approval",
+        signature: "Assistente Virtual da Colibri <contato@colabcolibri.com>",
+        forwardToTelegram: true,
+        autoMarkAsRead: false,
+      };
+      if (fs.existsSync(filePath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+          return jsonResponse({ ...defaults, ...data });
+        } catch {}
+      }
+      return jsonResponse(defaults);
+    }
+
+    if (url.pathname === "/api/integrations/google/policy" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as {
+        folder?: string;
+        mode?: string;
+        signature?: string;
+        forwardToTelegram?: boolean;
+        autoMarkAsRead?: boolean;
+      };
+      const folder = body.folder || "barao";
+      const folderDir = path.join(CONFIG.GROUPS_PATH, folder);
+      if (!fs.existsSync(folderDir)) {
+        fs.mkdirSync(folderDir, { recursive: true });
+      }
+      const filePath = path.join(folderDir, "email_policy.json");
+      const current = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, "utf-8")) : {};
+      
+      const updated = {
+        mode: body.mode || current.mode || "draft_approval",
+        signature: body.signature?.trim() || current.signature || "Assistente Virtual da Colibri <contato@colabcolibri.com>",
+        forwardToTelegram: body.forwardToTelegram ?? current.forwardToTelegram ?? true,
+        autoMarkAsRead: body.autoMarkAsRead ?? current.autoMarkAsRead ?? false,
+      };
+
+      fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf-8");
+      return jsonResponse({ success: true, policy: updated });
+    }
+
     // Notion Integration
     if (url.pathname === "/api/integrations/notion/status" && method === "GET") {
       const folder = url.searchParams.get("folder") || "barao";

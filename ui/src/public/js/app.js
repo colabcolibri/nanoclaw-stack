@@ -104,9 +104,16 @@ class App {
     // Save MCPs
     document.getElementById("btn-save-mcps")?.addEventListener("click", () => this.handleSaveMcps());
 
-    // Google 1-Click Connect
+    // Google 1-Click Connect & Email Policy
     document.getElementById("btn-connect-google")?.addEventListener("click", () => this.handleConnectGoogle());
     document.getElementById("btn-disconnect-google")?.addEventListener("click", () => this.handleDisconnectGoogle());
+    document.getElementById("btn-toggle-email-policy")?.addEventListener("click", () => {
+      document.getElementById("email-policy-drawer")?.classList.toggle("hidden");
+    });
+    document.getElementById("btn-cancel-email-policy")?.addEventListener("click", () => {
+      document.getElementById("email-policy-drawer")?.classList.add("hidden");
+    });
+    document.getElementById("btn-save-email-policy")?.addEventListener("click", () => this.handleSaveEmailPolicy());
 
     // Notion Integration
     document.getElementById("btn-toggle-notion-modal")?.addEventListener("click", () => {
@@ -390,6 +397,7 @@ class App {
     this.loadSkills();
     this.loadMcps();
     this.loadGoogleStatus();
+    this.loadEmailPolicy();
     this.loadNotionStatus();
     this.loadYampiStatus();
     this.loadMacConfig();
@@ -856,28 +864,68 @@ class App {
           else if (channelLabel === "cli") channelLabel = "💻 Terminal";
           else if (channelLabel === "webhook") channelLabel = "🌐 Web";
 
+          const authorName = isUser ? (m.senderName || "Você") : "Barão";
+          const avatarIcon = isUser ? "👤" : "⚡";
+
           return `
-            <div class="chat-bubble-row ${isUser ? "user" : "assistant"}">
-              <div class="chat-meta">
-                <strong style="color:${isUser ? "var(--accent)" : "var(--text-main)"}">${m.senderName}</strong>
-                <span>•</span>
-                <span>${timeStr}</span>
-                <span>•</span>
-                <span class="badge-status" style="font-size:10px; padding:2px 8px; font-family:var(--font-mono);">${channelLabel}</span>
+            <div class="chat-card ${isUser ? "user" : "assistant"}" data-id="${m.id}">
+              <!-- LEFT COLUMN (70%): Author + Markdown Body -->
+              <div class="chat-card-main">
+                <div class="chat-card-author">
+                  <span class="avatar">${avatarIcon}</span>
+                  <span style="color:${isUser ? "var(--accent)" : "var(--text-main)"}">${authorName}</span>
+                </div>
+                <div class="chat-card-body">
+                  ${renderedContent}
+                </div>
               </div>
-              <div class="chat-bubble ${isUser ? "user" : "assistant"}" data-id="${m.id}" title="Clique para detalhes">
-                ${renderedContent}
+
+              <!-- RIGHT COLUMN (30%): Meta tags, Time, Actions -->
+              <div class="chat-card-sidebar">
+                <div class="chat-sidebar-group">
+                  <span class="chat-sidebar-label">CANAL</span>
+                  <span class="badge-status" style="font-size:11px; padding:3px 8px; font-family:var(--font-mono); width:fit-content;">${channelLabel}</span>
+                </div>
+                <div class="chat-sidebar-group">
+                  <span class="chat-sidebar-label">HORÁRIO</span>
+                  <span class="chat-card-time">${timeStr}</span>
+                </div>
+                <div class="chat-sidebar-actions">
+                  <button class="chat-card-btn btn-copy-msg" data-id="${m.id}" title="Copiar texto">
+                    <span>📋 Copiar</span>
+                  </button>
+                  <button class="chat-card-btn btn-inspect-msg" data-id="${m.id}" title="Ver detalhes técnicos">
+                    <span>🔍 Detalhes</span>
+                  </button>
+                </div>
               </div>
             </div>
           `;
         })
         .join("");
 
-      // Add click listeners to chat bubbles to open lateral sheet with message inspector!
-      container.querySelectorAll(".chat-bubble").forEach((bubble) => {
-        bubble.addEventListener("click", (e) => {
-          if (e.target.closest("a")) return; // Don't trigger drawer when clicking markdown links
-          const msgId = bubble.dataset.id;
+      // Action: Copy message text
+      container.querySelectorAll(".btn-copy-msg").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const msgId = btn.dataset.id;
+          const msgObj = data.messages.find((m) => m.id === msgId);
+          if (msgObj && msgObj.text) {
+            try {
+              await navigator.clipboard.writeText(msgObj.text);
+              Toast.show("Texto copiado para a área de transferência!", "success");
+            } catch {
+              Toast.show("Não foi possível copiar o texto.", "danger");
+            }
+          }
+        });
+      });
+
+      // Action: Open lateral sheet with message inspector
+      container.querySelectorAll(".btn-inspect-msg").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const msgId = btn.dataset.id;
           const msgObj = data.messages.find((m) => m.id === msgId);
           if (msgObj) {
             LateralSheet.open({
@@ -886,7 +934,7 @@ class App {
                 <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
                   <div><strong>ID da Mensagem:</strong> <code>${msgObj.id}</code></div>
                   <div><strong>Tipo:</strong> <span class="badge-status">${msgObj.type.toUpperCase()}</span></div>
-                  <div><strong>Remetente:</strong> <code>${msgObj.senderName}</code></div>
+                  <div><strong>Remetente:</strong> <code>${msgObj.senderName || "—"}</code></div>
                   <div><strong>Canal:</strong> <code>${msgObj.channel}</code></div>
                   <div><strong>Timestamp:</strong> <code>${msgObj.timestamp}</code></div>
                   <div style="margin-top:10px;"><strong>Conteúdo Integral:</strong></div>
@@ -1192,6 +1240,7 @@ class App {
       const desc = document.getElementById("google-status-desc");
       const btnConnect = document.getElementById("btn-connect-google");
       const btnDisconnect = document.getElementById("btn-disconnect-google");
+      const btnPolicy = document.getElementById("btn-toggle-email-policy");
 
       if (data.connected) {
         if (badge) {
@@ -1199,9 +1248,10 @@ class App {
           badge.style.background = "rgba(16, 185, 129, 0.15)";
           badge.style.color = "var(--success)";
         }
-        if (desc) desc.innerText = `Conta vinculada: ${data.email}. O Barão pode ler e agendar compromissos e ler e-mails.`;
+        if (desc) desc.innerText = `Conta vinculada: ${data.email}. O Barão pode ler e agendar compromissos e atender e-mails da Loja.`;
         if (btnConnect) btnConnect.classList.add("hidden");
         if (btnDisconnect) btnDisconnect.classList.remove("hidden");
+        if (btnPolicy) btnPolicy.classList.remove("hidden");
       } else {
         if (badge) {
           badge.innerText = "Desconectado";
@@ -1211,8 +1261,32 @@ class App {
         if (desc) desc.innerText = "Permite ao Barão ler sua agenda, criar reuniões e checar seus e-mails.";
         if (btnConnect) btnConnect.classList.remove("hidden");
         if (btnDisconnect) btnDisconnect.classList.add("hidden");
+        if (btnPolicy) btnPolicy.classList.add("hidden");
       }
     } catch {}
+  }
+
+  static async loadEmailPolicy() {
+    try {
+      const data = await ApiClient.getEmailPolicy(this.currentGroup);
+      const selectMode = document.getElementById("select-email-policy-mode");
+      const inputSig = document.getElementById("input-email-signature");
+      if (selectMode && data.mode) selectMode.value = data.mode;
+      if (inputSig && data.signature) inputSig.value = data.signature;
+    } catch {}
+  }
+
+  static async handleSaveEmailPolicy() {
+    const mode = document.getElementById("select-email-policy-mode")?.value || "draft_approval";
+    const signature = document.getElementById("input-email-signature")?.value.trim() || "Assistente Virtual da Colibri <contato@colabcolibri.com>";
+
+    try {
+      await ApiClient.saveEmailPolicy(this.currentGroup, mode, signature);
+      Toast.show("Política de atendimento de e-mails salva com sucesso!");
+      document.getElementById("email-policy-drawer")?.classList.add("hidden");
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
   }
 
   static async handleConnectGoogle() {
