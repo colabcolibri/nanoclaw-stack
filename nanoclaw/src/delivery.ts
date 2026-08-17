@@ -284,8 +284,14 @@ async function deliverMessage(
     log.warn('No delivery adapter configured, dropping message', { id: msg.id });
     return;
   }
-
-  const content = JSON.parse(msg.content);
+  let content: any;
+  try {
+    content = typeof msg.content === 'string' && (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))
+      ? JSON.parse(msg.content)
+      : { text: msg.content };
+  } catch {
+    content = { text: msg.content };
+  }
 
   // System actions — handle internally (cli_request, etc.)
   if (msg.kind === 'system') {

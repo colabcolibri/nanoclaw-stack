@@ -13,7 +13,7 @@ export class IntermediateNotifier {
         kind: 'chat',
         platform_id: targetJid.startsWith('telegram:') ? targetJid : null,
         channel_type: 'telegram',
-        content: text.trim(),
+        content: JSON.stringify({ text: text.trim() }),
       });
     } catch (err) {
       console.error('[IntermediateNotifier] Failed to write intermediate message:', err);
