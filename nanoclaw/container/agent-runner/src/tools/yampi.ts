@@ -40,9 +40,41 @@ export const yampiTool: AgentTool = {
         properties: {
           action: {
             type: 'string',
-            enum: ['search_products', 'get_product', 'check_product_quantity', 'get_order', 'get_client_orders', 'list_recent_orders'],
+            enum: [
+              'search_products',
+              'get_product',
+              'check_product_quantity',
+              'calculate_resale_quote',
+              'get_order',
+              'get_client_orders',
+              'list_recent_orders',
+            ],
             description:
-              'Ação a realizar: search_products (buscar produtos no catálogo), get_product (detalhes de produto), check_product_quantity (verificar se tem quantidade solicitada sem vazar estoque total), get_order (consultar pedido por número com validação de e-mail), get_client_orders (pedidos de um cliente por e-mail), list_recent_orders (apenas para o operador da loja).',
+              'Ação a realizar: search_products (buscar produtos), calculate_resale_quote (calcular orçamento exato para revenda/consignação com base na tabela oficial), check_product_quantity (verificar estoque seguro), get_order (status de pedido), get_client_orders (histórico por e-mail), list_recent_orders.',
+          },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                nameOrSku: { type: 'string', description: 'Nome do produto ou SKU (ex: "grok", "livro trabalho").' },
+                quantity: { type: 'number', description: 'Quantidade desejada.' },
+              },
+              required: ['nameOrSku', 'quantity'],
+            },
+            description: 'Lista de itens para cálculo de orçamento de revenda.',
+          },
+          buyer_name: {
+            type: 'string',
+            description: 'Nome da pessoa ou Razão Social da empresa para o orçamento.',
+          },
+          buyer_document: {
+            type: 'string',
+            description: 'CPF ou CNPJ para emissão do orçamento.',
+          },
+          is_consignment: {
+            type: 'boolean',
+            description: 'Se true, calcula os preços pela modalidade de consignação (tabela 1-10 un).',
           },
           query: {
             type: 'string',
@@ -166,7 +198,34 @@ export const yampiTool: AgentTool = {
       });
     }
 
-    // 3. GET ORDER (WITH STRICT DATA PRIVACY LOCK)
+    // 3. CALCULATE RESALE / CONSIGNMENT QUOTE (MATHEMATICAL ACCURACY)
+    if (action === 'calculate_resale_quote') {
+      const itemsList = Array.isArray(args.items) && args.items.length > 0
+        ? args.items
+        : [{ nameOrSku: args.query || 'grok', quantity: Number(args.requested_quantity) || 1 }];
+
+      const buyer = {
+        name: args.buyer_name || 'Cliente / Empresa',
+        document: args.buyer_document || args.cpf || args.cnpj || '',
+        stateRegistration: args.state_registration || args.ie || '',
+        email: args.client_email || args.email || '',
+        address: args.address || '',
+        cityState: args.city_state || '',
+        cep: args.cep || '',
+      };
+
+      const { calculateResaleQuote } = await import(
+        '../../../skills/store-email-attendant/scripts/calcular_orcamento.js'
+      );
+
+      const result = calculateResaleQuote(itemsList, buyer, Boolean(args.is_consignment));
+      return JSON.stringify({
+        status: 'ok',
+        ...result,
+      });
+    }
+
+    // 4. GET ORDER (WITH STRICT DATA PRIVACY LOCK)
     if (action === 'get_order') {
       const orderNumber = String(args.order_number || '').replace('#', '').trim();
       const clientEmail = args.client_email ? String(args.client_email).trim().toLowerCase() : null;
