@@ -36,6 +36,16 @@ export const DEEPSEEK_PRICING: Record<
     cacheMissPerMillion: 1.32,
     outputPerMillion: 3.96,
   },
+  'openai/gpt-oss-120b': {
+    cacheHitPerMillion: 0.15,
+    cacheMissPerMillion: 0.15,
+    outputPerMillion: 0.60,
+  },
+  'openai/gpt-oss-20b': {
+    cacheHitPerMillion: 0.075,
+    cacheMissPerMillion: 0.075,
+    outputPerMillion: 0.30,
+  },
   'llama-3.3-70b-versatile': {
     cacheHitPerMillion: 0.59,
     cacheMissPerMillion: 0.59,

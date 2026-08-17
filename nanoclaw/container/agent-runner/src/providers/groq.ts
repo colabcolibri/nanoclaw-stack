@@ -13,7 +13,7 @@ export class GroqProvider implements AgentProvider {
   private assistantName: string;
 
   constructor(options: ProviderOptions = {}) {
-    this.model = options.model || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    this.model = options.model || process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     this.assistantName = options.assistantName || process.env.ASSISTANT_NAME || 'Íris';
   }
 
