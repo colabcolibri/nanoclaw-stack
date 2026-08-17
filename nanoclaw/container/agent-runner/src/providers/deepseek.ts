@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { AGENT_TOOLS } from '../tools/index.js';
 import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
+import { MemoryManager } from '../services/memory.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import { registerProvider } from './provider-registry.js';
 import type {
@@ -106,7 +107,6 @@ export class DeepSeekProvider implements AgentProvider {
     }
 
     // Inject Long-Term Semantic Memory (SRP: MemoryManager)
-    const { MemoryManager } = await import('../services/memory.js');
     const coreMemory = MemoryManager.loadCoreMemory(input.cwd);
     if (coreMemory) {
       systemParts.push(coreMemory);
