@@ -311,73 +311,36 @@ export class DatabaseService {
 
   static getDetailedRuns(limit = 100): IntermediateRunItem[] {
     const runs: IntermediateRunItem[] = [];
-    const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions");
-    if (!fs.existsSync(sessionDir)) return runs;
+    const ledgerRecords = this.getRealTokenRecords(limit);
 
-    try {
-      const opencodeDbs = glob.sync(`${sessionDir}/**/opencode.db`);
-      for (const dbPath of opencodeDbs) {
-        try {
-          const db = new Database(dbPath, { readonly: true });
-          const rows = db.query("SELECT * FROM part ORDER BY time_created DESC LIMIT ?").all(limit) as any[];
-          for (const r of rows) {
-            let parsedData: any = {};
-            try {
-              parsedData = JSON.parse(r.data || "{}");
-            } catch {
-              parsedData = { text: r.data };
-            }
-
-            const rawText = parsedData.text || JSON.stringify(parsedData);
-            const charCount = rawText.length;
-            const tokens = Math.max(1, Math.round(charCount / 3.5));
-            const isInputStep = rawText.includes("<system>") || parsedData.type === "tool_result";
-            const costRate = isInputStep ? 0.14 : 0.28;
-            const costUsd = (tokens / 1_000_000) * costRate;
-            const costBrl = costUsd * 5.7;
-
-            let systemPrompt = "";
-            const sysMatch = rawText.match(/<system>([\s\S]*?)<\/system>/);
-            if (sysMatch) systemPrompt = sysMatch[1].trim();
-
-            let userPrompt = "";
-            const userMatch = rawText.match(/<message[^>]*>([\s\S]*?)<\/message>/);
-            if (userMatch) userPrompt = userMatch[1].trim();
-
-            let preview = rawText;
-            if (parsedData.type === "tool_use") {
-              preview = `🔧 Tool Call: ${parsedData.name || "ferramenta"}`;
-            } else if (parsedData.type === "tool_result") {
-              preview = `📋 Tool Result: ${JSON.stringify(parsedData.output || "").slice(0, 100)}`;
-            } else if (userPrompt) {
-              preview = `👤 Prompt: ${userPrompt.slice(0, 100)}`;
-            }
-
-            runs.push({
-              id: r.id,
-              messageId: r.message_id,
-              sessionId: r.session_id,
-              type: parsedData.type || "text_turn",
-              timestamp: new Date(r.time_created).toISOString(),
-              charCount,
-              tokens,
-              costUsd,
-              costBrl,
-              systemPrompt,
-              userPrompt,
-              toolName: parsedData.name,
-              toolArgs: parsedData.input || parsedData.args,
-              toolResult: parsedData.output || parsedData.result,
-              rawContent: rawText,
-              preview,
-            });
-          }
-          db.close();
-        } catch {}
+    for (const rec of ledgerRecords) {
+      const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
+      let toolName = "";
+      if (rec.preview && rec.preview.startsWith("Tool: ")) {
+        toolName = rec.preview.replace("Tool: ", "").trim();
       }
-    } catch {}
 
-    runs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      runs.push({
+        id: rec.id,
+        messageId: rec.id,
+        sessionId: rec.sessionId,
+        type: isTool ? "tool_execution" : "model_turn",
+        timestamp: rec.timestamp,
+        charCount: rec.totalTokens * 4,
+        tokens: rec.totalTokens,
+        promptTokens: rec.promptTokens,
+        cacheHitTokens: rec.cacheHitTokens,
+        cacheMissTokens: rec.cacheMissTokens,
+        completionTokens: rec.completionTokens,
+        costUsd: rec.costUsd,
+        costBrl: rec.costBrl,
+        latencyMs: rec.latencyMs,
+        toolName: toolName || (isTool ? "Ferramenta" : undefined),
+        rawContent: rec.preview || "",
+        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : "Resposta do modelo"),
+      });
+    }
+
     return runs.slice(0, limit);
   }
 

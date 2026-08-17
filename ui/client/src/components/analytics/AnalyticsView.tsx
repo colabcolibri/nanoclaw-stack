@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, RefreshCw, Wrench } from 'lucide-react'
+import { BarChart3, RefreshCw, Wrench, ChevronRight, X, Clock, Zap, Cpu, DollarSign, CheckCircle2 } from 'lucide-react'
 import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -26,6 +26,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const [runs, setRuns] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [selectedRun, setSelectedRun] = useState<any | null>(null)
 
   useEffect(() => {
     loadData()
@@ -57,15 +58,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Standard PageHeader with Currency Toggle */}
+    <div className="flex flex-col gap-6 relative">
+      {/* Standard PageHeader */}
       <PageHeader
         icon={<BarChart3 className="w-5 h-5" />}
         title={t('title')}
         subtitle={t('subtitle')}
         actions={
           <>
-
             {/* Tab Selector */}
             <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl gap-1 shadow-xs">
               <Button
@@ -220,7 +220,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <th className="p-3.5 px-4 font-bold">{t('runId')}</th>
                     <th className="p-3.5 px-4 font-bold">Tokens</th>
                     <th className="p-3.5 px-4 font-bold">Custo ({currency})</th>
-                    <th className="p-3.5 px-4 font-bold">{t('toolContent')}</th>
+                    <th className="p-3.5 px-4 font-bold">Detalhes da Tool / Ação</th>
+                    <th className="p-3.5 px-4 font-bold text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-main)]">
@@ -230,17 +231,22 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       month: '2-digit',
                       hour: '2-digit',
                       minute: '2-digit',
+                      second: '2-digit',
                     })
                     return (
-                      <tr key={r.id} className="hover:bg-[var(--bg-card-subtle)] transition-colors">
+                      <tr
+                        key={r.id}
+                        onClick={() => setSelectedRun(r)}
+                        className="hover:bg-[var(--bg-card-subtle)] transition-colors cursor-pointer group"
+                      >
                         <td className="p-3.5 px-4">
-                          <Badge variant="secondary" className="font-mono text-[10px]">
-                            {r.type}
+                          <Badge variant={r.type === 'tool_execution' ? 'warning' : 'secondary'} className="font-mono text-[10px]">
+                            {r.type === 'tool_execution' ? 'TOOL RUN' : 'MODEL TURN'}
                           </Badge>
                         </td>
                         <td className="p-3.5 px-4 font-mono text-[var(--text-muted)]">{dateStr}</td>
                         <td className="p-3.5 px-4 font-mono text-[var(--text-dim)] text-[10px]">
-                          {r.messageId?.slice(0, 16) || r.id?.slice(0, 16)}
+                          {r.id?.slice(0, 16)}
                         </td>
                         <td className="p-3.5 px-4 font-mono text-[var(--text-main)] font-bold">
                           {(r.tokens || 0).toLocaleString()}
@@ -251,12 +257,17 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         <td className="p-3.5 px-4 max-w-sm truncate text-[var(--text-main)] font-mono text-[11px]">
                           {r.toolName ? (
                             <span className="inline-flex items-center gap-1.5 font-bold text-[var(--accent)]">
-                              <Wrench className="w-3 h-3" />
+                              <Wrench className="w-3.5 h-3.5 text-amber-500" />
                               <span>{r.toolName}</span>
                             </span>
                           ) : (
                             r.preview
                           )}
+                        </td>
+                        <td className="p-3.5 px-4 text-right">
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-[var(--accent)]">
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
                         </td>
                       </tr>
                     )
@@ -267,6 +278,90 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Interactive Run Inspector Drawer / Modal */}
+      {selectedRun && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-end transition-opacity">
+          <div className="w-full max-w-lg bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-[var(--accent)]" />
+                    <h3 className="text-lg font-bold text-[var(--text-main)]">Auditoria da Execução</h3>
+                  </div>
+                  <p className="text-xs font-mono text-[var(--text-dim)]">{selectedRun.id}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedRun(null)} className="h-8 w-8 p-0 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Metric Breakdown Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Custo em {currency}</div>
+                  <div className="text-lg font-bold text-emerald-500 font-mono mt-0.5">
+                    {formatCost(selectedRun.costUsd, selectedRun.costBrl)}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Latência da API</div>
+                  <div className="text-lg font-bold text-[var(--text-main)] font-mono mt-0.5 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-[var(--accent)]" />
+                    <span>{selectedRun.latencyMs ? `${selectedRun.latencyMs} ms` : '--'}</span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Tokens Entrada (Prompt)</div>
+                  <div className="text-base font-bold text-[var(--text-main)] font-mono mt-0.5">
+                    {(selectedRun.promptTokens || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] font-mono">
+                    Hit: {(selectedRun.cacheHitTokens || 0).toLocaleString()} • Miss: {(selectedRun.cacheMissTokens || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Tokens Saída (Completion)</div>
+                  <div className="text-base font-bold text-[var(--text-main)] font-mono mt-0.5">
+                    {(selectedRun.completionTokens || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tool Execution Details */}
+              {selectedRun.toolName && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-amber-500" />
+                    <span>Ferramenta Invocada</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--accent)] font-bold">
+                    {selectedRun.toolName}
+                  </div>
+                </div>
+              )}
+
+              {/* Payload Preview */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-[var(--text-main)]">Conteúdo / Saída</div>
+                <pre className="p-4 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--text-main)] whitespace-pre-wrap max-h-60 overflow-y-auto">
+                  {selectedRun.rawContent || selectedRun.preview || 'Sem detalhes adicionais'}
+                </pre>
+              </div>
+            </div>
+
+            <Button
+              variant="default"
+              className="w-full mt-6 font-bold cursor-pointer"
+              onClick={() => setSelectedRun(null)}
+            >
+              Fechar Inspeção
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
