@@ -509,7 +509,7 @@ body {
   right: 0;
   bottom: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: min(840px, 94vw);
   background: var(--bg-surface);
   border-left: 1px solid var(--border-color);
   z-index: 1001;

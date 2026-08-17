@@ -944,16 +944,17 @@ class App {
           let refHtml = "";
           if (skill.references && skill.references.length > 0) {
             refHtml = `
-              <div style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:12px;">
-                <h4 style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:8px;">📂 Arquivos na pasta <code>references/</code>:</h4>
-                <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="margin-top:18px; border-top:1px solid var(--border-color); padding-top:14px;">
+                <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:10px;">📂 Documentos na pasta <code>references/</code>:</h4>
+                <div style="display:flex; flex-direction:column; gap:10px;">
                   ${skill.references.map((r) => `
-                    <details style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px;">
-                      <summary style="cursor:pointer; font-size:12px; font-weight:600; color:var(--accent); outline:none;">
-                        📄 ${r.name} (${(r.sizeBytes / 1024).toFixed(1)} KB)
+                    <details style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:10px 14px;">
+                      <summary style="cursor:pointer; font-size:13px; font-weight:600; color:var(--accent); outline:none; display:flex; align-items:center; gap:8px;">
+                        <span>📄 ${r.name}</span>
+                        <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(${(r.sizeBytes / 1024).toFixed(1)} KB)</span>
                       </summary>
-                      <div style="margin-top:10px; font-size:12px; line-height:1.6; white-space:pre-wrap; font-family:var(--font-mono); background:var(--bg-card); padding:10px; border-radius:var(--radius-sm); max-height:250px; overflow-y:auto;">
-                        ${r.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                      <div class="markdown-preview" style="margin-top:12px; font-size:13px; line-height:1.7; background:var(--bg-card); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-color); max-height:350px; overflow-y:auto;">
+                        ${App.parseMarkdown(r.content)}
                       </div>
                     </details>
                   `).join("")}
@@ -962,8 +963,8 @@ class App {
             `;
           } else {
             refHtml = `
-              <div style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:12px; font-size:12px; color:var(--text-dim);">
-                <em>Nenhum arquivo adicional na pasta <code>references/</code>. Todas as instruções residem diretamente no SKILL.md.</em>
+              <div style="margin-top:18px; border-top:1px solid var(--border-color); padding-top:14px; font-size:12px; color:var(--text-dim);">
+                <em>Nenhum documento adicional na pasta <code>references/</code>. Todas as diretrizes residem diretamente no SKILL.md.</em>
               </div>
             `;
           }
@@ -971,15 +972,21 @@ class App {
           LateralSheet.open({
             title: `🧩 Detalhes da Skill: ${skill.name}`,
             contentHtml: `
-              <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
-                <div><strong>Nome:</strong> <code>${skill.name}</code></div>
-                <div><strong>Diretório:</strong> <code>nanoclaw/container/skills/${skill.name}/</code></div>
-                <div><strong>Descrição:</strong> <span style="color:var(--text-muted);">${skill.description}</span></div>
+              <div style="display:flex; flex-direction:column; gap:14px; font-size:13px;">
+                <div style="display:flex; flex-wrap:wrap; gap:16px; padding:12px 16px; background:var(--bg-surface); border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+                  <div><strong style="color:var(--text-dim);">Nome:</strong> <code style="color:var(--accent); font-weight:700;">${skill.name}</code></div>
+                  <div><strong style="color:var(--text-dim);">Diretório:</strong> <code style="font-size:11px;">nanoclaw/container/skills/${skill.name}/</code></div>
+                </div>
+
+                <div>
+                  <strong style="font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px;">Descrição da Habilidade:</strong>
+                  <p style="color:var(--text-main); margin-top:4px; font-size:13px; line-height:1.5;">${skill.description}</p>
+                </div>
                 
-                <div style="margin-top:10px;">
-                  <h4 style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:6px;">📄 Manual Principal (<code>SKILL.md</code>):</h4>
-                  <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px; font-size:12px; max-height:300px; overflow-y:auto; font-family:var(--font-mono); white-space:pre-wrap;">
-                    ${(skill.skillMdContent || "Sem conteúdo SKILL.md").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                <div style="margin-top:8px;">
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:8px;">📄 Manual Principal (<code>SKILL.md</code>):</h4>
+                  <div class="markdown-preview" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:18px 22px; font-size:13px; line-height:1.7; max-height:420px; overflow-y:auto;">
+                    ${App.parseMarkdown(skill.skillMdContent || "Sem conteúdo SKILL.md")}
                   </div>
                 </div>
 
