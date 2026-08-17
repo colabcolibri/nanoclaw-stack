@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --bg-page: #f8fafc;
@@ -18,8 +20,8 @@
     --accent-hover: #0369a1;
     --accent-subtle: rgba(2, 132, 199, 0.12);
     --accent-border: rgba(2, 132, 199, 0.35);
-    --terminal-bg: #f8fafc;
-    --terminal-text: #090d16;
+    --terminal-bg: #f1f5f9;
+    --terminal-text: #020617;
     --terminal-border: #cbd5e1;
   }
 
@@ -54,6 +56,52 @@ body {
   margin: 0;
   overflow-x: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Explicit Log Color Classes for Guaranteed Contrast */
+.log-line-default {
+  color: #020617;
+  font-weight: 500;
+}
+.dark .log-line-default {
+  color: #f8fafc;
+  font-weight: 400;
+}
+
+.log-line-error {
+  color: #991b1b;
+  font-weight: 700;
+}
+.dark .log-line-error {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.log-line-warn {
+  color: #92400e;
+  font-weight: 700;
+}
+.dark .log-line-warn {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.log-line-success {
+  color: #065f46;
+  font-weight: 700;
+}
+.dark .log-line-success {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.log-line-info {
+  color: #0369a1;
+  font-weight: 700;
+}
+.dark .log-line-info {
+  color: #38bdf8;
+  font-weight: 700;
 }
 
 /* Scrollbar */

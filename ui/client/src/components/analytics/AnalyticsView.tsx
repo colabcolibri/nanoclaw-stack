@@ -182,7 +182,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </div>
       </div>
 
-      {/* Main Unified Messages Table with Separated In / Out Columns */}
+      {/* Main Unified Messages Table with Generous Widths */}
       <Card className="border-[var(--border-main)] bg-[var(--bg-card)] overflow-hidden shadow-xs">
         <CardContent className="p-0 overflow-x-auto">
           {messages.length === 0 ? (
@@ -191,31 +191,32 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               description="Nenhuma mensagem ou chamada de API foi registrada ainda."
             />
           ) : (
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[1050px]">
               <thead className="bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)] text-[var(--text-muted)] font-mono">
                 <tr>
-                  <th className="p-3.5 px-4 font-bold">Tipo</th>
-                  <th className="p-3.5 px-4 font-bold">Data & Hora</th>
-                  <th className="p-3.5 px-4 font-bold">Canal</th>
-                  <th className="p-3.5 px-4 font-bold">Remetente</th>
-                  {/* Separate Token In Column */}
-                  <th className="p-3.5 px-4 font-bold text-sky-700 dark:text-sky-300">
+                  <th className="p-3.5 px-4 font-bold min-w-[100px]">Tipo</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[130px]">Data & Hora</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[90px]">Canal</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[130px]">Remetente</th>
+                  {/* Separate Token In Column (Generous Width) */}
+                  <th className="p-3.5 px-4 font-bold text-sky-700 dark:text-sky-300 min-w-[145px]">
                     <div>Token In (Entrada)</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">Custo Entrada</div>
                   </th>
-                  {/* Separate Token Out Column */}
-                  <th className="p-3.5 px-4 font-bold text-purple-700 dark:text-purple-300">
+                  {/* Separate Token Out Column (Generous Width) */}
+                  <th className="p-3.5 px-4 font-bold text-purple-700 dark:text-purple-300 min-w-[145px]">
                     <div>Token Out (Saída)</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">Custo Saída</div>
                   </th>
-                  {/* Total Cost Column */}
-                  <th className="p-3.5 px-4 font-bold text-emerald-700 dark:text-emerald-300">
+                  {/* Total Cost Column (Generous Width) */}
+                  <th className="p-3.5 px-4 font-bold text-emerald-700 dark:text-emerald-300 min-w-[135px]">
                     <div>Custo Total</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">({currency})</div>
                   </th>
-                  <th className="p-3.5 px-4 font-bold">Execução</th>
-                  <th className="p-3.5 px-4 font-bold">Mensagem</th>
-                  <th className="p-3.5 px-4 font-bold text-right">Auditar</th>
+                  {/* Execução Column (Generous Width) */}
+                  <th className="p-3.5 px-4 font-bold min-w-[160px]">Execução</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[200px]">Mensagem</th>
+                  <th className="p-3.5 px-4 font-bold text-right min-w-[80px]">Auditar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-main)]">
@@ -282,18 +283,20 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         </div>
                       </td>
 
+                      {/* 4. EXECUÇÃO COLUMN (LARGA) */}
                       <td className="p-3.5 px-4 whitespace-nowrap">
                         {subRunsCount > 0 ? (
-                          <Badge variant="warning" className="gap-1 text-[10px]">
+                          <Badge variant="warning" className="gap-1 text-[10px] py-1 px-2.5">
                             <Layers className="w-3 h-3" />
-                            <span>{subRunsCount} tool(s)</span>
+                            <span>{subRunsCount} tool(s) executadas</span>
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-[10px]">
-                            Direta
+                          <Badge variant="secondary" className="text-[10px] py-1 px-2.5">
+                            Resposta Direta
                           </Badge>
                         )}
                       </td>
+
                       <td className="p-3.5 px-4 max-w-xs truncate text-[var(--text-main)] font-mono text-[11px]">
                         {m.text}
                       </td>

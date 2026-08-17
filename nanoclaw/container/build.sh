@@ -19,13 +19,13 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Pre-build Automated Test Validation Gate
-echo "=== Running Agent Runner Automated Quality & Smoke Tests ==="
+echo "=== Running Agent Runner Automated Quality, Typecheck & Smoke Tests ==="
 if command -v bun >/dev/null 2>&1; then
-    (cd "$SCRIPT_DIR/agent-runner" && bun test tests/smoke.test.ts) || {
-        echo "❌ CRITICAL ERROR: Agent Runner pre-build tests failed! Build aborted to prevent deployment of broken code."
+    (cd "$SCRIPT_DIR/agent-runner" && bun run typecheck && bun test tests/smoke.test.ts) || {
+        echo "❌ CRITICAL ERROR: Agent Runner pre-build tests/typecheck failed! Build aborted to prevent deployment of broken code."
         exit 1
     }
-    echo "✅ All agent tests passed successfully."
+    echo "✅ All agent typechecks and tests passed successfully."
 fi
 
 # Derive the image name from the project root so two NanoClaw installs on the
