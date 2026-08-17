@@ -2,14 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { CONFIG } from '../config.js';
-import { DatabaseService } from './db.js';
 import { GroupManager } from './groups.js';
-
-interface MacSessionState {
-  apiKey: string;
-  history: Array<{ role: string; content?: string; [key: string]: any }>;
-  updatedAt: string;
-}
 
 export class MacChannelService {
   private static getKeyFilePath(groupFolder = 'barao'): string {
@@ -29,15 +22,9 @@ export class MacChannelService {
     }
 
     const newKey = `mac_${crypto.randomBytes(24).toString('hex')}`;
-    const initialData: MacSessionState = {
-      apiKey: newKey,
-      history: [],
-      updatedAt: new Date().toISOString(),
-    };
-
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(initialData, null, 2), 'utf-8');
+    fs.writeFileSync(filePath, JSON.stringify({ apiKey: newKey }, null, 2), 'utf-8');
     return newKey;
   }
 
@@ -51,7 +38,7 @@ export class MacChannelService {
   }
 
   /**
-   * Executes a user prompt through the NanoClaw turn execution engine with session continuity via SQLite.
+   * Executes a user prompt through the NanoClaw TurnOrchestrator engine with all native tools and skills.
    */
   static async processPrompt(
     prompt: string,
@@ -66,7 +53,7 @@ export class MacChannelService {
     const inDbPath = path.join(sessionDir, 'inbound.db');
     const outDbPath = path.join(sessionDir, 'outbound.db');
 
-    // Ensure schema on both SQLite databases
+    // Ensure SQLite schema on both inbound & outbound DBs
     const inDb = new Database(inDbPath);
     inDb.run(`CREATE TABLE IF NOT EXISTS messages_in (
       id TEXT PRIMARY KEY,
@@ -133,12 +120,24 @@ export class MacChannelService {
       history = combined.slice(-30).map((c) => ({ role: c.role, content: c.text }));
     } catch {}
 
-    // Load group configuration and soul
+    // Load group configuration, soul directives and skills
     const groupDir = path.join(CONFIG.GROUPS_PATH, groupFolder);
     const soulFile = path.join(groupDir, 'instructions.prepend.md');
     let soulContent = 'Você é o Barão, um assistente de IA prestativo e inteligente.';
     if (fs.existsSync(soulFile)) {
       soulContent = fs.readFileSync(soulFile, 'utf-8').trim();
+    }
+
+    // Load available skill instructions (e.g. notion-notes)
+    const skillsDir = path.join(CONFIG.NANOCLAW_PATH, 'container', 'skills');
+    const skillParts: string[] = [];
+    if (fs.existsSync(skillsDir)) {
+      for (const skillName of fs.readdirSync(skillsDir)) {
+        const skillMd = path.join(skillsDir, skillName, 'SKILL.md');
+        if (fs.existsSync(skillMd)) {
+          skillParts.push(fs.readFileSync(skillMd, 'utf-8').trim());
+        }
+      }
     }
 
     const envMap = GroupManager.readNanoClawEnv();
@@ -152,43 +151,31 @@ export class MacChannelService {
       throw new Error('DEEPSEEK_API_KEY não configurada no NanoClaw.');
     }
 
-    // Dynamic import of agent tools from container runner
-    let agentTools: any[] = [];
-    let executeToolFn: any = null;
-
-    try {
-      const toolsModule = await import('../../nanoclaw/container/agent-runner/src/tools/index.js');
-      agentTools = toolsModule.AGENT_TOOLS || [];
-      executeToolFn = toolsModule.executeTool;
-    } catch {
-      // Fallback if direct import is restricted
-    }
+    // Import tools and turn orchestrator directly
+    const { AGENT_TOOLS } = await import(
+      path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'tools', 'index.ts')
+    );
+    const { TurnOrchestrator } = await import(
+      path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'orchestrator', 'turn-orchestrator.ts')
+    );
 
     const systemParts = [
       soulContent,
+      skillParts.length > 0 ? `## Habilidades e Skills Disponíveis:\n${skillParts.join('\n\n')}` : '',
       `Você está conversando diretamente com o usuário através do canal macOS (MacBook).`,
-      `Responda de forma concisa, elegante e em linguagem natural em Português.`,
-    ];
+      `Você possui ferramentas nativas conectadas para Notion, Google Calendar e Gmail. Sempre execute a ferramenta apropriada quando solicitado.`,
+    ].filter(Boolean);
 
-    const messages: any[] = [
-      { role: 'system', content: systemParts.join('\n\n') },
-      ...history,
-      { role: 'user', content: prompt },
-    ];
-
-    let currentMessages = [...messages];
-    let finalContent = '';
-    const maxIterations = 6;
-
-    for (let iter = 0; iter < maxIterations; iter++) {
+    // Completion function contract
+    const completeFn = async (currentMessages: any[], enableTools: boolean) => {
       const payload: any = {
         model,
         messages: currentMessages,
         stream: false,
       };
 
-      if (agentTools.length > 0) {
-        payload.tools = agentTools;
+      if (enableTools && AGENT_TOOLS && AGENT_TOOLS.length > 0) {
+        payload.tools = AGENT_TOOLS;
       }
 
       const res = await fetch(`${baseURL}/chat/completions`, {
@@ -202,59 +189,37 @@ export class MacChannelService {
 
       if (!res.ok) {
         const errText = await res.text();
-        inDb.close();
-        outDb.close();
         throw new Error(`DeepSeek API Error (${res.status}): ${errText}`);
       }
 
       const data = (await res.json()) as any;
-      const assistantMsg = data.choices?.[0]?.message;
-      if (!assistantMsg) break;
+      const msg = data.choices?.[0]?.message || {};
+      return {
+        content: msg.content,
+        tool_calls: msg.tool_calls,
+      };
+    };
 
-      // Check tool calls (JSON or DSML)
-      const toolCalls = assistantMsg.tool_calls;
-      if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0 && executeToolFn) {
-        currentMessages.push(assistantMsg);
+    // Execute conversational turn with full tool orchestration and schema awareness
+    const turnResult = await TurnOrchestrator.runTurn(completeFn, {
+      prompt,
+      cwd: groupDir,
+      chatJid: 'mac:sergio',
+      history,
+      systemInstructions: systemParts.join('\n\n'),
+      historyLimit: 30,
+    });
 
-        for (const call of toolCalls) {
-          let fnArgs = {};
-          try {
-            fnArgs = typeof call.function?.arguments === 'string'
-              ? JSON.parse(call.function.arguments)
-              : (call.function?.arguments || {});
-          } catch {}
-
-          const resultText = await executeToolFn(call.function?.name, fnArgs, groupDir);
-
-          currentMessages.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            name: call.function?.name,
-            content: resultText,
-          });
-        }
-        continue;
-      }
-
-      finalContent = (assistantMsg.content || '')
-        .replace(/<[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
-        .replace(/<\/[｜|]{1,2}DSML[｜|]{1,2}[\s\S]*?>/gi, '')
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
-        .replace(/<message[^>]*>/gi, '')
-        .replace(/<\/message>/gi, '')
-        .trim();
-      break;
-    }
-
-    if (!finalContent || !finalContent.trim()) {
-      finalContent = 'Ação concluída com sucesso.';
-    }
+    const cleanReply = turnResult.deliveredText
+      .replace(/<message[^>]*>/gi, '')
+      .replace(/<\/message>/gi, '')
+      .trim();
 
     const now = new Date().toISOString();
     const userMsgId = `msg-mac-in-${Date.now()}`;
     const assistantMsgId = `msg-mac-out-${Date.now() + 1}`;
 
-    // Insert User Inbound message
+    // Write to SQLite inbound & outbound
     inDb.run(
       `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
       [
@@ -268,7 +233,6 @@ export class MacChannelService {
     );
     inDb.close();
 
-    // Insert Assistant Outbound message
     outDb.run(
       `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
       [
@@ -277,7 +241,7 @@ export class MacChannelService {
         'chat',
         'macos',
         'mac:sergio',
-        `<message to="mac:sergio">\n${finalContent}\n</message>`,
+        `<message to="mac:sergio">\n${cleanReply}\n</message>`,
       ]
     );
     outDb.close();
@@ -296,7 +260,7 @@ export class MacChannelService {
     }
 
     return {
-      reply: finalContent,
+      reply: cleanReply,
       timestamp: now,
     };
   }
