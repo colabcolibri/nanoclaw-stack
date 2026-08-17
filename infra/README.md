@@ -1,70 +1,61 @@
-# 🏗️ INFRAESTRUTURA DO SISTEMA — NANOCLAW & BARÃO
+# Infrastructure & Operational Playbooks
 
-Este diretório contém o registro detalhado de toda a infraestrutura, serviços, integrações e personalizações ativas no servidor.
-
----
-
-## 🗺️ Visão Geral da Arquitetura
-
-```
-+-------------------------------------------------------------------------+
-|                               TELEGRAM                                  |
-|                 (Usuário @slbarao_bot / ID: 7239635872)                 |
-+------------------------------------+------------------------------------+
-                                     |
-                                     v
-+-------------------------------------------------------------------------+
-|                  HOST LINUX (Ubuntu / Debian - VPS)                     |
-|                                                                         |
-|  [nanoclaw.service] (Node 22 LTS / TSX)                                 |
-|  ├── Canal: Telegram Long Polling (@chat-adapter/telegram)              |
-|  ├── Central DB: SQLite (/opt/nanoclaw/data/v2.db)                      |
-|  ├── Sessões: /opt/nanoclaw/data/v2-sessions/                           |
-|  └── Router & Queue Engine                                              |
-|                                                                         |
-|  [whisper-asr.service] (Docker Compose / Local ASR)                     |
-|  └── Container: whisper-asr (127.0.0.1:9000)                            |
-|      - Transcrição local de voz/áudio .ogg do Telegram                  |
-|      - Modelo: whisper-base (100% privado, custo $0)                    |
-|                                                                         |
-|  [Docker Runner]                                                        |
-|  └── Container sob demanda: nanoclaw-agent-v2-3282970f:latest          |
-|      ├── Provedor: deepseek (Nativo Direto via HTTPS)                   |
-|      ├── Modelo: deepseek-v4-flash (1M Context Length)                  |
-|      ├── Histórico: 20 mensagens (DEEPSEEK_HISTORY_LIMIT=20)             |
-|      └── Soul / Persona: /workspace/group/instructions.prepend.md       |
-+-------------------------------------------------------------------------+
-                                     |
-                                     v
-+-------------------------------------------------------------------------+
-|                      DEEPSEEK API CLOUD DIRECT                          |
-|             (https://api.deepseek.com/chat/completions)                 |
-+-------------------------------------------------------------------------+
-```
+This directory contains system-level operational playbooks, architecture specifications, deployment guides, and maintenance procedures for operating the **NanoClaw Production Stack** on Linux servers.
 
 ---
 
-## 📂 Estrutura de Documentação
+## 📁 Directory Structure & Documentation Map
 
-| Arquivo | Descrição |
+| Document | Description |
 | :--- | :--- |
-| [**SERVICES.md**](file:///opt/infra/SERVICES.md) | Detalhes dos serviços `systemd`, portas, status e comandos de controle. |
-| [**DEEPSEEK.md**](file:///opt/infra/DEEPSEEK.md) | Conector nativo direto, chaves, modelo e parâmetros de contexto. |
-| [**WHISPER.md**](file:///opt/infra/WHISPER.md) | Serviço Docker local de transcrição de áudio e integração com o Telegram. |
-| [**BARAO_SOUL.md**](file:///opt/infra/BARAO_SOUL.md) | Identidade, estilo, psicologia e diretrizes de comportamento do Barão. |
-| [**MAINTENANCE.md**](file:///opt/infra/MAINTENANCE.md) | Procedimentos de reinicialização, leitura de logs, backups e atualizações Git. |
+| **[SERVICES.md](file:///opt/nanoclaw-stack/infra/SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
+| **[MAINTENANCE.md](file:///opt/nanoclaw-stack/infra/MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
+| **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, context window management, and provider configuration. |
+| **[WHISPER.md](file:///opt/nanoclaw-stack/infra/WHISPER.md)** | Self-hosted audio transcription service configuration and media pipeline. |
 
 ---
 
-## 📌 Variáveis de Ambiente Ativas (`/opt/nanoclaw/.env`)
+## ⚙️ Service Topology & Ports
 
-```env
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
-DEEPSEEK_MODEL=deepseek-v4-flash
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_HISTORY_LIMIT=20
-NANOCLAW_AGENT_PROVIDER=deepseek
-NANOCLAW_AGENT_NAME=Barão
-NANOCLAW_DISPLAY_NAME=Sergio
+```text
+               ┌───────────────────────────────┐
+               │    Public Internet / Edge     │
+               └──────────────┬────────────────┘
+                              │ Port 80/443 (HTTPS)
+                              ▼
+               ┌───────────────────────────────┐
+               │     Traefik Edge Proxy        │ (Docker: traefik)
+               └───────┬───────────────┬───────┘
+                       │               │
+       Port 3001 (HTTP)│               │ Port 3000 (HTTP Webhooks)
+                       ▼               ▼
+        ┌────────────────────┐   ┌──────────────────────────┐
+        │  Web Dashboard UI  │   │  NanoClaw Host Service   │
+        │  (Bun / Hono)      │   │  (Node / TSX Engine)     │
+        └────────────────────┘   └─────────────┬────────────┘
+                                               │
+                                               │ Internal API / Localhost:9000
+                                               ▼
+                                 ┌──────────────────────────┐
+                                 │   Whisper ASR Service    │
+                                 │   (Docker: whisper-asr)  │
+                                 └──────────────────────────┘
 ```
+
+---
+
+## 🔒 Configuration & Environment Variables
+
+Environment variables are isolated into local `.env` files per subsystem (excluded from source control):
+
+1. **`nanoclaw/.env`** — Core engine settings, active chat provider keys, channel tokens.
+2. **`ui/.env`** — Web panel port, allowed login emails, Resend API key, session secret.
+3. **`traefik/dynamic_conf.yml`** — Domain routing and Let's Encrypt certificate resolvers.
+
+---
+
+## 🧠 Managing Bot Personas & Memories
+
+Personal bot identities (Souls) and persistent memories are managed **per agent group** inside `nanoclaw/groups/<bot_name>/` (e.g. `instructions.prepend.md` and `memory/`). 
+
+These files reside in local host storage and are managed dynamically via the Web Dashboard (`/ui`) or directly by the agent runtime.

@@ -46,8 +46,7 @@ nanoclaw-stack/
 ├── whisper/          # Local Audio Transcription Service (OpenAI Whisper ASR)
 │   └── docker-compose.yml
 │
-└── infra/            # Systemd service playbooks, agent personas (Soul), and ops manuals
-    ├── BARAO_SOUL.md # Agent behavioral and cognitive directives
+└── infra/            # Systemd service playbooks, operations manuals, and architecture
     ├── SERVICES.md   # Service definitions and port topologies
     └── MAINTENANCE.md# Backup strategies and update workflows
 ```
