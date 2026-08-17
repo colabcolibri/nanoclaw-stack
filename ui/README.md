@@ -1,43 +1,49 @@
-# NanoClaw UAI — Interface de Controle e Monitoramento
+# NanoClaw Web Management Dashboard (`/ui`)
 
-Interface web leve, segura e responsiva para gerenciamento do **NanoClaw**, permitindo edição da personalidade (*Soul* / `.md`), parâmetros de execução e monitoramento de chamadas e histórico.
-
----
-
-## 🎯 Objetivos do Projeto
-
-1. **Desacoplamento Total**: O projeto vive em `/opt/nanoclaw-uai`, sem modificar arquivos do repositório principal `/opt/nanoclaw`, garantindo que atualizações futuras via `git pull` no NanoClaw não sofram conflitos.
-2. **Autenticação Segura (OTP)**: Acesso protegido via e-mail com código de uso único (OTP) enviado pela API do **Resend**.
-3. **Edição de Soul / Persona**: Interface com editor Markdown para gerenciar `instructions.prepend.md` e configurações do contêiner (`container.json`).
-4. **Monitoramento e Histórico**: Leitura das sessões e mensagens registradas nos bancos SQLite do NanoClaw (`v2.db`, `inbound.db` e `outbound.db`) com cálculo de volumetria e estimativa de custos.
-5. **Integração Traefik**: Roteamento automático via proxy reverso / SSL no seu domínio através do Traefik.
+> A modern, lightweight, and secure web control dashboard for the **NanoClaw Production Stack**, built with **Bun**, **Hono**, and **TypeScript**.
 
 ---
 
-## 📂 Estrutura do Projeto
+## 🌟 Key Features
 
-```
-/opt/nanoclaw-uai/
-├── docs/
-│   ├── ARCHITECTURE.md          # Arquitetura e modelo de dados
-│   └── IMPLEMENTATION_PLAN.md   # Roteiro passo a passo de desenvolvimento
+1. **Multi-Agent & Fleet Management:** Live inspection and editing of agent personas (`instructions.prepend.md`), active skills, container limits, and memory files.
+2. **1-Click Third-Party Integrations:**
+   * **Google Workspace:** Automated OAuth2 flow for Multi-Calendar and Gmail token generation.
+   * **Notion Integration:** 1-click token validation, database selection, and schema sync.
+3. **Passwordless Secure Login (Email OTP):** Access protected via time-limited one-time passwords delivered via Resend API with HTTP-only session cookies.
+4. **Real-time Observability:** Direct SQLite sync with `v2.db` showing active message histories, session counters, container run statistics, and systemd logs.
+5. **Edge Ready:** Native integration with the Traefik SSL reverse proxy (`/traefik`) over Let's Encrypt HTTPS.
+
+---
+
+## 📂 Project Structure
+
+```text
+ui/
 ├── src/
-│   ├── auth/                    # Lógica OTP via Resend e validação de sessão
-│   ├── routes/                  # Endpoints de API (soul, config, chamadas, status)
-│   ├── services/                # Leitura e escrita de arquivos .md e SQLite
-│   ├── public/                  # Frontend estático (HTML, CSS moderno e JS)
-│   └── index.ts                 # Servidor HTTP Bun
-├── .gitignore
+│   ├── auth/          # OTP authentication service & cookie token manager
+│   ├── routes/        # REST API endpoints (agents, integrations, chat, telemetry)
+│   ├── services/      # SQLite sync, Google OAuth2, Notion API, and group management
+│   ├── public/        # Responsive frontend SPA (HTML5, Vanilla CSS, JS)
+│   ├── config.ts      # Environment configuration and path resolvers
+│   └── index.ts       # Bun HTTP server entrypoint
 ├── package.json
 └── README.md
 ```
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Running Locally or in Production
 
 ```bash
-cd /opt/nanoclaw-uai
+# 1. Install dependencies
 bun install
+
+# 2. Configure environment
+cp .env.example .env
+
+# 3. Start the dashboard
 bun run src/index.ts
 ```
+
+Production service is managed via systemd: `systemctl status nanoclaw-uai`.
