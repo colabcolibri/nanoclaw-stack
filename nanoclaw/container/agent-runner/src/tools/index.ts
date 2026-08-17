@@ -5,6 +5,7 @@ import { googleGmailTool } from './google-gmail.js';
 import { notionTool } from './notion.js';
 import { yampiTool } from './yampi.js';
 import { memoryTool } from './memory.js';
+import { schedulerTool } from './scheduler.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -14,6 +15,7 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   notion: notionTool,
   yampi_store: yampiTool,
   manage_memory: memoryTool,
+  schedule_followup: schedulerTool,
 };
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);
