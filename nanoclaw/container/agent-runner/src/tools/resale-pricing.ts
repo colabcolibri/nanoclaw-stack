@@ -1,23 +1,5 @@
 import type { AgentTool } from './types.js';
-
-async function getCalculatorModule() {
-  const candidates = [
-    '../../skills/store-email-attendant/scripts/calcular_orcamento.js',
-    '/app/skills/store-email-attendant/scripts/calcular_orcamento.js',
-    '../../../skills/store-email-attendant/scripts/calcular_orcamento.js',
-    '/opt/nanoclaw-stack/nanoclaw/container/skills/store-email-attendant/scripts/calcular_orcamento.ts',
-  ];
-
-  for (const p of candidates) {
-    try {
-      const mod = await import(p);
-      if (mod.calculateResaleProposal || mod.calculateResaleQuote || mod.loadProductsFromCsv) {
-        return mod;
-      }
-    } catch {}
-  }
-  throw new Error('Módulo calcular_orcamento não encontrado no ambiente do container.');
-}
+import { ResalePricingEngine } from '../services/pricing.js';
 
 export const resalePricingTool: AgentTool = {
   definition: {
@@ -25,7 +7,7 @@ export const resalePricingTool: AgentTool = {
     function: {
       name: 'resale_pricing',
       description:
-        'Motor Oficial de Precificação e Orçamentos de Revenda PJ da Colab Colibri (Independente da Yampi). Calcula propostas comerciais para empresas, escolas, prefeituras e compras por atacado aplicando as faixas oficiais de desconto progressivo (-30% a -38%).',
+        'Motor Oficial de Precificação e Orçamentos de Revenda PJ da Colab Colibri. Calcula propostas comerciais para empresas, escolas, prefeituras e compras por atacado aplicando as faixas oficiais de desconto progressivo (-30% a -38%).',
       parameters: {
         type: 'object',
         properties: {
@@ -63,17 +45,16 @@ export const resalePricingTool: AgentTool = {
       },
     },
   },
-  execute: async (args: any, _cwd: string) => {
+  execute: async (args: any, cwd: string) => {
     const action = args.action || 'calculate_quote';
-    const calcMod = await getCalculatorModule();
 
     if (action === 'list_table') {
       try {
-        const products = calcMod.loadProductsFromCsv();
+        const products = ResalePricingEngine.loadProductsFromCsv(cwd);
         return JSON.stringify({
           status: 'ok',
           count: products.length,
-          products: products.map((p: any) => ({
+          products: products.map((p) => ({
             sku: p.sku,
             product: p.product,
             cover_price: p.coverPrice,
@@ -97,12 +78,16 @@ export const resalePricingTool: AgentTool = {
       }
 
       try {
-        const calculateFn = calcMod.calculateResaleProposal || calcMod.calculateResaleQuote;
-        const proposal = calculateFn(args.items, {
-          buyerName: args.buyer_name,
-          buyerDocument: args.buyer_document,
-          buyerAddress: args.buyer_address,
-        });
+        const proposal = ResalePricingEngine.calculateQuote(
+          args.items,
+          {
+            name: args.buyer_name || 'Cliente',
+            document: args.buyer_document,
+            address: args.buyer_address,
+          },
+          false,
+          cwd
+        );
 
         return JSON.stringify({
           status: 'ok',
