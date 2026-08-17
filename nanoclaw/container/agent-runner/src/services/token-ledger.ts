@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { Database } from 'bun:sqlite';
 
 export interface DeepSeekUsage {
   prompt_tokens?: number;
@@ -10,7 +11,10 @@ export interface DeepSeekUsage {
   prompt_tokens_details?: { cached_tokens?: number };
 }
 
-export const DEEPSEEK_PRICING: Record<string, { cacheHitPerMillion: number; cacheMissPerMillion: number; outputPerMillion: number }> = {
+export const DEEPSEEK_PRICING: Record<
+  string,
+  { cacheHitPerMillion: number; cacheMissPerMillion: number; outputPerMillion: number }
+> = {
   'deepseek-v4-flash': {
     cacheHitPerMillion: 0.014, // Peak: $0.014 / 1M
     cacheMissPerMillion: 0.44, // Peak: $0.44 / 1M
@@ -42,6 +46,9 @@ export interface TokenRecord {
   cacheMissTokens: number;
   completionTokens: number;
   totalTokens: number;
+  rateHitPerMillion: number;
+  rateMissPerMillion: number;
+  rateOutPerMillion: number;
   costUsd: number;
   costBrl: number;
   hasToolCalls: boolean;
@@ -60,6 +67,9 @@ export class TokenLedger {
     cacheMissTokens: number;
     completionTokens: number;
     totalTokens: number;
+    rateHitPerMillion: number;
+    rateMissPerMillion: number;
+    rateOutPerMillion: number;
     costUsd: number;
     costBrl: number;
   } {
@@ -85,13 +95,50 @@ export class TokenLedger {
       cacheMissTokens,
       completionTokens,
       totalTokens,
+      rateHitPerMillion: rates.cacheHitPerMillion,
+      rateMissPerMillion: rates.cacheMissPerMillion,
+      rateOutPerMillion: rates.outputPerMillion,
       costUsd,
       costBrl,
     };
   }
 
   /**
-   * Records exact API usage to persistent log and SQLite/JSON ledger.
+   * Initializes SQLite token database if not already present.
+   */
+  private static initSqlite(dbPath: string): Database | null {
+    try {
+      const db = new Database(dbPath);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS token_ledger (
+          id TEXT PRIMARY KEY,
+          timestamp TEXT NOT NULL,
+          model TEXT NOT NULL,
+          prompt_tokens INTEGER NOT NULL,
+          cache_hit_tokens INTEGER NOT NULL,
+          cache_miss_tokens INTEGER NOT NULL,
+          completion_tokens INTEGER NOT NULL,
+          total_tokens INTEGER NOT NULL,
+          rate_hit_per_million REAL NOT NULL,
+          rate_miss_per_million REAL NOT NULL,
+          rate_out_per_million REAL NOT NULL,
+          cost_usd REAL NOT NULL,
+          cost_brl REAL NOT NULL,
+          has_tool_calls INTEGER NOT NULL,
+          tool_calls_count INTEGER NOT NULL,
+          latency_ms INTEGER,
+          preview TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_token_ledger_ts ON token_ledger(timestamp DESC);
+      `);
+      return db;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Records exact API usage to persistent log and SQLite database.
    */
   static record(
     cwd: string,
@@ -115,7 +162,7 @@ export class TokenLedger {
       preview: meta.preview?.slice(0, 150),
     };
 
-    // 1. Write to JSONL in group logs directory
+    // 1. Write to JSONL
     try {
       const candidates = [
         path.join(cwd, 'logs'),
@@ -129,6 +176,44 @@ export class TokenLedger {
           if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
           const ledgerFile = path.join(logDir, 'token_ledger.jsonl');
           fs.appendFileSync(ledgerFile, JSON.stringify(record) + '\n', 'utf-8');
+
+          // 2. Write to SQLite database
+          const dbPath = path.join(logDir, 'token_usage.db');
+          const db = this.initSqlite(dbPath);
+          if (db) {
+            db.query(`
+              INSERT OR REPLACE INTO token_ledger (
+                id, timestamp, model, prompt_tokens, cache_hit_tokens, cache_miss_tokens,
+                completion_tokens, total_tokens, rate_hit_per_million, rate_miss_per_million,
+                rate_out_per_million, cost_usd, cost_brl, has_tool_calls, tool_calls_count,
+                latency_ms, preview
+              ) VALUES (
+                $id, $timestamp, $model, $prompt_tokens, $cache_hit_tokens, $cache_miss_tokens,
+                $completion_tokens, $total_tokens, $rate_hit_per_million, $rate_miss_per_million,
+                $rate_out_per_million, $cost_usd, $cost_brl, $has_tool_calls, $tool_calls_count,
+                $latency_ms, $preview
+              )
+            `).run({
+              $id: record.id,
+              $timestamp: record.timestamp,
+              $model: record.model,
+              $prompt_tokens: record.promptTokens,
+              $cache_hit_tokens: record.cacheHitTokens,
+              $cache_miss_tokens: record.cacheMissTokens,
+              $completion_tokens: record.completionTokens,
+              $total_tokens: record.totalTokens,
+              $rate_hit_per_million: record.rateHitPerMillion,
+              $rate_miss_per_million: record.rateMissPerMillion,
+              $rate_out_per_million: record.rateOutPerMillion,
+              $cost_usd: record.costUsd,
+              $cost_brl: record.costBrl,
+              $has_tool_calls: record.hasToolCalls ? 1 : 0,
+              $tool_calls_count: record.toolCallsCount,
+              $latency_ms: record.latencyMs ?? null,
+              $preview: record.preview ?? null,
+            });
+            db.close();
+          }
           break;
         } catch {}
       }
