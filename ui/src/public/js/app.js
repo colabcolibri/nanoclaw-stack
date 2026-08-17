@@ -109,6 +109,16 @@ class App {
     document.getElementById("btn-save-notion")?.addEventListener("click", () => this.handleSaveNotion());
     document.getElementById("btn-disconnect-notion")?.addEventListener("click", () => this.handleDisconnectNotion());
 
+    // Yampi Store Integration
+    document.getElementById("btn-toggle-yampi-modal")?.addEventListener("click", () => {
+      document.getElementById("yampi-config-drawer")?.classList.toggle("hidden");
+    });
+    document.getElementById("btn-cancel-yampi")?.addEventListener("click", () => {
+      document.getElementById("yampi-config-drawer")?.classList.add("hidden");
+    });
+    document.getElementById("btn-save-yampi")?.addEventListener("click", () => this.handleSaveYampi());
+    document.getElementById("btn-disconnect-yampi")?.addEventListener("click", () => this.handleDisconnectYampi());
+
     // Mac & Apple Shortcuts Integration
     document.getElementById("btn-toggle-mac-modal")?.addEventListener("click", () => {
       document.getElementById("mac-config-drawer")?.classList.toggle("hidden");
@@ -361,6 +371,7 @@ class App {
     this.loadMcps();
     this.loadGoogleStatus();
     this.loadNotionStatus();
+    this.loadYampiStatus();
     this.loadConfig();
     this.loadServiceStatus();
     this.startLogsAutoRefresh();
@@ -1080,6 +1091,74 @@ class App {
       await ApiClient.disconnectNotion(this.currentGroup);
       Toast.show("Notion desconectado");
       this.loadNotionStatus();
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
+  }
+
+  static async loadYampiStatus() {
+    try {
+      const data = await ApiClient.getYampiStatus(this.currentGroup);
+      const badge = document.getElementById("yampi-status-badge");
+      const desc = document.getElementById("yampi-status-desc");
+      const btnToggle = document.getElementById("btn-toggle-yampi-modal");
+      const btnDisconnect = document.getElementById("btn-disconnect-yampi");
+      const inputAlias = document.getElementById("input-yampi-alias");
+
+      if (data.connected) {
+        if (badge) {
+          badge.innerText = `Conectado (${data.alias})`;
+          badge.style.background = "rgba(16, 185, 129, 0.15)";
+          badge.style.color = "var(--success)";
+        }
+        if (desc) desc.innerText = `Loja "${data.alias}" conectada. O Barão pode consultar produtos, estoque seguro e rastrear pedidos com proteção de privacidade.`;
+        if (btnToggle) btnToggle.innerHTML = "<span>⚙️ Alterar Configuração</span>";
+        if (btnDisconnect) btnDisconnect.classList.remove("hidden");
+        if (inputAlias && data.alias) inputAlias.value = data.alias;
+      } else {
+        if (badge) {
+          badge.innerText = "Desconectado";
+          badge.style.background = "rgba(239, 68, 68, 0.15)";
+          badge.style.color = "var(--danger)";
+        }
+        if (desc) desc.innerText = "Permite ao Barão consultar catálogo de produtos, checar estoque e rastrear pedidos com trava de privacidade.";
+        if (btnToggle) btnToggle.innerHTML = "<span>⚙️ Configurar Yampi</span>";
+        if (btnDisconnect) btnDisconnect.classList.add("hidden");
+      }
+    } catch {}
+  }
+
+  static async handleSaveYampi() {
+    const alias = document.getElementById("input-yampi-alias")?.value.trim();
+    const userToken = document.getElementById("input-yampi-token")?.value.trim();
+    const userSecretKey = document.getElementById("input-yampi-secret")?.value.trim();
+
+    if (!alias || !userToken || !userSecretKey) {
+      Toast.show("Preencha Alias, User-Token e Secret-Key da Yampi", "error");
+      return;
+    }
+
+    try {
+      Toast.show("Testando conexão com a Yampi...", "info");
+      const res = await ApiClient.connectYampi(this.currentGroup, alias, userToken, userSecretKey);
+      if (res.success) {
+        Toast.show(res.message || "🎉 Yampi conectada com sucesso!");
+        document.getElementById("yampi-config-drawer")?.classList.add("hidden");
+        this.loadYampiStatus();
+      } else {
+        Toast.show(res.error || "Erro ao validar credenciais da Yampi", "error");
+      }
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
+  }
+
+  static async handleDisconnectYampi() {
+    if (!confirm("Deseja realmente desconectar a integração com a Yampi?")) return;
+    try {
+      await ApiClient.disconnectYampi(this.currentGroup);
+      Toast.show("Yampi desconectada");
+      this.loadYampiStatus();
     } catch (err) {
       Toast.show(err.message, "error");
     }

@@ -142,6 +142,24 @@ export class ApiClient {
     });
   }
 
+  static getYampiStatus(group = "barao") {
+    return this.request(`/api/integrations/yampi/status?folder=${group}`);
+  }
+
+  static connectYampi(group = "barao", alias, userToken, userSecretKey) {
+    return this.request("/api/integrations/yampi/connect", {
+      method: "POST",
+      body: JSON.stringify({ folder: group, alias, userToken, userSecretKey }),
+    });
+  }
+
+  static disconnectYampi(group = "barao") {
+    return this.request("/api/integrations/yampi/disconnect", {
+      method: "POST",
+      body: JSON.stringify({ folder: group }),
+    });
+  }
+
   static getServiceStatus() {
     return this.request("/api/service/status");
   }

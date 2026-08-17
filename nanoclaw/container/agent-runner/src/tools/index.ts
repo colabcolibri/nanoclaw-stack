@@ -3,6 +3,7 @@ import { runCommandTool, readFileTool } from './system.js';
 import { googleCalendarTool } from './google-calendar.js';
 import { googleGmailTool } from './google-gmail.js';
 import { notionTool } from './notion.js';
+import { yampiTool } from './yampi.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -10,6 +11,7 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   google_calendar: googleCalendarTool,
   google_gmail: googleGmailTool,
   notion: notionTool,
+  yampi_store: yampiTool,
 };
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);

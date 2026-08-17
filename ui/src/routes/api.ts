@@ -6,6 +6,7 @@ import { DatabaseService } from "../services/db.js";
 import { SystemService } from "../services/system.js";
 import { GoogleAuthService } from "../services/google-auth.js";
 import { NotionAuthService } from "../services/notion-auth.js";
+import { YampiAuthService } from "../services/yampi-auth.js";
 import { MacChannelService } from "../services/mac-channel.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
@@ -234,6 +235,47 @@ export class ApiRouter {
     if (url.pathname === "/api/integrations/notion/disconnect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
       return jsonResponse({ success: NotionAuthService.disconnect(body.folder || "barao") });
+    }
+
+    // Yampi Store Integration
+    if (url.pathname === "/api/integrations/yampi/status" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const creds = YampiAuthService.getCredentials(folder);
+      return jsonResponse({
+        connected: !!creds,
+        alias: creds?.alias || null,
+        updatedAt: creds?.updatedAt || null,
+      });
+    }
+
+    if (url.pathname === "/api/integrations/yampi/connect" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { folder?: string; alias?: string; userToken?: string; userSecretKey?: string };
+      if (!body.alias || !body.userToken || !body.userSecretKey) {
+        return jsonResponse({ success: false, error: "Alias, User-Token e Secret-Key são obrigatórios." }, 400);
+      }
+      const test = await YampiAuthService.testConnection({
+        alias: body.alias,
+        userToken: body.userToken,
+        userSecretKey: body.userSecretKey,
+      });
+      if (!test.success) {
+        return jsonResponse({ success: false, error: test.error || "Falha ao validar credenciais com a API da Yampi." }, 400);
+      }
+      YampiAuthService.saveCredentials(
+        {
+          alias: body.alias,
+          userToken: body.userToken,
+          userSecretKey: body.userSecretKey,
+        },
+        body.folder || "barao"
+      );
+      return jsonResponse({ success: true, message: `Loja ${body.alias} conectada com sucesso à Yampi!` });
+    }
+
+    if (url.pathname === "/api/integrations/yampi/disconnect" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { folder?: string };
+      YampiAuthService.removeCredentials(body.folder || "barao");
+      return jsonResponse({ success: true });
     }
 
     // Chat & Stats
