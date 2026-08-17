@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, RefreshCw, Wrench, ChevronRight, X, Clock, Zap } from 'lucide-react'
+import {
+  BarChart3,
+  RefreshCw,
+  Wrench,
+  ChevronRight,
+  X,
+  Clock,
+  Zap,
+  Layers,
+  MessageSquare,
+  Sparkles,
+} from 'lucide-react'
 import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -18,15 +29,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onToggleCurrency,
 }) => {
   const { t } = useTranslation('analytics')
-  const [activeTab, setActiveTab] = useState<'messages' | 'runs'>('messages')
   const [internalCurrency, setInternalCurrency] = useState<'BRL' | 'USD'>('BRL')
   const currency = parentCurrency || internalCurrency
-  const setCurrency = onToggleCurrency || setInternalCurrency
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [runs, setRuns] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [selectedRun, setSelectedRun] = useState<any | null>(null)
+  const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(null)
 
   useEffect(() => {
     loadData()
@@ -35,13 +43,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [usageData, runsData] = await Promise.all([
-        ApiClient.getUsage(150),
-        ApiClient.getRuns(100),
-      ])
+      const usageData = await ApiClient.getUsage(200)
       setMessages(usageData.logs || [])
       setStats(usageData.stats || null)
-      setRuns(runsData.runs || [])
     } catch {} finally {
       setIsLoading(false)
     }
@@ -65,38 +69,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         title={t('title')}
         subtitle={t('subtitle')}
         actions={
-          <>
-            {/* Tab Selector */}
-            <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl gap-1 shadow-xs">
-              <Button
-                variant={activeTab === 'messages' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 text-xs px-3 font-semibold cursor-pointer"
-                onClick={() => setActiveTab('messages')}
-              >
-                {t('tabMessages')}
-              </Button>
-              <Button
-                variant={activeTab === 'runs' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 text-xs px-3 font-semibold cursor-pointer"
-                onClick={() => setActiveTab('runs')}
-              >
-                {t('tabRuns')}
-              </Button>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadData}
-              disabled={isLoading}
-              className="h-8 gap-1.5 text-xs font-semibold cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Atualizar</span>
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={isLoading}
+            className="h-8 gap-1.5 text-xs font-semibold cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Atualizar</span>
+          </Button>
         }
       />
 
@@ -138,12 +120,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
         {/* Total Calls */}
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
-          <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalCalls')}</div>
+          <div className="text-xs font-semibold text-[var(--text-muted)]">Chamadas de API</div>
           <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
             {stats?.totalApiCalls ?? stats?.totalMessages ?? 0}
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            {stats?.totalRuns || 0} execuções de tools
+            {stats?.totalRuns || 0} execuções de ferramentas
           </div>
         </div>
 
@@ -159,225 +141,226 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Main Unified Messages Table */}
       <Card className="border-[var(--border-main)] bg-[var(--bg-card)] overflow-hidden shadow-xl">
         <CardContent className="p-0 overflow-x-auto">
-          {activeTab === 'messages' ? (
-            messages.length === 0 ? (
-              <EmptyState
-                title="Sem registros"
-                description={t('noLogs')}
-              />
-            ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)] text-[var(--text-muted)] font-mono">
-                  <tr>
-                    <th className="p-3.5 px-4 font-bold">{t('type')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('dateTime')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('channel')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('sender')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('characters')}</th>
-                    <th className="p-3.5 px-4 font-bold">Custo ({currency})</th>
-                    <th className="p-3.5 px-4 font-bold">{t('message')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-main)]">
-                  {messages.map((m) => {
-                    const isUser = m.type === 'user'
-                    const dateStr = new Date(m.timestamp).toLocaleString('pt-BR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                    return (
-                      <tr key={m.id} className="hover:bg-[var(--bg-card-subtle)] transition-colors">
-                        <td className="p-3.5 px-4">
-                          <Badge variant={isUser ? 'default' : 'success'} className="font-mono text-[10px]">
-                            {isUser ? 'ENTRADA' : 'RESPOSTA'}
-                          </Badge>
-                        </td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-muted)]">{dateStr}</td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-main)] font-semibold">{m.channel}</td>
-                        <td className="p-3.5 px-4 font-semibold text-[var(--text-main)]">{m.senderName}</td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-muted)]">
-                          {(m.charCount || m.text?.length || 0).toLocaleString()}
-                        </td>
-                        <td className="p-3.5 px-4 font-mono text-emerald-500 font-bold">
-                          {formatCost(m.costUsd, m.costBrl)}
-                        </td>
-                        <td className="p-3.5 px-4 max-w-xs truncate text-[var(--text-main)] font-mono text-[11px]">
-                          {m.text}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )
+          {messages.length === 0 ? (
+            <EmptyState
+              title="Sem registros de conversas"
+              description="Nenhuma mensagem ou chamada de API foi registrada ainda."
+            />
           ) : (
-            runs.length === 0 ? (
-              <EmptyState
-                title="Sem runs intermediárias"
-                description="Nenhuma execução de ferramenta foi registrada até o momento."
-              />
-            ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)] text-[var(--text-muted)] font-mono">
-                  <tr>
-                    <th className="p-3.5 px-4 font-bold">{t('stepType')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('dateTime')}</th>
-                    <th className="p-3.5 px-4 font-bold">{t('runId')}</th>
-                    <th className="p-3.5 px-4 font-bold">Tokens (In / Out)</th>
-                    <th className="p-3.5 px-4 font-bold">Custo ({currency})</th>
-                    <th className="p-3.5 px-4 font-bold">Detalhes da Tool / Ação</th>
-                    <th className="p-3.5 px-4 font-bold text-right">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-main)]">
-                  {runs.map((r) => {
-                    const dateStr = new Date(r.timestamp).toLocaleString('pt-BR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })
-                    return (
-                      <tr
-                        key={r.id}
-                        onClick={() => setSelectedRun(r)}
-                        className="hover:bg-[var(--bg-card-subtle)] transition-colors cursor-pointer group"
-                      >
-                        <td className="p-3.5 px-4">
-                          <Badge variant={r.type === 'tool_execution' ? 'warning' : 'secondary'} className="font-mono text-[10px]">
-                            {r.type === 'tool_execution' ? 'TOOL RUN' : 'MODEL TURN'}
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)] text-[var(--text-muted)] font-mono">
+                <tr>
+                  <th className="p-3.5 px-4 font-bold">{t('type')}</th>
+                  <th className="p-3.5 px-4 font-bold">{t('dateTime')}</th>
+                  <th className="p-3.5 px-4 font-bold">{t('channel')}</th>
+                  <th className="p-3.5 px-4 font-bold">{t('sender')}</th>
+                  <th className="p-3.5 px-4 font-bold">Tokens (In / Out)</th>
+                  <th className="p-3.5 px-4 font-bold">Custo ({currency})</th>
+                  <th className="p-3.5 px-4 font-bold">Execução</th>
+                  <th className="p-3.5 px-4 font-bold">{t('message')}</th>
+                  <th className="p-3.5 px-4 font-bold text-right">Auditoria</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-main)]">
+                {messages.map((m) => {
+                  const isUser = m.type === 'user'
+                  const dateStr = new Date(m.timestamp).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                  const subRunsCount = m.subRuns?.length || 0
+
+                  return (
+                    <tr
+                      key={m.id}
+                      onClick={() => setSelectedMessage(m)}
+                      className="hover:bg-[var(--bg-card-subtle)] transition-colors cursor-pointer group"
+                    >
+                      <td className="p-3.5 px-4">
+                        <Badge variant={isUser ? 'default' : 'success'} className="font-mono text-[10px]">
+                          {isUser ? 'ENTRADA' : 'RESPOSTA'}
+                        </Badge>
+                      </td>
+                      <td className="p-3.5 px-4 font-mono text-[var(--text-muted)]">{dateStr}</td>
+                      <td className="p-3.5 px-4 font-mono text-[var(--text-main)] font-semibold">{m.channel}</td>
+                      <td className="p-3.5 px-4 font-semibold text-[var(--text-main)]">{m.senderName}</td>
+                      <td className="p-3.5 px-4 font-mono text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sky-500 font-bold">
+                            {(m.promptTokens || Math.round((m.tokens || 0) * 0.7)).toLocaleString()}{' '}
+                            <span className="text-[10px] text-[var(--text-muted)] font-normal">in</span>
+                          </span>
+                          <span className="text-[var(--text-dim)]">•</span>
+                          <span className="text-purple-500 font-bold">
+                            {(m.completionTokens || Math.round((m.tokens || 0) * 0.3)).toLocaleString()}{' '}
+                            <span className="text-[10px] text-[var(--text-muted)] font-normal">out</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 px-4 font-mono text-emerald-500 font-bold">
+                        {formatCost(m.costUsd, m.costBrl)}
+                      </td>
+                      <td className="p-3.5 px-4">
+                        {subRunsCount > 0 ? (
+                          <Badge variant="warning" className="gap-1 text-[10px]">
+                            <Layers className="w-3 h-3" />
+                            <span>{subRunsCount} passos (tools)</span>
                           </Badge>
-                        </td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-muted)]">{dateStr}</td>
-                        <td className="p-3.5 px-4 font-mono text-[var(--text-dim)] text-[10px]">
-                          {r.id?.slice(0, 16)}
-                        </td>
-                        <td className="p-3.5 px-4 font-mono text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sky-500 font-bold">{((r.promptTokens || 0)).toLocaleString()} <span className="text-[10px] text-[var(--text-muted)] font-normal">in</span></span>
-                            <span className="text-[var(--text-dim)]">•</span>
-                            <span className="text-purple-500 font-bold">{((r.completionTokens || 0)).toLocaleString()} <span className="text-[10px] text-[var(--text-muted)] font-normal">out</span></span>
-                          </div>
-                          <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
-                            Total: {((r.tokens || 0)).toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="p-3.5 px-4 font-mono text-emerald-500 font-bold">
-                          {formatCost(r.costUsd, r.costBrl)}
-                        </td>
-                        <td className="p-3.5 px-4 max-w-sm truncate text-[var(--text-main)] font-mono text-[11px]">
-                          {r.toolName ? (
-                            <span className="inline-flex items-center gap-1.5 font-bold text-[var(--accent)]">
-                              <Wrench className="w-3.5 h-3.5 text-amber-500" />
-                              <span>{r.toolName}</span>
-                            </span>
-                          ) : (
-                            r.preview
-                          )}
-                        </td>
-                        <td className="p-3.5 px-4 text-right">
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-[var(--accent)]">
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Direta
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-3.5 px-4 max-w-xs truncate text-[var(--text-main)] font-mono text-[11px]">
+                        {m.text}
+                      </td>
+                      <td className="p-3.5 px-4 text-right">
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-[var(--accent)]">
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>
 
-      {/* Interactive Run Inspector Drawer / Modal */}
-      {selectedRun && (
+      {/* Interactive Sheet / Drawer: Opens details & all intermediate runs of this message */}
+      {selectedMessage && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-end transition-opacity">
-          <div className="w-full max-w-lg bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+          <div className="w-full max-w-2xl bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
             <div className="space-y-6">
               {/* Header */}
               <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold text-[var(--text-main)]">Auditoria da Execução</h3>
+                    <Sparkles className="w-5 h-5 text-[var(--accent)]" />
+                    <h3 className="text-lg font-bold text-[var(--text-main)]">Auditoria da Chamada & Sub-Runs</h3>
                   </div>
-                  <p className="text-xs font-mono text-[var(--text-dim)]">{selectedRun.id}</p>
+                  <p className="text-xs font-mono text-[var(--text-dim)]">ID: {selectedMessage.id}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedRun(null)} className="h-8 w-8 p-0 cursor-pointer">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedMessage(null)} className="h-8 w-8 p-0 cursor-pointer">
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
-              {/* Metric Breakdown Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Interaction Summary Metrics */}
+              <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Custo em {currency}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Custo Consolidado</div>
                   <div className="text-lg font-bold text-emerald-500 font-mono mt-0.5">
-                    {formatCost(selectedRun.costUsd, selectedRun.costBrl)}
+                    {formatCost(selectedMessage.costUsd, selectedMessage.costBrl)}
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-[var(--text-muted)] font-semibold">Latência da API</div>
-                  <div className="text-lg font-bold text-[var(--text-main)] font-mono mt-0.5 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-[var(--accent)]" />
-                    <span>{selectedRun.latencyMs ? `${selectedRun.latencyMs} ms` : '--'}</span>
-                  </div>
-                </div>
-                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-sky-500 font-bold">📥 Tokens Entrada (In)</div>
+                  <div className="text-[11px] text-sky-500 font-bold">📥 Tokens In</div>
                   <div className="text-base font-bold text-sky-500 font-mono mt-0.5">
-                    {(selectedRun.promptTokens || 0).toLocaleString()}
+                    {(selectedMessage.promptTokens || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                    Hit: {(selectedRun.cacheHitTokens || 0).toLocaleString()} • Miss: {(selectedRun.cacheMissTokens || 0).toLocaleString()}
+                    Cache Hit: {selectedMessage.cacheHitRatio || '0%'}
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-purple-500 font-bold">📤 Tokens Saída (Out)</div>
+                  <div className="text-[11px] text-purple-500 font-bold">📤 Tokens Out</div>
                   <div className="text-base font-bold text-purple-500 font-mono mt-0.5">
-                    {(selectedRun.completionTokens || 0).toLocaleString()}
+                    {(selectedMessage.completionTokens || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                    Total: {((selectedRun.tokens || 0)).toLocaleString()}
+                    Total: {(selectedMessage.tokens || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
 
-              {/* Tool Execution Details */}
-              {selectedRun.toolName && (
-                <div className="space-y-2">
+              {/* Message Content */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
+                  <span>Conteúdo da Mensagem</span>
+                </div>
+                <div className="p-4 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] text-xs text-[var(--text-main)] font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  {selectedMessage.text}
+                </div>
+              </div>
+
+              {/* Linked Intermediate Runs Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-amber-500" />
-                    <span>Ferramenta Invocada</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--accent)] font-bold">
-                    {selectedRun.toolName}
+                    <Layers className="w-4 h-4 text-amber-500" />
+                    <span>Passos Intermediários / Execuções de Ferramentas ({selectedMessage.subRuns?.length || 0})</span>
                   </div>
                 </div>
-              )}
 
-              {/* Payload Preview */}
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-[var(--text-main)]">Conteúdo / Saída</div>
-                <pre className="p-4 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--text-main)] whitespace-pre-wrap max-h-60 overflow-y-auto">
-                  {selectedRun.rawContent || selectedRun.preview || 'Sem detalhes adicionais'}
-                </pre>
+                {selectedMessage.subRuns && selectedMessage.subRuns.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {selectedMessage.subRuns.map((step, idx) => (
+                      <div
+                        key={step.id || idx}
+                        className="p-3.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-2 font-mono text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={step.type === 'tool_execution' ? 'warning' : 'secondary'} className="text-[10px]">
+                              Passo #{idx + 1} • {step.type === 'tool_execution' ? 'TOOL RUN' : 'SÍNTESE'}
+                            </Badge>
+                            {step.toolName && (
+                              <span className="font-bold text-[var(--accent)] flex items-center gap-1">
+                                <Wrench className="w-3 h-3 text-amber-500" />
+                                <span>{step.toolName}</span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-bold text-emerald-500">
+                            {formatCost(step.costUsd, step.costBrl)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-[11px] text-[var(--text-dim)] border-t border-[var(--border-main)] pt-2">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-[var(--text-muted)]" />
+                            <span>{step.latencyMs ? `${step.latencyMs}ms` : '--'}</span>
+                          </span>
+                          <span className="text-sky-500 font-bold">
+                            {(step.promptTokens || 0).toLocaleString()} in
+                          </span>
+                          <span className="text-purple-500 font-bold">
+                            {(step.completionTokens || 0).toLocaleString()} out
+                          </span>
+                          <span>(Hit: {(step.cacheHitTokens || 0).toLocaleString()})</span>
+                        </div>
+
+                        {step.rawContent && (
+                          <pre className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-main)] text-[11px] text-[var(--text-main)] whitespace-pre-wrap max-h-32 overflow-y-auto">
+                            {step.rawContent}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] text-center text-xs text-[var(--text-dim)] font-mono">
+                    Esta mensagem foi processada em resposta direta sem ferramentas intermediárias adicionais.
+                  </div>
+                )}
               </div>
             </div>
 
             <Button
               variant="default"
               className="w-full mt-6 font-bold cursor-pointer"
-              onClick={() => setSelectedRun(null)}
+              onClick={() => setSelectedMessage(null)}
             >
-              Fechar Inspeção
+              Fechar Auditoria
             </Button>
           </div>
         </div>

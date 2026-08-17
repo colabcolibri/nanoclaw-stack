@@ -10,8 +10,14 @@ export interface ChatMessage {
   threadId?: string
   charCount?: number
   tokens?: number
+  promptTokens?: number
+  completionTokens?: number
+  cacheHitTokens?: number
+  cacheMissTokens?: number
+  cacheHitRatio?: string
   costUsd?: number
   costBrl?: number
+  subRuns?: any[]
 }
 
 export interface SystemStats {

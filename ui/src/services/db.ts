@@ -17,8 +17,14 @@ export interface ChatMessageItem {
   threadId?: string;
   charCount?: number;
   tokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  cacheHitTokens?: number;
+  cacheMissTokens?: number;
+  cacheHitRatio?: string;
   costUsd?: number;
   costBrl?: number;
+  subRuns?: IntermediateRunItem[];
 }
 
 export interface IntermediateRunItem {
@@ -274,6 +280,8 @@ export class DatabaseService {
         } catch {}
       }
 
+      const allSubRuns = this.getDetailedRuns(500);
+
       for (const outDbPath of outbounds) {
         try {
           const db = new Database(outDbPath, { readonly: true });
@@ -281,9 +289,33 @@ export class DatabaseService {
           for (const r of rows) {
             const parsed = this.parseMessageContent(r.content || "", "assistant");
             const charCount = parsed.text.length;
-            const tokens = Math.max(1, Math.round(charCount / 3.5));
-            const costUsd = (tokens / 1_000_000) * 0.28;
-            const costBrl = costUsd * 5.7;
+
+            // Associate subRuns
+            const msgTime = new Date(r.timestamp || new Date()).getTime();
+            const matchedRuns = allSubRuns.filter((run) => {
+              const runTime = new Date(run.timestamp).getTime();
+              return Math.abs(msgTime - runTime) <= 60000; // within 1 minute window of the turn
+            });
+
+            let promptTokens = 0;
+            let completionTokens = 0;
+            let cacheHitTokens = 0;
+            let cacheMissTokens = 0;
+            let totalTokens = Math.max(1, Math.round(charCount / 3.5));
+            let costUsd = (totalTokens / 1_000_000) * 0.44;
+            let costBrl = CurrencyService.convertUsdToBrl(costUsd);
+
+            if (matchedRuns.length > 0) {
+              promptTokens = matchedRuns.reduce((acc, run) => acc + (run.promptTokens || 0), 0);
+              completionTokens = matchedRuns.reduce((acc, run) => acc + (run.completionTokens || 0), 0);
+              cacheHitTokens = matchedRuns.reduce((acc, run) => acc + (run.cacheHitTokens || 0), 0);
+              cacheMissTokens = matchedRuns.reduce((acc, run) => acc + (run.cacheMissTokens || 0), 0);
+              totalTokens = promptTokens + completionTokens;
+              costUsd = matchedRuns.reduce((acc, run) => acc + (run.costUsd || 0), 0);
+              costBrl = CurrencyService.convertUsdToBrl(costUsd);
+            }
+
+            const cacheHitRatio = promptTokens > 0 ? `${Math.round((cacheHitTokens / promptTokens) * 100)}%` : "0%";
 
             messages.push({
               id: r.id,
@@ -295,9 +327,15 @@ export class DatabaseService {
               text: parsed.text,
               threadId: r.thread_id,
               charCount,
-              tokens,
+              tokens: totalTokens,
+              promptTokens,
+              completionTokens,
+              cacheHitTokens,
+              cacheMissTokens,
+              cacheHitRatio,
               costUsd,
               costBrl,
+              subRuns: matchedRuns.length > 0 ? matchedRuns : undefined,
             });
           }
           db.close();
