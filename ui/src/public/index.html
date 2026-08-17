@@ -110,6 +110,10 @@
           <span class="nav-item-icon">🔌</span>
           <span>Contas & Integrações</span>
         </button>
+        <button class="nav-item" data-view="view-schedules">
+          <span class="nav-item-icon">⏰</span>
+          <span>Agendamentos & Cron</span>
+        </button>
         <button class="nav-item" data-view="view-security">
           <span class="nav-item-icon">🛡️</span>
           <span>Segurança & Usuários</span>
@@ -611,6 +615,36 @@
               <textarea id="mcp-json-editor" class="soul-textarea" style="min-height:200px; font-size:12px;" placeholder='{\n  "github": {\n    "type": "stdio",\n    "command": "npx",\n    "args": ["-y", "@modelcontextprotocol/server-github"]\n  }\n}'></textarea>
             </div>
           </details>
+        </section>
+
+        <!-- VIEW: SCHEDULES & CRON -->
+        <section id="view-schedules" class="view-panel hidden">
+          <div class="panel-box" style="padding:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                  <span>⏰ Rotinas Autônomas & Agendamentos (Cron & Watchdogs)</span>
+                  <span id="badge-scheduled-count-full" class="badge-status" style="font-size:11px; padding:2px 8px; background:rgba(56, 189, 248, 0.15); color:var(--accent);">0 ativas</span>
+                </h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                  Rotinas recorrentes em segundo plano, monitoramento de e-mails da Loja Colibri e continuações programadas.
+                </p>
+              </div>
+              <button class="btn btn-secondary" id="btn-refresh-schedules-full" style="font-size:12px; padding:6px 14px;">🔄 Atualizar Agendamentos</button>
+            </div>
+
+            <!-- Informational Banner -->
+            <div style="margin-bottom:18px; padding:14px 18px; background:linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); border:1px solid rgba(56, 189, 248, 0.25); border-radius:var(--radius-md); font-size:12px; line-height:1.6; color:var(--text-muted);">
+              <div style="font-weight:700; color:var(--accent); margin-bottom:4px;">💡 Como funcionam as rotinas autônomas no NanoClaw:</div>
+              <div>• <strong>Watchdog do Inbox:</strong> Acorda o Barão automaticamente a cada 1 hora dentro da janela ativa configurada (07h às 19h do Brasil / 12h às 00h da Bélgica) para checar novos e-mails não lidos no Inbox.</div>
+              <div>• <strong>Notificação Proativa:</strong> Se houver e-mails que precisam de resposta (<code>needsReply: true</code>), o Barão redige o rascunho e te manda mensagem no Telegram para você aprovar com 1 palavra ("sim").</div>
+              <div>• <strong>Continuidade Autônoma (Follow-ups):</strong> Tarefas intermediárias podem ser agendadas pelo Barão (ex: aguardar 10 minutos para reprocessar dados) sem depender do ciclo horário.</div>
+            </div>
+            
+            <div id="scheduled-tasks-container-full" style="display:flex; flex-direction:column; gap:12px;">
+              <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:13px;">Carregando agendamentos...</div>
+            </div>
+          </div>
         </section>
 
         <!-- VIEW 5: CONFIG -->

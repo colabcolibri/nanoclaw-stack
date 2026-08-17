@@ -60,6 +60,10 @@ class App {
       this.loadScheduledTasks();
     });
 
+    document.getElementById("btn-refresh-schedules-full")?.addEventListener("click", () => {
+      this.loadScheduledTasks();
+    });
+
     // Usage Tabs (Messages vs Runs)
     document.getElementById("tab-usage-messages")?.addEventListener("click", () => {
       document.getElementById("tab-usage-messages")?.classList.add("active");
@@ -541,27 +545,31 @@ class App {
 
   static async loadScheduledTasks() {
     const container = document.getElementById("scheduled-tasks-container");
+    const containerFull = document.getElementById("scheduled-tasks-container-full");
     const badgeCount = document.getElementById("badge-scheduled-count");
-    if (!container) return;
+    const badgeCountFull = document.getElementById("badge-scheduled-count-full");
 
     try {
       const data = await ApiClient.getScheduledTasks(this.currentGroup);
       const tasks = data.tasks || [];
 
-      if (badgeCount) {
-        badgeCount.innerText = `${tasks.length} ativa${tasks.length === 1 ? "" : "s"}`;
-      }
+      const countText = `${tasks.length} ativa${tasks.length === 1 ? "" : "s"}`;
+      if (badgeCount) badgeCount.innerText = countText;
+      if (badgeCountFull) badgeCountFull.innerText = countText;
+
+      const emptyHtml = `
+        <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:13px; background:var(--bg-surface); border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
+          Nenhuma rotina ou tarefa agendada no momento.
+        </div>
+      `;
 
       if (tasks.length === 0) {
-        container.innerHTML = `
-          <div style="text-align:center; padding:16px; color:var(--text-dim); font-size:12px; background:var(--bg-surface); border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
-            Nenhuma rotina ou tarefa agendada no momento.
-          </div>
-        `;
+        if (container) container.innerHTML = emptyHtml;
+        if (containerFull) containerFull.innerHTML = emptyHtml;
         return;
       }
 
-      container.innerHTML = tasks
+      const tasksHtml = tasks
         .map((t) => {
           let recurrenceDesc = "";
           if (t.isRecurring) {
@@ -583,7 +591,7 @@ class App {
             : `<span style="font-size:12px; color:var(--text-main);">Execução prevista para: <strong>${new Date(t.processAfter).toLocaleString("pt-BR")}</strong></span>`;
 
           return `
-            <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px 16px; display:flex; flex-direction:column; gap:8px;">
+            <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px 18px; display:flex; flex-direction:column; gap:10px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   ${badgeType}
@@ -591,12 +599,12 @@ class App {
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span style="font-size:11px; color:var(--text-dim);">Canal: <strong style="color:var(--text-muted);">${t.channelType}</strong></span>
-                  <button class="btn btn-secondary btn-cancel-task" data-id="${t.id}" style="font-size:10px; padding:2px 8px; color:var(--danger);">
+                  <button class="btn btn-secondary btn-cancel-task" data-id="${t.id}" style="font-size:11px; padding:3px 10px; color:var(--danger);">
                     🗑️ Cancelar
                   </button>
                 </div>
               </div>
-              <div style="font-size:12px; color:var(--text-muted); line-height:1.5; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-family:var(--font-sans);">
+              <div style="font-size:12px; color:var(--text-muted); line-height:1.6; background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color); font-family:var(--font-sans);">
                 ${t.prompt || "Instrução interna da tarefa"}
               </div>
             </div>
@@ -604,8 +612,11 @@ class App {
         })
         .join("");
 
+      if (container) container.innerHTML = tasksHtml;
+      if (containerFull) containerFull.innerHTML = tasksHtml;
+
       // Bind cancel buttons
-      container.querySelectorAll(".btn-cancel-task").forEach((btn) => {
+      document.querySelectorAll(".btn-cancel-task").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           const taskId = e.currentTarget.dataset.id;
           if (!confirm("Deseja realmente cancelar esta rotina/agendamento?")) return;
