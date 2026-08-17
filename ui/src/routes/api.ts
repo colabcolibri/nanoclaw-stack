@@ -6,6 +6,7 @@ import { DatabaseService } from "../services/db.js";
 import { SystemService } from "../services/system.js";
 import { GoogleAuthService } from "../services/google-auth.js";
 import { NotionAuthService } from "../services/notion-auth.js";
+import { MacChannelService } from "../services/mac-channel.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   const list: Record<string, string> = {};
@@ -74,11 +75,48 @@ export class ApiRouter {
       return jsonResponse({ success: true }, 200, { "Set-Cookie": expiredCookie });
     }
 
+    // --- MACBOOK / SHORTCUTS DIRECT API (Bearer Token Auth) ---
+    if (url.pathname === "/api/mac/prompt" && method === "POST") {
+      const authHeader = req.headers.get("Authorization") || "";
+      const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const folder = url.searchParams.get("group") || "barao";
+
+      if (!MacChannelService.validateApiKey(bearerToken, folder)) {
+        return jsonResponse({ error: "Token de autenticação inválido. Configure sua chave nos Atalhos do Mac." }, 401);
+      }
+
+      const body = (await req.json().catch(() => ({}))) as { prompt?: string; resetSession?: boolean };
+      const prompt = body.prompt?.trim();
+      if (!prompt) return jsonResponse({ error: "Prompt é obrigatório." }, 400);
+
+      try {
+        const result = await MacChannelService.processPrompt(prompt, folder, !!body.resetSession);
+        return jsonResponse({
+          success: true,
+          reply: result.reply,
+          timestamp: result.timestamp,
+        });
+      } catch (err: any) {
+        return jsonResponse({ error: err.message || "Erro ao processar instrução no Barão." }, 500);
+      }
+    }
+
     // --- PROTECTED ROUTES CHECK ---
     const cookies = parseCookies(req.headers.get("cookie"));
     const token = cookies[CONFIG.COOKIE_NAME];
     const user = token ? TokenManager.verify(token) : null;
     if (!user) return jsonResponse({ error: "Não autorizado." }, 401);
+
+    // Mac Channel Config (For Web UI)
+    if (url.pathname === "/api/mac/config" && method === "GET") {
+      const folder = url.searchParams.get("group") || "barao";
+      const key = MacChannelService.getOrCreateApiKey(folder);
+      return jsonResponse({
+        apiKey: key,
+        endpoint: "https://uai.sergioluciano.com/api/mac/prompt",
+        group: folder,
+      });
+    }
 
     // Groups
     if (url.pathname === "/api/groups" && method === "GET") {

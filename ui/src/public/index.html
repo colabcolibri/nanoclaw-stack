@@ -476,6 +476,56 @@
             </div>
           </div>
 
+          <!-- MACOS & APPLE SHORTCUTS INTEGRATION CARD -->
+          <div class="panel-box" style="padding:18px; margin-bottom:18px; background:linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); border:1px solid rgba(147, 197, 253, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="font-size:28px;">💻🍎</div>
+                <div>
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:3px;">MacBook & Atalhos da Apple (Siri & Teclado)</h4>
+                  <p style="font-size:12px; color:var(--text-muted);">Envie comandos, converse por voz com a Siri ou aperte um atalho global de teclado no Mac.</p>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="badge-status" style="background:rgba(34, 197, 94, 0.15); color:var(--success);">Pronto / Ativo</span>
+                <button class="btn" id="btn-toggle-mac-modal" style="font-size:12px; padding:6px 14px; background:linear-gradient(135deg, #0284c7, #0369a1);">
+                  <span>⚙️ Configurar no Mac</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mac Configuration Details (collapsible) -->
+            <div id="mac-config-drawer" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Endpoint do Mac (HTTPS)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="text" id="input-mac-endpoint" class="form-input" style="font-size:12px; font-family:monospace;" readonly value="https://uai.sergioluciano.com/api/mac/prompt">
+                    <button class="btn btn-secondary" id="btn-copy-mac-endpoint" style="font-size:11px; padding:4px 10px;">Copiar</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Sua Chave de Autenticação do Mac (Bearer Token)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="password" id="input-mac-api-key" class="form-input" style="font-size:12px; font-family:monospace;" readonly value="mac_ff92fc553a1f4007d3797dfdb4e5e2ec5ba8870b4d768a66">
+                    <button class="btn btn-secondary" id="btn-copy-mac-key" style="font-size:11px; padding:4px 10px;">Copiar</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background:rgba(0,0,0,0.3); border-radius:8px; padding:12px 16px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">🚀 Como configurar no seu MacBook em 1 minuto:</div>
+                <ol style="margin-left:18px;">
+                  <li>Abra o app <strong>Atalhos (Shortcuts)</strong> nativo do seu Mac.</li>
+                  <li>Clique em <strong>+ Novo Atalho</strong> e adicione a ação <strong>"Pedir Entrada"</strong> (Texto: <em>O que deseja pedir ao Barão?</em>).</li>
+                  <li>Adicione a ação <strong>"Obter Conteúdo do URL"</strong> apontando para o Endpoint acima (Método: <code>POST</code>, Cabeçalho: <code>Authorization: Bearer [Sua Chave]</code>, Corpo: JSON com <code>{"prompt": "Resultado da Entrada"}</code>).</li>
+                  <li>Adicione a ação <strong>"Obter Dicionário do Valor"</strong> e selecione a chave <code>reply</code> para exibir em <strong>"Mostrar Notificação"</strong> ou <strong>"Falar Texto"</strong>.</li>
+                  <li>Defina o atalho de teclado global (ex: <code>Cmd + Shift + B</code>) nas configurações do atalho!</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
           <!-- ADVANCED CUSTOM MCP SERVERS (COLLAPSIBLE) -->
           <details class="panel-box" style="padding:16px 20px; margin-top:12px; background:rgba(15, 23, 42, 0.5); cursor:pointer;">
             <summary style="font-size:13px; font-weight:700; color:var(--text-muted); outline:none; display:flex; justify-content:space-between; align-items:center;">

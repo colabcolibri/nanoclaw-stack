@@ -109,6 +109,25 @@ class App {
     document.getElementById("btn-save-notion")?.addEventListener("click", () => this.handleSaveNotion());
     document.getElementById("btn-disconnect-notion")?.addEventListener("click", () => this.handleDisconnectNotion());
 
+    // Mac & Apple Shortcuts Integration
+    document.getElementById("btn-toggle-mac-modal")?.addEventListener("click", () => {
+      document.getElementById("mac-config-drawer")?.classList.toggle("hidden");
+    });
+    document.getElementById("btn-copy-mac-endpoint")?.addEventListener("click", () => {
+      const endpoint = document.getElementById("input-mac-endpoint")?.value;
+      if (endpoint) {
+        navigator.clipboard.writeText(endpoint);
+        Toast.show("Endpoint copiado!");
+      }
+    });
+    document.getElementById("btn-copy-mac-key")?.addEventListener("click", () => {
+      const key = document.getElementById("input-mac-api-key")?.value;
+      if (key) {
+        navigator.clipboard.writeText(key);
+        Toast.show("Chave de API do Mac copiada!");
+      }
+    });
+
     // Save Config
     document.getElementById("form-config")?.addEventListener("submit", (e) => this.handleSaveConfig(e));
 
