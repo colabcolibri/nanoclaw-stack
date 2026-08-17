@@ -80,12 +80,12 @@ export const AnalyticsView: React.FC = () => {
       {/* Metric Breakdown Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
-          <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalCostUsd')}</div>
-          <div className="text-2xl font-bold text-[var(--accent)] my-1 font-mono">
-            ${stats?.estimatedCostUsd || '0.0000'}
+          <div className="text-xs font-semibold text-[var(--text-muted)]">Custo Total em Reais (BRL)</div>
+          <div className="text-2xl font-bold text-emerald-500 my-1 font-mono">
+            R$ {stats?.estimatedCostBrl || '0.0000'}
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            R$ {stats?.estimatedCostBrl || '0.0000'} BRL
+            ${stats?.estimatedCostUsd || '0.0000'} USD • Câmbio: R$ {stats?.usdToBrlRate?.toFixed(2) || '5.20'}
           </div>
         </div>
 

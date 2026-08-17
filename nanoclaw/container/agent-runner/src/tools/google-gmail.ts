@@ -70,7 +70,6 @@ function extractBody(payload: any): string {
     return raw.includes('<html') || raw.includes('<div') || raw.includes('<head') ? cleanHtml(raw) : raw;
   }
   if (payload.parts && Array.isArray(payload.parts)) {
-    // Prefer text/plain, fallback to text/html
     const plainPart = payload.parts.find((p: any) => p.mimeType === 'text/plain');
     if (plainPart?.body?.data) {
       return decodeBase64Url(plainPart.body.data);
@@ -87,21 +86,47 @@ function extractBody(payload: any): string {
   return '';
 }
 
+/**
+ * Formats email body to ensure continuous flowing text per paragraph without
+ * awkward line-breaks/enters in the middle of sentences.
+ */
+function formatEmailBody(raw: string): string {
+  if (!raw) return '';
+  const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const paragraphs = normalized.split(/\n\s*\n/);
+
+  const cleanedParagraphs = paragraphs.map((para) => {
+    const lines = para.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return '';
+
+    // If it's a bulleted or numbered list, preserve line structure
+    const isList = lines.every((l) => /^[-*•\d+.]\s+/.test(l));
+    if (isList) {
+      return lines.join('\n');
+    }
+
+    // Otherwise, join lines into a single flowing sentence block
+    return lines.join(' ');
+  });
+
+  return cleanedParagraphs.filter(Boolean).join('\n\n');
+}
+
 export const googleGmailTool: AgentTool = {
   definition: {
     type: 'function',
     function: {
       name: 'google_gmail',
       description:
-        'Accesses Gmail to list conversation threads, search messages with advanced operators, read full message/thread contents, create drafts, or send email replies.',
+        'Accesses Gmail to list conversation threads, search messages, read full message/thread contents, create drafts, send email replies in the same thread, list drafts, or delete drafts.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
-            enum: ['list_messages', 'read_message', 'create_draft', 'send_message'],
+            enum: ['list_messages', 'read_message', 'create_draft', 'send_message', 'list_drafts', 'delete_draft'],
             description:
-              'Action to perform: "list_messages" (list inbox/search conversations), "read_message" (read full email content by message_id or thread_id), "create_draft" (create a draft), "send_message" (send email).',
+              'Action to perform: "list_messages" (list inbox/search conversations), "read_message" (read full email content by message_id or thread_id), "create_draft" (create a draft in thread), "send_message" (send email in thread), "list_drafts" (list all existing drafts), "delete_draft" (delete a draft by draft_id).',
           },
           folder: {
             type: 'string',
@@ -119,7 +144,15 @@ export const googleGmailTool: AgentTool = {
           },
           message_id: {
             type: 'string',
-            description: 'Message ID or Thread ID to read in full (required for read_message).',
+            description: 'Message ID or Thread ID to read or reply to.',
+          },
+          thread_id: {
+            type: 'string',
+            description: 'Thread ID to reply within (ensures response stays in the exact same conversation thread).',
+          },
+          draft_id: {
+            type: 'string',
+            description: 'Draft ID to delete (required for delete_draft).',
           },
           to: {
             type: 'string',
@@ -131,7 +164,11 @@ export const googleGmailTool: AgentTool = {
           },
           body: {
             type: 'string',
-            description: 'Text content/body of the email.',
+            description: 'Text content/body of the email (will be formatted as continuous flowing text).',
+          },
+          from_alias: {
+            type: 'string',
+            description: 'Sender alias/signature to use (e.g. "Assistente Virtual da Colibri <contato@colabcolibri.com>").',
           },
         },
         required: ['action'],
@@ -150,7 +187,81 @@ export const googleGmailTool: AgentTool = {
 
     const action = args.action || 'list_messages';
 
-    // 1. READ MESSAGE OR THREAD
+    // 1. DELETE DRAFT
+    if (action === 'delete_draft') {
+      const draftId = args.draft_id || args.id || args.draftId;
+      if (!draftId) {
+        return JSON.stringify({ status: 'error', error: 'Parâmetro "draft_id" é obrigatório para excluir um rascunho.' });
+      }
+
+      const delRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (delRes.status === 204 || delRes.ok) {
+        return JSON.stringify({
+          status: 'ok',
+          message: `Rascunho ${draftId} excluído com sucesso do Gmail.`,
+        });
+      }
+
+      return JSON.stringify({
+        status: 'error',
+        code: delRes.status,
+        text: await delRes.text(),
+      });
+    }
+
+    // 2. LIST DRAFTS
+    if (action === 'list_drafts') {
+      const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 20, 1), 50);
+      const listDraftsRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts?maxResults=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!listDraftsRes.ok) {
+        return JSON.stringify({ status: 'error', code: listDraftsRes.status, text: await listDraftsRes.text() });
+      }
+
+      const draftsData = (await listDraftsRes.json()) as any;
+      const rawDrafts = draftsData.drafts || [];
+
+      const detailedDrafts = await Promise.all(
+        rawDrafts.map(async (d: any) => {
+          try {
+            const detailRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${d.id}?format=metadata`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (detailRes.ok) {
+              const dt = (await detailRes.json()) as any;
+              const msg = dt.message || {};
+              const headers = msg.payload?.headers || [];
+              const getH = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+
+              return {
+                draft_id: d.id,
+                message_id: msg.id,
+                thread_id: msg.threadId,
+                to: getH('To'),
+                subject: getH('Subject'),
+                date: getH('Date'),
+                snippet: msg.snippet || '',
+              };
+            }
+          } catch {}
+          return { draft_id: d.id, message_id: d.message?.id };
+        })
+      );
+
+      return JSON.stringify({
+        status: 'ok',
+        totalDrafts: detailedDrafts.length,
+        drafts: detailedDrafts,
+      });
+    }
+
+    // 3. READ MESSAGE OR THREAD
     if (action === 'read_message' || action === 'read_thread') {
       const msgId = args.message_id || args.id || args.thread_id;
       if (!msgId) {
@@ -188,6 +299,7 @@ export const googleGmailTool: AgentTool = {
           return {
             index: idx + 1,
             messageId: m.id,
+            rfcMessageId: getH('Message-ID'),
             from: fromVal,
             to: getH('To'),
             subject: getH('Subject'),
@@ -208,6 +320,8 @@ export const googleGmailTool: AgentTool = {
           subject: lastMsg.subject,
           lastSender: lastMsg.from,
           lastDate: lastMsg.date,
+          lastRfcMessageId: lastMsg.rfcMessageId,
+          lastMessageId: lastMsg.messageId,
           needsReply: !lastMsg.isFromMe,
           lastMessage: {
             from: lastMsg.from,
@@ -236,6 +350,7 @@ export const googleGmailTool: AgentTool = {
         status: 'ok',
         id: data.id,
         threadId: data.threadId || data.id,
+        rfcMessageId: getHeader('Message-ID'),
         totalMessagesInThread: 1,
         from: fromVal,
         to: getHeader('To'),
@@ -247,7 +362,7 @@ export const googleGmailTool: AgentTool = {
       });
     }
 
-    // 2. CREATE DRAFT OR SEND MESSAGE
+    // 4. CREATE DRAFT OR SEND MESSAGE (WITH THREAD CONTINUITY & CLEAN CONTINUOUS TEXT)
     if (action === 'create_draft' || action === 'send_message') {
       const policy = loadEmailPolicy(cwd);
 
@@ -265,23 +380,59 @@ export const googleGmailTool: AgentTool = {
         });
       }
 
-      // DETERMINISTIC SAFETY INTERCEPTION:
-      // If mode is 'draft_approval' and no explicit operator approval flag is passed, force 'create_draft'
       const isExplicitApproved = Boolean(args.force_approved || args.operator_approved);
       const isInterceptedToDraft = action === 'send_message' && policy.mode === 'draft_approval' && !isExplicitApproved;
       const effectiveAction = isInterceptedToDraft ? 'create_draft' : action;
 
-      const utf8Subject = `=?utf-8?B?${Buffer.from(args.subject).toString('base64')}?=`;
+      // Clean body into continuous flowing text
+      const cleanBody = formatEmailBody(args.body);
+
+      // Thread continuity lookup
+      let parentRfcMessageId = args.in_reply_to || args.rfc_message_id || '';
+      let targetThreadId = args.thread_id || args.threadId || '';
+      const refMsgId = args.message_id || args.reply_to_message_id;
+
+      if ((!parentRfcMessageId || !targetThreadId) && refMsgId) {
+        try {
+          const origRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${refMsgId}?format=metadata`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (origRes.ok) {
+            const origData = (await origRes.json()) as any;
+            targetThreadId = targetThreadId || origData.threadId || origData.id;
+            const origHeaders = origData.payload?.headers || [];
+            const getH = (name: string) => origHeaders.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+            parentRfcMessageId = parentRfcMessageId || getH('Message-ID');
+          }
+        } catch {}
+      }
+
+      // If replying, ensure Subject starts with "Re: "
+      let subjectLine = args.subject.trim();
+      if (targetThreadId && !/^re:\s*/i.test(subjectLine)) {
+        subjectLine = `Re: ${subjectLine}`;
+      }
+
+      const utf8Subject = `=?utf-8?B?${Buffer.from(subjectLine).toString('base64')}?=`;
       const fromAlias = args.from_alias || policy.signature || 'Assistente Virtual da Colibri <contato@colabcolibri.com>';
-      const emailLines = [
+
+      const emailLines: string[] = [
         `From: ${fromAlias}`,
         `To: ${args.to}`,
         `Subject: ${utf8Subject}`,
-        'Content-Type: text/plain; charset="UTF-8"',
-        'Content-Transfer-Encoding: 8bit',
-        '',
-        args.body,
       ];
+
+      // Insert RFC 2822 In-Reply-To and References for perfect email client thread grouping
+      if (parentRfcMessageId) {
+        emailLines.push(`In-Reply-To: ${parentRfcMessageId}`);
+        emailLines.push(`References: ${parentRfcMessageId}`);
+      }
+
+      emailLines.push('Content-Type: text/plain; charset="UTF-8"');
+      emailLines.push('Content-Transfer-Encoding: 8bit');
+      emailLines.push('');
+      emailLines.push(cleanBody);
+
       const rawEmail = emailLines.join('\r\n');
       const base64Email = Buffer.from(rawEmail)
         .toString('base64')
@@ -290,8 +441,8 @@ export const googleGmailTool: AgentTool = {
         .replace(/=+$/, '');
 
       const messagePayload: any = { raw: base64Email };
-      if (args.thread_id || args.threadId) {
-        messagePayload.threadId = args.thread_id || args.threadId;
+      if (targetThreadId) {
+        messagePayload.threadId = targetThreadId;
       }
 
       if (effectiveAction === 'create_draft') {
@@ -311,9 +462,10 @@ export const googleGmailTool: AgentTool = {
         return JSON.stringify({
           status: isInterceptedToDraft ? 'draft_created_for_approval' : 'ok',
           message: isInterceptedToDraft
-            ? 'TRAVA DE SEGURANÇA DETERMINÍSTICA ATIVA: O modo "Rascunho & Aprovação" está ativo. A mensagem foi gravada como Rascunho no Gmail para aprovação prévia do Sérgio no Telegram antes do envio definitivo.'
-            : 'Rascunho criado com sucesso no Gmail.',
+            ? 'TRAVA DE SEGURANÇA DETERMINÍSTICA ATIVA: O modo "Rascunho & Aprovação" está ativo. A mensagem foi gravada como Rascunho na mesma thread do Gmail para aprovação prévia no Telegram antes do envio definitivo.'
+            : 'Rascunho criado com sucesso na thread do Gmail.',
           draftId: draftData.id,
+          threadId: draftData.message?.threadId || targetThreadId,
         });
       }
 
@@ -330,10 +482,15 @@ export const googleGmailTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: sendRes.status, text: await sendRes.text() });
       }
       const sendData = (await sendRes.json()) as any;
-      return JSON.stringify({ status: 'ok', message: 'E-mail enviado com sucesso.', messageId: sendData.id });
+      return JSON.stringify({
+        status: 'ok',
+        message: 'E-mail enviado com sucesso na thread.',
+        messageId: sendData.id,
+        threadId: sendData.threadId || targetThreadId,
+      });
     }
 
-    // 3. LIST CONVERSATIONS/THREADS (MIRRORS EXACT GMAIL UI CONVERSATIONS)
+    // 5. LIST CONVERSATIONS/THREADS
     const limit = Math.min(Math.max(Number(args.max_results || args.limit) || 50, 1), 100);
     const folder = args.folder || 'inbox';
 
@@ -354,7 +511,6 @@ export const googleGmailTool: AgentTool = {
     const qParam = finalQueryString ? `&q=${encodeURIComponent(finalQueryString)}` : '';
     const labelParam = folder === 'inbox' ? '&labelIds=INBOX' : '';
 
-    // Fetch THREADS from Gmail API (matches Gmail Web UI 1-to-1)
     const listRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${limit}${labelParam}${qParam}`,
       {

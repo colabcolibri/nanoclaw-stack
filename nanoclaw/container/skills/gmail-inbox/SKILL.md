@@ -1,11 +1,11 @@
 ---
 name: gmail-inbox
-description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada e leitura completa via Gmail API.
+description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada, leitura completa, criação/exclusão de rascunhos e respostas na mesma thread via Gmail API.
 ---
 
 # Gmail Inbox & Executive Search Skill
 
-Esta habilidade capacita o assistente a executar pesquisas avançadas e combinadas na caixa de entrada do Gmail através da ferramenta `google_gmail`.
+Esta habilidade capacita o assistente a executar pesquisas avançadas e combinadas na caixa de entrada do Gmail, ler conversas completas em thread, criar ou excluir rascunhos e enviar respostas anexadas diretamente na mesma conversa.
 
 ## 🔍 Guia de Operadores de Busca Combinada (`query`):
 
@@ -24,9 +24,12 @@ O assistente deve traduzir os pedidos do usuário em operadores nativos do Gmail
 
 ---
 
-## 🛠️ Fluxo de Trabalho Recomendado:
+## 🛠️ Fluxo de Trabalho & Operações:
 
 1. **Busca/Listagem:** Use `list_messages` com a `query` combinada e `max_results` adequado.
-2. **Leitura de Contexto:** Se o usuário pedir detalhes ou se o e-mail for crítico, use `read_message(message_id)` para ler o corpo integral.
-3. **Resumo Executivo:** Apresente os resultados de forma clara, com data, remetente, assunto e o ponto-chave de cada mensagem.
-4. **Ação Rápida:** Ofereça para redigir uma resposta ou criar um rascunho (`create_draft`) quando apropriado.
+2. **Leitura de Contexto:** Se o usuário pedir detalhes ou se o e-mail for crítico, use `read_message(message_id)` para ler o corpo e o histórico completo da thread.
+3. **Respostas em Thread:** Ao criar rascunho (`create_draft`) ou enviar (`send_message`), **SEMPRE passe `thread_id` e `message_id`** para garantir que a resposta permaneça na mesma thread existente.
+4. **Gerenciamento de Rascunhos:**
+   * Listar rascunhos: `google_gmail(action: "list_drafts")`
+   * Excluir rascunho: `google_gmail(action: "delete_draft", draft_id: "...")`
+5. **Formatação de Texto:** Redija o corpo do e-mail em texto corrido contínuo, sem quebras arbitrárias no meio das frases.

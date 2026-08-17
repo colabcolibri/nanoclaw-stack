@@ -203,7 +203,7 @@ export class DeepSeekProvider implements AgentProvider {
           {
             prompt: input.prompt,
             cwd: input.cwd,
-            chatJid: input.chatJid,
+            chatJid: (input as any).chatJid,
             history,
             systemInstructions: systemParts.join('\n\n'),
             historyLimit,
