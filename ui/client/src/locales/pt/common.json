@@ -44,7 +44,7 @@
     "estimatedTokens": "Tokens Estimados",
     "tokensSub": "~3.5 caracteres / token",
     "estimatedCost": "Custo Estimado (USD)",
-    "costSub": "DeepSeek (~$0.20/1M)",
+    "costSub": "DeepSeek Peak (Hit $0.014 / Miss $0.44 / Out $1.32)",
     "serviceStatus": "Status do Serviço",
     "servicePid": "PID: {{pid}}"
   }

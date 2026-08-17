@@ -206,8 +206,8 @@ export const McpsView: React.FC = () => {
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
+              : 'bg-red-500/15 border-red-500/30 text-red-900 dark:text-red-300'
           }`}
         >
           {toastMessage.type === 'success' ? (
@@ -243,14 +243,14 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-500/50 flex items-center justify-center shrink-0 shadow-xs">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
                     Google Workspace (Google Calendar & Gmail)
                   </CardTitle>
-                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed font-normal">
                     Permite ao Barão ler sua agenda, criar reuniões e checar seus e-mails.
                   </CardDescription>
                 </div>
@@ -265,10 +265,10 @@ export const McpsView: React.FC = () => {
 
                 {googleStatus.connected && (
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     onClick={() => setIsGooglePolicyOpen(!isGooglePolicyOpen)}
-                    className="h-8 text-xs font-semibold gap-1.5"
+                    className="h-8 text-xs font-semibold gap-1.5 border-[var(--border-main)]"
                   >
                     <Settings className="w-3.5 h-3.5" />
                     <span>Política de E-mails</span>
@@ -349,14 +349,14 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/50 flex items-center justify-center shrink-0 shadow-xs">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
                     Notion (Anotações, Atas & Databases)
                   </CardTitle>
-                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed font-normal">
                     Permite ao Barão criar notas estruturadas, salvar resumos e gerenciar tabelas no Notion.
                   </CardDescription>
                 </div>
@@ -370,10 +370,10 @@ export const McpsView: React.FC = () => {
                 </Badge>
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsNotionOpen(!isNotionOpen)}
-                  className="h-8 text-xs font-semibold gap-1.5"
+                  className="h-8 text-xs font-semibold gap-1.5 border-[var(--border-main)]"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>Configurar Notion</span>
@@ -442,14 +442,14 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/50 flex items-center justify-center shrink-0 shadow-xs">
                   <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
                     Yampi (Loja Virtual & E-commerce)
                   </CardTitle>
-                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed font-normal">
                     Permite ao Barão consultar catálogo de produtos, checar estoque e rastrear pedidos.
                   </CardDescription>
                 </div>
@@ -463,10 +463,10 @@ export const McpsView: React.FC = () => {
                 </Badge>
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsYampiOpen(!isYampiOpen)}
-                  className="h-8 text-xs font-semibold gap-1.5"
+                  className="h-8 text-xs font-semibold gap-1.5 border-[var(--border-main)]"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>Configurar Yampi</span>
@@ -548,14 +548,14 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-xs">
                   <Laptop className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
                     MacBook & Atalhos da Apple (Siri & Teclado)
                   </CardTitle>
-                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed font-normal">
                     Envie comandos, converse por voz com a Siri ou aperte um atalho global de teclado no Mac.
                   </CardDescription>
                 </div>
@@ -569,10 +569,10 @@ export const McpsView: React.FC = () => {
                 </Badge>
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsMacOpen(!isMacOpen)}
-                  className="h-8 text-xs font-semibold gap-1.5"
+                  className="h-8 text-xs font-semibold gap-1.5 border-[var(--border-main)]"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>Configurar no Mac</span>
@@ -655,14 +655,14 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-11 h-11 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/50 flex items-center justify-center shrink-0 shadow-xs">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
                     Correios & Logística de Frete (Loja Colibri)
                   </CardTitle>
-                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <CardDescription className="text-xs text-[var(--text-muted)] leading-relaxed font-normal">
                     Cotação automática de PAC e SEDEX para orçamentos e propostas comerciais.
                   </CardDescription>
                 </div>
@@ -676,10 +676,10 @@ export const McpsView: React.FC = () => {
                 </Badge>
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsShippingOpen(!isShippingOpen)}
-                  className="h-8 text-xs font-semibold gap-1.5"
+                  className="h-8 text-xs font-semibold gap-1.5 border-[var(--border-main)]"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>Configurar Frete</span>

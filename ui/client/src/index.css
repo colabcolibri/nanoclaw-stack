@@ -10,17 +10,17 @@
     --bg-input: #ffffff;
     --border-main: #cbd5e1;
     --border-subtle: #e2e8f0;
-    --text-main: #0f172a;
-    --text-muted: #334155;
-    --text-dim: #64748b;
-    --text-input: #0f172a;
+    --text-main: #090d16;
+    --text-muted: #1e293b;
+    --text-dim: #334155;
+    --text-input: #090d16;
     --accent: #0284c7;
     --accent-hover: #0369a1;
     --accent-subtle: rgba(2, 132, 199, 0.12);
     --accent-border: rgba(2, 132, 199, 0.35);
-    --terminal-bg: #0f172a;
-    --terminal-text: #f8fafc;
-    --terminal-border: #334155;
+    --terminal-bg: #f8fafc;
+    --terminal-text: #090d16;
+    --terminal-border: #cbd5e1;
   }
 
   .dark {
@@ -33,15 +33,15 @@
     --border-main: #233554;
     --border-subtle: #18263e;
     --text-main: #ffffff;
-    --text-muted: #cbd5e1;
-    --text-dim: #94a3b8;
+    --text-muted: #e2e8f0;
+    --text-dim: #cbd5e1;
     --text-input: #ffffff;
     --accent: #38bdf8;
     --accent-hover: #7dd3fc;
     --accent-subtle: rgba(56, 189, 248, 0.18);
     --accent-border: rgba(56, 189, 248, 0.4);
     --terminal-bg: #030610;
-    --terminal-text: #f8fafc;
+    --terminal-text: #ffffff;
     --terminal-border: #233554;
   }
 }
@@ -103,7 +103,7 @@ body {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.82rem;
   margin: 0.75rem 0;
-  color: #f8fafc;
+  color: var(--terminal-text);
 }
 .prose-rendered code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -113,6 +113,7 @@ body {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-main);
   color: var(--text-main);
+  font-weight: 600;
 }
 .prose-rendered pre code {
   padding: 0;
@@ -120,6 +121,7 @@ body {
   border: none;
   font-size: inherit;
   color: inherit;
+  font-weight: normal;
 }
 .prose-rendered blockquote {
   border-left: 3px solid var(--accent);

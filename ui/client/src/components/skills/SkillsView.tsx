@@ -75,8 +75,8 @@ export const SkillsView: React.FC = () => {
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
+              : 'bg-red-500/15 border-red-500/30 text-red-900 dark:text-red-300'
           }`}
         >
           {toastMessage.type === 'success' ? (
@@ -196,14 +196,14 @@ export const SkillsView: React.FC = () => {
 
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {refCount > 0 && (
-                          <Badge variant="default" className="text-[10px] py-0 px-2 gap-1">
-                            <Folder className="w-3 h-3" />
+                          <Badge variant="ref" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                            <Folder className="w-3 h-3 text-sky-800 dark:text-sky-300" />
                             <span>{refCount} ref(s)</span>
                           </Badge>
                         )}
                         {scriptCount > 0 && (
-                          <Badge variant="secondary" className="text-[10px] py-0 px-2 gap-1">
-                            <Code2 className="w-3 h-3" />
+                          <Badge variant="script" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                            <Code2 className="w-3 h-3 text-purple-800 dark:text-purple-300" />
                             <span>{scriptCount} script(s)</span>
                           </Badge>
                         )}
@@ -224,16 +224,16 @@ export const SkillsView: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3">
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3 font-normal">
                     {skill.description || 'Habilidade nativa de automação e execução.'}
                   </p>
 
                   <div className="pt-2 border-t border-[var(--border-main)] flex justify-end">
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       onClick={() => handleInspectSkill(skill)}
-                      className="w-full gap-1.5 text-xs font-bold h-8"
+                      className="w-full gap-1.5 text-xs font-bold h-8 border-[var(--border-main)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-subtle)] text-[var(--text-main)]"
                     >
                       <Search className="w-3.5 h-3.5 text-[var(--accent)]" />
                       <span>Abrir</span>

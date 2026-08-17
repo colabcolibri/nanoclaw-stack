@@ -102,8 +102,8 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           {skill.references && skill.references.length > 0 && (
             <div>
               <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider flex items-center gap-1.5 mb-2">
-                <Folder className="w-3.5 h-3.5 text-sky-500" />
-                <span>Documentos na pasta references/ ({skill.references.length})</span>
+                <Folder className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
+                <span className="text-[var(--text-main)]">Documentos na pasta references/ ({skill.references.length})</span>
               </span>
               <div className="space-y-2">
                 {skill.references.map((ref, idx) => (
@@ -111,9 +111,9 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                     key={idx}
                     className="group bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl overflow-hidden"
                   >
-                    <summary className="p-3 cursor-pointer text-xs font-bold text-[var(--accent)] flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
+                    <summary className="p-3 cursor-pointer text-xs font-bold text-sky-900 dark:text-sky-200 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5" />
+                        <FileText className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
                         <span>{ref.name}</span>
                         <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
                           ({(ref.sizeBytes / 1024).toFixed(1)} KB)
@@ -136,8 +136,8 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           {skill.scripts && skill.scripts.length > 0 && (
             <div>
               <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider flex items-center gap-1.5 mb-2">
-                <Code2 className="w-3.5 h-3.5 text-purple-500" />
-                <span>Scripts & Utilitários na pasta scripts/ ({skill.scripts.length})</span>
+                <Code2 className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" />
+                <span className="text-[var(--text-main)]">Scripts & Utilitários na pasta scripts/ ({skill.scripts.length})</span>
               </span>
               <div className="space-y-2">
                 {skill.scripts.map((sc, idx) => (
@@ -145,9 +145,9 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                     key={idx}
                     className="group bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl overflow-hidden"
                   >
-                    <summary className="p-3 cursor-pointer text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
+                    <summary className="p-3 cursor-pointer text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <Code2 className="w-3.5 h-3.5" />
+                        <Code2 className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" />
                         <span>{sc.name}</span>
                         <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
                           ({(sc.sizeBytes / 1024).toFixed(1)} KB)
@@ -160,9 +160,9 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                           variant="secondary"
                           size="sm"
                           onClick={() => handleCopyCode(sc.content || '', String(idx))}
-                          className="absolute top-2 right-2 h-7 px-2 text-[10px] gap-1 z-10"
+                          className="absolute top-2 right-2 h-7 px-2 text-[10px] gap-1 z-10 font-bold"
                         >
-                          {copiedScript === String(idx) ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                          {copiedScript === String(idx) ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
                           <span>{copiedScript === String(idx) ? 'Copiado' : 'Copiar'}</span>
                         </Button>
                       )}

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, LogOut, Info, Sun, Moon, PanelLeftClose, PanelLeft } from 'lucide-react'
+import { Globe, LogOut, Info, Sun, Moon, PanelLeftClose, PanelLeft, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -51,8 +51,8 @@ export const Topbar: React.FC<TopbarProps> = ({
         </Button>
 
         <div className="flex items-center gap-2 font-bold text-[var(--text-main)] text-base sm:text-lg tracking-tight">
-          <span className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center text-sm font-mono shrink-0">
-            ⚡
+          <span className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 shadow-xs">
+            <Zap className="w-4 h-4" />
           </span>
           <span className="hidden xs:inline">{t('appName')}</span>
         </div>
@@ -108,7 +108,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
-          className="h-8 text-xs text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 gap-1.5 px-2.5"
+          className="h-8 text-xs text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 gap-1.5 px-2.5"
           title={t('logout')}
         >
           <LogOut className="w-3.5 h-3.5" />

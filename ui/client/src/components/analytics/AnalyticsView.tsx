@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, RefreshCw } from 'lucide-react'
+import { BarChart3, RefreshCw, Wrench } from 'lucide-react'
 import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -92,30 +92,30 @@ export const AnalyticsView: React.FC = () => {
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalTokens')}</div>
           <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
-            {(stats?.estimatedTokens || 0).toLocaleString()}
+            {(stats?.totalTokens ?? stats?.estimatedTokens ?? 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            {stats?.totalInbound || 0} in • {stats?.totalOutbound || 0} out
+            Cache Hit: {stats?.cacheHitRatio || '0%'} • {((stats?.promptTokens || 0)).toLocaleString()} in • {((stats?.completionTokens || 0)).toLocaleString()} out
           </div>
         </div>
 
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{t('totalCalls')}</div>
           <div className="text-2xl font-bold text-[var(--text-main)] my-1 font-mono">
-            {stats?.totalMessages || 0}
+            {stats?.totalApiCalls ?? stats?.totalMessages ?? 0}
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            {runs.length} runs intermediárias
+            {stats?.totalRuns || 0} execuções de tools
           </div>
         </div>
 
         <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{t('baseRate')}</div>
           <div className="text-sm font-bold text-emerald-500 my-1">
-            DeepSeek V3 / V4 Flash
+            DeepSeek V4 Flash (Peak)
           </div>
           <div className="text-[11px] text-[var(--text-dim)] font-mono">
-            $0.14 input / $0.28 output (1M)
+            Hit: $0.014 • Miss: $0.44 • Out: $1.32 / 1M
           </div>
         </div>
       </div>
@@ -224,7 +224,14 @@ export const AnalyticsView: React.FC = () => {
                           ${(r.costUsd || 0).toFixed(5)}
                         </td>
                         <td className="p-3.5 px-4 max-w-sm truncate text-[var(--text-main)] font-mono text-[11px]">
-                          {r.toolName ? `🔧 ${r.toolName}` : r.preview}
+                          {r.toolName ? (
+                            <span className="inline-flex items-center gap-1.5 font-bold text-[var(--accent)]">
+                              <Wrench className="w-3 h-3" />
+                              <span>{r.toolName}</span>
+                            </span>
+                          ) : (
+                            r.preview
+                          )}
                         </td>
                       </tr>
                     )
