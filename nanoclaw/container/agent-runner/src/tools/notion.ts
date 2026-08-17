@@ -254,13 +254,56 @@ export const notionTool: AgentTool = {
 
         let payload: any = {};
         if (targetDbId) {
+          // Fetch database schema to detect actual title property and existing columns
+          let titlePropName = 'Name';
+          let existingProps: Record<string, any> = {};
+
+          try {
+            const dbCheckRes = await fetch(`https://api.notion.com/v1/databases/${targetDbId}`, { headers });
+            if (dbCheckRes.ok) {
+              const dbData = (await dbCheckRes.json()) as any;
+              existingProps = dbData.properties || {};
+              const foundTitle = Object.entries<any>(existingProps).find(([_, v]) => v.type === 'title');
+              if (foundTitle) titlePropName = foundTitle[0];
+
+              // Check if args.properties has new columns that don't exist yet, and auto-add them
+              const missingCols: Record<string, any> = {};
+              if (args.properties) {
+                for (const [key, val] of Object.entries<any>(args.properties)) {
+                  if (!existingProps[key]) {
+                    if (val?.select) missingCols[key] = { select: {} };
+                    else if (val?.multi_select) missingCols[key] = { multi_select: {} };
+                    else if (val?.date) missingCols[key] = { date: {} };
+                    else missingCols[key] = { rich_text: {} };
+                  }
+                }
+              }
+
+              if (Object.keys(missingCols).length > 0) {
+                await fetch(`https://api.notion.com/v1/databases/${targetDbId}`, {
+                  method: 'PATCH',
+                  headers,
+                  body: JSON.stringify({ properties: missingCols }),
+                });
+              }
+            }
+          } catch {}
+
+          const recordProps: Record<string, any> = {
+            [titlePropName]: { title: [{ text: { content: pageTitle } }] },
+          };
+
+          // Append additional properties if supported
+          if (args.properties) {
+            for (const [key, val] of Object.entries<any>(args.properties)) {
+              if (key === titlePropName) continue;
+              recordProps[key] = val;
+            }
+          }
+
           payload = {
             parent: { database_id: targetDbId },
-            properties: {
-              Nome: { title: [{ text: { content: pageTitle } }] },
-              Data: { date: { start: new Date().toISOString() } },
-              ...(args.properties || {}),
-            },
+            properties: recordProps,
             children: childrenBlocks.slice(0, 50),
           };
         } else {
