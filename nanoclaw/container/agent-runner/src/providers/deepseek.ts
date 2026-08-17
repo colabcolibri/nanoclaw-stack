@@ -197,6 +197,10 @@ export class DeepSeekProvider implements AgentProvider {
             continue;
           }
 
+          finalContent = assistantMsg.content || '';
+          break;
+        }
+
         // If after tool execution finalContent is still empty, request a final summary
         if (!finalContent || !finalContent.trim()) {
           try {
