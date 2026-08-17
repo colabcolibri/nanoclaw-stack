@@ -1,0 +1,16 @@
+http:
+  routers:
+    nanoclaw-uai-router:
+      rule: "Host(`uai.sergioluciano.com`)"
+      entryPoints:
+        - websecure
+      service: nanoclaw-uai-service
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    nanoclaw-uai-service:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3001"
+        passHostHeader: true

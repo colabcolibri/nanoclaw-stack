@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.npm-cache/
+.pnpm-store/
+.bun/
+bun.lockb
+
+# Local runtime data & auth
+store/
+data/
+nanoclaw/data/
+nanoclaw/logs/
+logs/
+*.log
+
+# Groups - per-installation state
+nanoclaw/groups/*
+groups/*
+!nanoclaw/groups/.gitkeep
+
+# Claude / Agent dynamic artifacts
+**/CLAUDE.local.md
+**/.claude-shared.md
+**/.claude-fragments/
+
+# Secrets and tokens
+*.keys.json
+.env
+.env*
+google_tokens.json
+acme.json
+
+# Build outputs & caches
+dist/
+.cache/
+.tmp-*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

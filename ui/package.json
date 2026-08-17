@@ -1,0 +1,18 @@
+{
+  "name": "nanoclaw-uai",
+  "version": "0.1.0",
+  "description": "Interface web de gerenciamento, configuração de Soul e monitoramento para NanoClaw",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
