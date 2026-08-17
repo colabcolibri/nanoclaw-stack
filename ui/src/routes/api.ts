@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { CONFIG } from "../config.js";
 import { AuthService } from "../auth/service.js";
 import { TokenManager } from "../auth/token.js";

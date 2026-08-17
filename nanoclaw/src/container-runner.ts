@@ -303,9 +303,10 @@ export function buildMounts(
   const defaultSurfaces = !providerProvidesAgentSurfaces(provider);
 
   const claudeDir = path.join(DATA_DIR, 'v2-sessions', agentGroup.id, '.claude-shared');
+  const groupDir = path.resolve(GROUPS_DIR, agentGroup.folder);
   if (defaultSurfaces) {
-    // Sync skill symlinks based on container.json selection before mounting.
-    syncSkillSymlinks(claudeDir, containerConfig);
+    // Sync skill symlinks based on container.json selection and group skills override before mounting.
+    syncSkillSymlinks(claudeDir, containerConfig, groupDir);
 
     // Compose CLAUDE.md fresh every spawn from the shared base, enabled skill
     // fragments, and MCP server instructions. See `claude-md-compose.ts`.
@@ -314,7 +315,6 @@ export function buildMounts(
 
   const mounts: VolumeMount[] = [];
   const sessDir = sessionDir(agentGroup.id, session.id);
-  const groupDir = path.resolve(GROUPS_DIR, agentGroup.folder);
 
   // Session folder at /workspace (contains inbound.db, outbound.db, outbox/, .claude/)
   mounts.push({ hostPath: sessDir, containerPath: '/workspace', readonly: false });
@@ -389,17 +389,25 @@ export function buildMounts(
 }
 
 /**
- * Sync skill symlinks in .claude-shared/skills/ to match the container.json
- * selection. Each symlink points to a container path (/app/skills/<name>)
- * so it's dangling on the host but valid inside the container.
+ * Ensure `skills/` inside the per-group `.claude-shared/` contains symlinks for
+ * every skill enabled in `containerConfig.skills`.
+ *
+ * Supports Group Skills Override:
+ * If a skill exists in `/workspace/agent/skills/<skill>` (groupDir/skills/<skill>),
+ * the symlink points to the group custom/overridden version instead of the system /app/skills.
  */
-function syncSkillSymlinks(claudeDir: string, containerConfig: import('./container-config.js').ContainerConfig): void {
+function syncSkillSymlinks(
+  claudeDir: string,
+  containerConfig: import('./container-config.js').ContainerConfig,
+  groupDir?: string,
+): void {
   const skillsDir = path.join(claudeDir, 'skills');
   if (!fs.existsSync(skillsDir)) {
     fs.mkdirSync(skillsDir, { recursive: true });
   }
 
-  const desired = selectedSkillNames(containerConfig);
+  const groupSkillsDir = groupDir ? path.join(groupDir, 'skills') : null;
+  const desired = selectedSkillNames(containerConfig, groupDir);
   const desiredSet = new Set(desired);
 
   // Remove symlinks not in the desired set
@@ -419,46 +427,73 @@ function syncSkillSymlinks(claudeDir: string, containerConfig: import('./contain
   // Create symlinks for desired skills (container path targets)
   for (const skill of desired) {
     const linkPath = path.join(skillsDir, skill);
-    let entry: fs.Stats | undefined;
+    const hasGroupOverride = groupSkillsDir && fs.existsSync(path.join(groupSkillsDir, skill));
+    const targetPath = hasGroupOverride ? `/workspace/agent/skills/${skill}` : `/app/skills/${skill}`;
+
+    let isSymlink = false;
+    let currentTarget = '';
     try {
-      entry = fs.lstatSync(linkPath);
+      isSymlink = fs.lstatSync(linkPath).isSymbolicLink();
+      if (isSymlink) {
+        currentTarget = fs.readlinkSync(linkPath);
+      }
     } catch {
       /* missing */
     }
-    if (!entry) {
-      fs.symlinkSync(`/app/skills/${skill}`, linkPath);
-    } else if (!entry.isSymbolicLink()) {
-      // A real entry here is either a template overlay (intentional; see
-      // src/group-skills.ts) or a stale pre-refactor skill copy that shadows
-      // the shared skill (#3001). No marker distinguishes them yet, so
-      // surface the skip instead of staying silent.
-      log.warn(
-        'Shared skill not symlinked: real entry occupies the path (template overlay or stale pre-refactor copy)',
-        {
-          skill,
-          path: linkPath,
-        },
-      );
+
+    if (isSymlink) {
+      if (currentTarget !== targetPath) {
+        fs.unlinkSync(linkPath);
+        fs.symlinkSync(targetPath, linkPath);
+      }
+    } else if (!fs.existsSync(linkPath)) {
+      fs.symlinkSync(targetPath, linkPath);
     }
   }
 }
 
 /**
  * Resolve the group's skill selection to concrete names — `'all'` recomputes
- * from `container/skills/` so newly-added upstream skills appear automatically.
+ * from `container/skills/` plus any custom group skills in `groupDir/skills/`.
  */
-function selectedSkillNames(containerConfig: import('./container-config.js').ContainerConfig): string[] {
-  if (containerConfig.skills !== 'all') return containerConfig.skills;
+function selectedSkillNames(
+  containerConfig: import('./container-config.js').ContainerConfig,
+  groupDir?: string,
+): string[] {
+  const skills = new Set<string>();
+
+  // 1. Shared system skills
   const sharedSkillsDir = path.join(process.cwd(), 'container', 'skills');
-  return fs.existsSync(sharedSkillsDir)
-    ? fs.readdirSync(sharedSkillsDir).filter((e) => {
-        try {
-          return fs.statSync(path.join(sharedSkillsDir, e)).isDirectory();
-        } catch {
-          return false;
+  if (fs.existsSync(sharedSkillsDir)) {
+    for (const e of fs.readdirSync(sharedSkillsDir)) {
+      try {
+        if (fs.statSync(path.join(sharedSkillsDir, e)).isDirectory()) {
+          skills.add(e);
         }
-      })
-    : [];
+      } catch {}
+    }
+  }
+
+  // 2. Group custom skills (new skills created by the agent or group overrides)
+  if (groupDir) {
+    const groupSkillsDir = path.join(groupDir, 'skills');
+    if (fs.existsSync(groupSkillsDir)) {
+      for (const e of fs.readdirSync(groupSkillsDir)) {
+        try {
+          if (fs.statSync(path.join(groupSkillsDir, e)).isDirectory()) {
+            skills.add(e);
+          }
+        } catch {}
+      }
+    }
+  }
+
+  if (containerConfig.skills !== 'all') {
+    const allowed = new Set(containerConfig.skills);
+    return Array.from(skills).filter((s) => allowed.has(s));
+  }
+
+  return Array.from(skills);
 }
 
 async function buildContainerArgs(
