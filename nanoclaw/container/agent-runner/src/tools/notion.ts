@@ -5,8 +5,9 @@ import type { AgentTool } from './types.js';
 async function getNotionToken(cwd: string): Promise<{ apiKey: string; defaultDatabaseId?: string } | null> {
   const candidatePaths = [
     path.join(cwd, 'notion_tokens.json'),
+    '/workspace/group/notion_tokens.json',
     '/workspace/agent/notion_tokens.json',
-    '/opt/nanoclaw-stack/nanoclaw/groups/barao/notion_tokens.json',
+    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'notion_tokens.json')] : []),
   ];
   let tokenFile = '';
   for (const p of candidatePaths) {

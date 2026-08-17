@@ -22,7 +22,7 @@ export function loadEmailPolicy(cwd?: string): EmailPolicy {
     cwd ? path.join(cwd, 'email_policy.json') : null,
     '/workspace/group/email_policy.json',
     '/workspace/agent/email_policy.json',
-    '/opt/nanoclaw-stack/nanoclaw/groups/barao/email_policy.json',
+    process.env.AGENT_GROUP_DIR ? path.join(process.env.AGENT_GROUP_DIR, 'email_policy.json') : null,
   ].filter(Boolean) as string[];
 
   for (const p of possiblePaths) {

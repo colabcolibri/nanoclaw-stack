@@ -11,8 +11,9 @@ interface YampiCreds {
 function getYampiCreds(cwd: string): YampiCreds | null {
   const possiblePaths = [
     path.join(cwd, 'yampi_tokens.json'),
-    path.join(cwd, 'groups', 'barao', 'yampi_tokens.json'),
-    '/opt/nanoclaw-stack/nanoclaw/groups/barao/yampi_tokens.json',
+    '/workspace/group/yampi_tokens.json',
+    '/workspace/agent/yampi_tokens.json',
+    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'yampi_tokens.json')] : []),
   ];
 
   for (const p of possiblePaths) {

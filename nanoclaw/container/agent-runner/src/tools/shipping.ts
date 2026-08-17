@@ -21,7 +21,7 @@ function loadShippingConfig(cwd?: string): ShippingConfig {
     cwd ? path.join(cwd, 'shipping_config.json') : null,
     '/workspace/group/shipping_config.json',
     '/workspace/agent/shipping_config.json',
-    '/opt/nanoclaw-stack/nanoclaw/groups/barao/shipping_config.json',
+    process.env.AGENT_GROUP_DIR ? path.join(process.env.AGENT_GROUP_DIR, 'shipping_config.json') : null,
   ].filter(Boolean) as string[];
 
   for (const p of possiblePaths) {

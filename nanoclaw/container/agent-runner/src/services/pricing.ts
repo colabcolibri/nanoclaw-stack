@@ -52,14 +52,12 @@ export class ResalePricingEngine {
    * Loads product price table from CSV without any skill dependency.
    */
   static loadProductsFromCsv(cwd?: string): ProductPriceRow[] {
-    const candidates = [
       cwd ? path.join(cwd, 'tabela_precos_revenda.csv') : null,
       path.join(import.meta.dir, '..', 'resources', 'tabela_precos_revenda.csv'),
       '/app/src/resources/tabela_precos_revenda.csv',
       '/workspace/group/tabela_precos_revenda.csv',
       '/workspace/agent/tabela_precos_revenda.csv',
-      '/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/resources/tabela_precos_revenda.csv',
-      '/opt/nanoclaw-stack/nanoclaw/groups/barao/tabela_precos_revenda.csv',
+      process.env.AGENT_GROUP_DIR ? path.join(process.env.AGENT_GROUP_DIR, 'tabela_precos_revenda.csv') : null,
     ].filter(Boolean) as string[];
 
     let csvContent = '';

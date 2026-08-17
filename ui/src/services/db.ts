@@ -224,17 +224,17 @@ export class DatabaseService {
   }
 
   static parseMessageContent(raw: string, fallbackType: "user" | "assistant"): { text: string; senderName: string; threadId?: string } {
-    if (!raw) return { text: "", senderName: fallbackType === "user" ? "Usuário" : "Barão" };
+    if (!raw) return { text: "", senderName: fallbackType === "user" ? "Usuário" : "Assistente" };
     try {
       if (raw.trim().startsWith("{") || raw.trim().startsWith("[")) {
         const parsed = JSON.parse(raw);
         const text = parsed.text || parsed.content || parsed.message || (typeof parsed === "string" ? parsed : JSON.stringify(parsed));
-        const senderName = parsed.author?.senderName || parsed.senderName || parsed.sender || (fallbackType === "user" ? "Usuário" : "Barão");
+        const senderName = parsed.author?.senderName || parsed.senderName || parsed.sender || (fallbackType === "user" ? "Usuário" : "Assistente");
         const threadId = parsed.threadId || parsed.channelId;
         return { text, senderName, threadId };
       }
     } catch {}
-    return { text: raw, senderName: fallbackType === "user" ? "Usuário" : "Barão" };
+    return { text: raw, senderName: fallbackType === "user" ? "Usuário" : "Assistente" };
   }
 
   static getChatMessages(limit = 100): ChatMessageItem[] {
@@ -325,7 +325,7 @@ export class DatabaseService {
               type: "assistant",
               timestamp: r.timestamp || new Date().toISOString(),
               channel: r.channel_type || "telegram",
-              senderName: "Barão",
+              senderName: parsed.senderName || "Assistente",
               text: parsed.text,
               threadId: r.thread_id,
               charCount,

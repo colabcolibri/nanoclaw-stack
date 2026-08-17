@@ -11,9 +11,9 @@ export class MemoryManager {
   private static findMemoryPath(cwd: string): string | null {
     const candidates = [
       path.join(cwd, 'memory', 'index.md'),
-      path.join(cwd, 'groups', 'barao', 'memory', 'index.md'),
       '/workspace/group/memory/index.md',
-      '/opt/nanoclaw-stack/nanoclaw/groups/barao/memory/index.md',
+      '/workspace/agent/memory/index.md',
+      ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'memory', 'index.md')] : []),
     ];
 
     for (const c of candidates) {

@@ -4,8 +4,9 @@ import path from 'path';
 export async function getGoogleToken(cwd: string): Promise<string | null> {
   const candidatePaths = [
     path.join(cwd, 'google_tokens.json'),
+    '/workspace/group/google_tokens.json',
     '/workspace/agent/google_tokens.json',
-    '/opt/nanoclaw/groups/barao/google_tokens.json',
+    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'google_tokens.json')] : []),
   ];
   let tokenFile = '';
   for (const p of candidatePaths) {

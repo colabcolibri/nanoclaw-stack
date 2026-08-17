@@ -167,10 +167,9 @@ export class TokenLedger {
     try {
       const candidates = [
         path.join(cwd, 'logs'),
-        path.join(cwd, '..', 'logs'),
         '/workspace/group/logs',
         '/workspace/agent/logs',
-        '/opt/nanoclaw-stack/nanoclaw/groups/barao/logs',
+        ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'logs')] : []),
       ];
       for (const logDir of candidates) {
         try {
