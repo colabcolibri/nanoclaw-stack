@@ -147,6 +147,17 @@ class App {
       }
     });
 
+    // Correios Shipping Logistics
+    document.getElementById("btn-toggle-shipping-modal")?.addEventListener("click", () => {
+      document.getElementById("shipping-config-drawer")?.classList.toggle("hidden");
+    });
+    document.getElementById("btn-cancel-shipping")?.addEventListener("click", () => {
+      document.getElementById("shipping-config-drawer")?.classList.add("hidden");
+    });
+    document.getElementById("btn-save-shipping")?.addEventListener("click", () => {
+      this.handleSaveShippingConfig();
+    });
+
     // Chat Channel Filter Buttons
     document.querySelectorAll(".chat-channel-filter").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -382,6 +393,7 @@ class App {
     this.loadNotionStatus();
     this.loadYampiStatus();
     this.loadMacConfig();
+    this.loadShippingConfig();
     this.loadScheduledTasks();
     this.loadConfig();
     this.loadServiceStatus();
@@ -1372,6 +1384,32 @@ class App {
       if (inputEndpoint && data.endpoint) inputEndpoint.value = data.endpoint;
       if (inputKey && data.apiKey) inputKey.value = data.apiKey;
     } catch {}
+  }
+
+  static async loadShippingConfig() {
+    try {
+      const data = await ApiClient.getShippingConfig(this.currentGroup);
+      const inputCep = document.getElementById("input-shipping-origin-cep");
+      const inputMargin = document.getElementById("input-shipping-margin");
+      const inputDays = document.getElementById("input-shipping-days");
+      if (inputCep && data.originCep) inputCep.value = data.originCep;
+      if (inputMargin && data.priceMarginPercent !== undefined) inputMargin.value = data.priceMarginPercent;
+      if (inputDays && data.daysBuffer !== undefined) inputDays.value = data.daysBuffer;
+    } catch {}
+  }
+
+  static async handleSaveShippingConfig() {
+    const originCep = document.getElementById("input-shipping-origin-cep")?.value.trim() || "12243-380";
+    const priceMarginPercent = Number(document.getElementById("input-shipping-margin")?.value) || 30;
+    const daysBuffer = Number(document.getElementById("input-shipping-days")?.value) || 3;
+
+    try {
+      await ApiClient.saveShippingConfig(this.currentGroup, originCep, priceMarginPercent, daysBuffer);
+      Toast.show("Configurações de frete dos Correios salvas com sucesso!");
+      document.getElementById("shipping-config-drawer")?.classList.add("hidden");
+    } catch (err) {
+      Toast.show(err.message, "error");
+    }
   }
 
   static async loadConfig() {

@@ -289,6 +289,52 @@ export class ApiRouter {
       });
     }
 
+    // Correios & Shipping Logistics Config
+    if (url.pathname === "/api/shipping/config" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const filePath = path.join(CONFIG.GROUPS_PATH, folder, "shipping_config.json");
+      const defaults = {
+        originCep: "12243-380",
+        originCityState: "São José dos Campos - SP",
+        priceMarginPercent: 30,
+        daysBuffer: 3,
+      };
+
+      if (fs.existsSync(filePath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+          return jsonResponse({ ...defaults, ...data });
+        } catch {}
+      }
+      return jsonResponse(defaults);
+    }
+
+    if (url.pathname === "/api/shipping/config" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as {
+        folder?: string;
+        originCep?: string;
+        priceMarginPercent?: number;
+        daysBuffer?: number;
+      };
+      const folder = body.folder || "barao";
+      const folderDir = path.join(CONFIG.GROUPS_PATH, folder);
+      if (!fs.existsSync(folderDir)) {
+        fs.mkdirSync(folderDir, { recursive: true });
+      }
+      const filePath = path.join(folderDir, "shipping_config.json");
+      const current = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, "utf-8")) : {};
+      
+      const updated = {
+        originCep: body.originCep?.trim() || current.originCep || "12243-380",
+        originCityState: current.originCityState || "São José dos Campos - SP",
+        priceMarginPercent: Number(body.priceMarginPercent ?? current.priceMarginPercent ?? 30),
+        daysBuffer: Number(body.daysBuffer ?? current.daysBuffer ?? 3),
+      };
+
+      fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf-8");
+      return jsonResponse({ success: true, config: updated });
+    }
+
     // Scheduler & Autonomous Routines (Cron & Delayed Tasks)
     if (url.pathname === "/api/scheduler/tasks" && method === "GET") {
       const folder = url.searchParams.get("folder") || "barao";

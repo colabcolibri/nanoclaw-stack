@@ -164,6 +164,22 @@ export class ApiClient {
     return this.request(`/api/mac/config?folder=${group}`);
   }
 
+  static getShippingConfig(group = "barao") {
+    return this.request(`/api/shipping/config?folder=${group}`);
+  }
+
+  static saveShippingConfig(group = "barao", originCep, priceMarginPercent, daysBuffer) {
+    return this.request("/api/shipping/config", {
+      method: "POST",
+      body: JSON.stringify({
+        folder: group,
+        originCep,
+        priceMarginPercent,
+        daysBuffer,
+      }),
+    });
+  }
+
   static getServiceStatus() {
     return this.request("/api/service/status");
   }
