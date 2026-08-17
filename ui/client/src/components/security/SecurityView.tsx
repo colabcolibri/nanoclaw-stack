@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ShieldCheck, RefreshCw, Users, Bell } from 'lucide-react'
+import { ShieldCheck, RefreshCw, Users, Bell, UserCheck, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -28,7 +28,7 @@ export const SecurityView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
         icon={<ShieldCheck className="w-5 h-5" />}
         title="Central de Segurança, Usuários & Aprovações"
@@ -39,7 +39,7 @@ export const SecurityView: React.FC = () => {
             size="sm"
             onClick={loadSecurityData}
             disabled={isLoading}
-            className="h-8 gap-1.5 text-xs font-semibold"
+            className="h-9 gap-1.5 text-xs font-semibold"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
@@ -47,13 +47,13 @@ export const SecurityView: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         {/* Authorized Users */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xl overflow-hidden">
+        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
           <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
             <CardTitle className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
               <Users className="w-4 h-4 text-[var(--accent)]" />
-              <span>👥 Usuários Autorizados no Telegram / Chat</span>
+              <span>Usuários Autorizados no Telegram / Chat</span>
             </CardTitle>
             <CardDescription className="text-xs text-[var(--text-muted)]">
               Lista de IDs e perfis habilitados para interação com o agente.
@@ -78,7 +78,10 @@ export const SecurityView: React.FC = () => {
                       {u.id || u.platformId}
                     </Badge>
                   </div>
-                  <Badge variant="success">Autorizado</Badge>
+                  <Badge variant="success">
+                    <UserCheck className="w-3 h-3" />
+                    <span>Autorizado</span>
+                  </Badge>
                 </div>
               ))
             )}
@@ -86,11 +89,11 @@ export const SecurityView: React.FC = () => {
         </Card>
 
         {/* Pending Approvals */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xl overflow-hidden">
+        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
           <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
             <CardTitle className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
               <Bell className="w-4 h-4 text-amber-500" />
-              <span>🔔 Solicitações Pendentes de Aprovação</span>
+              <span>Solicitações Pendentes de Aprovação</span>
             </CardTitle>
             <CardDescription className="text-xs text-[var(--text-muted)]">
               Ações sensíveis ou novos remetentes aguardando confirmação.
@@ -99,7 +102,7 @@ export const SecurityView: React.FC = () => {
           <CardContent className="p-5 space-y-3">
             {pendingApprovals.length === 0 ? (
               <EmptyState
-                icon={<Bell className="w-6 h-6 text-[var(--text-dim)]" />}
+                icon={<ShieldCheck className="w-6 h-6 text-emerald-500" />}
                 title="Tudo limpo"
                 description="Nenhuma solicitação pendente no momento."
               />
@@ -110,7 +113,7 @@ export const SecurityView: React.FC = () => {
                   className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between text-xs"
                 >
                   <div>
-                    <strong className="text-amber-500 block">{appr.title}</strong>
+                    <strong className="text-amber-600 dark:text-amber-400 block">{appr.title}</strong>
                     <span className="text-[var(--text-muted)] text-[11px]">{appr.description}</span>
                   </div>
                   <Button size="sm" className="h-7 text-xs font-semibold">

@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import { Link2, ExternalLink, Copy, Check, Save, RefreshCw, AlertCircle, Sparkles } from 'lucide-react'
+import {
+  Link2,
+  ExternalLink,
+  Copy,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  Calendar,
+  Mail,
+  FileText,
+  ShoppingBag,
+  Laptop,
+  Truck,
+  Wrench,
+  Settings,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -226,8 +243,8 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-                  📅
+                <div className="w-11 h-11 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                  <Calendar className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
@@ -242,7 +259,8 @@ export const McpsView: React.FC = () => {
               {/* Right actions div */}
               <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
                 <Badge variant={googleStatus.connected ? 'success' : 'destructive'}>
-                  {googleStatus.connected ? `Conectado ${googleStatus.email ? `(${googleStatus.email})` : ''}` : 'Desconectado'}
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{googleStatus.connected ? `Conectado ${googleStatus.email ? `(${googleStatus.email})` : ''}` : 'Desconectado'}</span>
                 </Badge>
 
                 {googleStatus.connected && (
@@ -250,9 +268,10 @@ export const McpsView: React.FC = () => {
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsGooglePolicyOpen(!isGooglePolicyOpen)}
-                    className="h-8 text-xs font-semibold"
+                    className="h-8 text-xs font-semibold gap-1.5"
                   >
-                    ⚙️ Política de E-mails
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>Política de E-mails</span>
                   </Button>
                 )}
 
@@ -292,9 +311,9 @@ export const McpsView: React.FC = () => {
                       value={googlePolicy.mode}
                       onChange={(e) => setGooglePolicy({ ...googlePolicy, mode: e.target.value })}
                     >
-                      <option value="draft_approval">🟡 Rascunho no Gmail & Aprovação no Telegram (Recomendado)</option>
-                      <option value="auto_safe">🟢 Resposta Autônoma em Casos Seguros + Aprovação em Orçamentos</option>
-                      <option value="notify_only">👁️ Apenas Notificar no Telegram (Sem Ação no Gmail)</option>
+                      <option value="draft_approval">Rascunho no Gmail & Aprovação no Telegram (Recomendado)</option>
+                      <option value="auto_safe">Resposta Autônoma em Casos Seguros + Aprovação em Orçamentos</option>
+                      <option value="notify_only">Apenas Notificar no Telegram (Sem Ação no Gmail)</option>
                     </select>
                   </div>
 
@@ -330,8 +349,8 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-                  📝
+                <div className="w-11 h-11 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
@@ -346,16 +365,18 @@ export const McpsView: React.FC = () => {
               {/* Right actions div */}
               <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
                 <Badge variant={notionStatus.connected ? 'success' : 'secondary'}>
-                  {notionStatus.connected ? 'Conectado' : 'Desconectado'}
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{notionStatus.connected ? 'Conectado' : 'Desconectado'}</span>
                 </Badge>
 
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsNotionOpen(!isNotionOpen)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5"
                 >
-                  ⚙️ Configurar Notion
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Configurar Notion</span>
                 </Button>
 
                 {notionStatus.connected && (
@@ -421,8 +442,8 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-                  🛍️
+                <div className="w-11 h-11 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                  <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
@@ -437,16 +458,18 @@ export const McpsView: React.FC = () => {
               {/* Right actions div */}
               <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
                 <Badge variant={yampiStatus.connected ? 'success' : 'secondary'}>
-                  {yampiStatus.connected ? `Conectado (${yampiStatus.alias || 'Loja'})` : 'Desconectado'}
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{yampiStatus.connected ? `Conectado (${yampiStatus.alias || 'Loja'})` : 'Desconectado'}</span>
                 </Badge>
 
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsYampiOpen(!isYampiOpen)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5"
                 >
-                  ⚙️ Configurar Yampi
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Configurar Yampi</span>
                 </Button>
 
                 {yampiStatus.connected && (
@@ -525,8 +548,8 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-                  💻
+                <div className="w-11 h-11 rounded-xl bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                  <Laptop className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
@@ -540,15 +563,19 @@ export const McpsView: React.FC = () => {
 
               {/* Right actions div */}
               <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
-                <Badge variant="success">Pronto / Ativo</Badge>
+                <Badge variant="success">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Pronto / Ativo</span>
+                </Badge>
 
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsMacOpen(!isMacOpen)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5"
                 >
-                  ⚙️ Configurar no Mac
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Configurar no Mac</span>
                 </Button>
               </div>
             </div>
@@ -611,7 +638,7 @@ export const McpsView: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] text-xs text-[var(--text-muted)] leading-relaxed space-y-1.5">
-                  <strong className="text-[var(--text-main)] block mb-1">🚀 Como configurar no seu Mac em 1 minuto:</strong>
+                  <strong className="text-[var(--text-main)] block mb-1">Como configurar no seu Mac em 1 minuto:</strong>
                   <p>1. Abra o app <strong>Atalhos (Shortcuts)</strong> nativo do macOS.</p>
                   <p>2. Crie um novo atalho e adicione a ação <strong>"Pedir Entrada"</strong> (Texto).</p>
                   <p>3. Adicione <strong>"Obter Conteúdo do URL"</strong> apontando para o Endpoint (Método <code>POST</code>, Cabeçalho <code>Authorization: Bearer [Sua Chave]</code>, Corpo JSON com <code>prompt</code>).</p>
@@ -628,8 +655,8 @@ export const McpsView: React.FC = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left text div */}
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-                  📦
+                <div className="w-11 h-11 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                  <Truck className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)]">
@@ -643,15 +670,19 @@ export const McpsView: React.FC = () => {
 
               {/* Right actions div */}
               <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
-                <Badge variant="success">Ativo / {shippingConfig.originCep}</Badge>
+                <Badge variant="success">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Ativo / {shippingConfig.originCep}</span>
+                </Badge>
 
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsShippingOpen(!isShippingOpen)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5"
                 >
-                  ⚙️ Configurar Frete
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Configurar Frete</span>
                 </Button>
               </div>
             </div>
@@ -713,8 +744,8 @@ export const McpsView: React.FC = () => {
         {/* 6. ADVANCED CUSTOM MCP SERVERS */}
         <details className="group border border-[var(--border-main)] bg-[var(--bg-card)] rounded-xl overflow-hidden shadow-xs w-full">
           <summary className="p-5 bg-[var(--bg-card-subtle)] cursor-pointer text-xs font-bold text-[var(--text-main)] flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🛠️</span>
+            <div className="flex items-center gap-2.5">
+              <Wrench className="w-4 h-4 text-[var(--accent)]" />
               <span>Servidores MCP Personalizados (Avançado / JSON)</span>
             </div>
             <span className="text-[11px] text-[var(--text-dim)] font-normal">

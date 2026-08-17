@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Clock, RefreshCw } from 'lucide-react'
+import { Clock, RefreshCw, Lightbulb, Repeat, CheckCircle2, Calendar } from 'lucide-react'
 import { ApiClient, type ScheduledTask } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -26,7 +26,7 @@ export const SchedulesView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
         icon={<Clock className="w-5 h-5" />}
         title="Rotinas Autônomas & Agendamentos"
@@ -37,7 +37,7 @@ export const SchedulesView: React.FC = () => {
             size="sm"
             onClick={loadSchedules}
             disabled={isLoading}
-            className="h-8 gap-1.5 text-xs font-semibold"
+            className="h-9 gap-1.5 text-xs font-semibold"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
@@ -45,12 +45,13 @@ export const SchedulesView: React.FC = () => {
         }
       />
 
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xl overflow-hidden">
+      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
         <CardContent className="p-6 space-y-6">
           {/* Informational Banner */}
           <div className="p-4 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] text-xs text-[var(--text-main)] space-y-2">
-            <div className="font-bold text-[var(--accent)] flex items-center gap-1.5">
-              <span>💡 Como funcionam as rotinas autônomas no NanoClaw:</span>
+            <div className="font-bold text-[var(--accent)] flex items-center gap-2">
+              <Lightbulb className="w-4 h-4" />
+              <span>Como funcionam as rotinas autônomas no NanoClaw:</span>
             </div>
             <p>
               • <strong>Watchdog do Inbox:</strong> Acorda o Barão automaticamente a cada 1 hora dentro da janela ativa configurada para checar novos e-mails não lidos.
@@ -78,14 +79,15 @@ export const SchedulesView: React.FC = () => {
                   className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center text-xs font-mono shrink-0 mt-0.5 shadow-xs">
-                      ⏰
-                    </span>
+                    <div className="w-9 h-9 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      {task.isRecurring ? <Repeat className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                    </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <strong className="text-xs text-[var(--text-main)] font-bold">{task.kind || 'Rotina Recorrente'}</strong>
                         <Badge variant="success" className="text-[10px] font-mono">
-                          {task.status || 'ATIVO'}
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{task.status || 'ATIVO'}</span>
                         </Badge>
                       </div>
                       <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{task.prompt || 'Execução periódica de monitoramento'}</p>

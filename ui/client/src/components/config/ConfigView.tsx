@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sliders, Save, Check, AlertCircle } from 'lucide-react'
+import { Sliders, Save, Check, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
+import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -61,35 +62,31 @@ export const ConfigView: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="flex flex-col gap-6 w-full flex-1 max-w-2xl">
       {toast && (
         <div
-          className={`p-3.5 mb-4 rounded-lg border text-xs font-semibold flex items-center gap-2 animate-in fade-in ${
+          className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
             toast.type === 'success'
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-500'
-              : 'bg-red-500/15 border-red-500/30 text-red-500'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : 'bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300'
           }`}
         >
           {toast.type === 'success' ? (
-            <Check className="w-4 h-4" />
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
           )}
           <span>{toast.text}</span>
         </div>
       )}
 
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xl overflow-hidden">
-        <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
-          <CardTitle className="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-[var(--accent)]" />
-            <span>⚙️ {t('title')}</span>
-          </CardTitle>
-          <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
-            {t('subtitle')}
-          </CardDescription>
-        </CardHeader>
+      <PageHeader
+        icon={<Sliders className="w-5 h-5" />}
+        title={t('title')}
+        subtitle={t('subtitle')}
+      />
 
+      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -156,7 +153,10 @@ export const ConfigView: React.FC = () => {
                 {t('apiKeyStatus')}
               </label>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="success">{t('keyConfigured')}</Badge>
+                <Badge variant="success">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{t('keyConfigured')}</span>
+                </Badge>
                 <code className="text-xs font-mono text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded border border-[var(--accent-border)] font-bold">
                   {maskedKey}
                 </code>
@@ -171,7 +171,7 @@ export const ConfigView: React.FC = () => {
               />
             </div>
 
-            <Button type="submit" disabled={isSaving} className="mt-2 gap-2 h-10 px-6 font-semibold">
+            <Button type="submit" disabled={isSaving} className="mt-2 gap-2 h-10 px-6 font-bold shadow-xs">
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Salvando...' : t('save')}</span>
             </Button>

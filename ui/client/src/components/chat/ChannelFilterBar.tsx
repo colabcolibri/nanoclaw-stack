@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { Layers, Send, Laptop } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ChannelFilterBarProps {
@@ -14,9 +15,9 @@ export const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({
   const { t } = useTranslation('chat')
 
   const channels = [
-    { id: 'all', label: t('filterAll') },
-    { id: 'telegram', label: t('filterTelegram') },
-    { id: 'macos', label: t('filterMacos') },
+    { id: 'all', label: t('filterAll'), icon: <Layers className="w-3.5 h-3.5" /> },
+    { id: 'telegram', label: t('filterTelegram'), icon: <Send className="w-3.5 h-3.5" /> },
+    { id: 'macos', label: t('filterMacos'), icon: <Laptop className="w-3.5 h-3.5" /> },
   ]
 
   return (
@@ -28,10 +29,11 @@ export const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({
             key={ch.id}
             variant={isActive ? 'default' : 'ghost'}
             size="sm"
-            className="h-7 text-xs px-3 font-semibold transition-all"
+            className="h-7 text-xs px-2.5 font-semibold transition-all gap-1.5"
             onClick={() => onSelectChannel(ch.id)}
           >
-            {ch.label}
+            {ch.icon}
+            <span>{ch.label}</span>
           </Button>
         )
       })}

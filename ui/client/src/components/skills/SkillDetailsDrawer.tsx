@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, FileText, Code2, Folder, Copy, Check } from 'lucide-react'
+import { X, FileText, Code2, Folder, Copy, Check, Sparkles, CheckCircle2 } from 'lucide-react'
 import { type SkillItem } from '@/api/client'
 import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
@@ -43,14 +43,15 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
         {/* Top Header */}
         <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4 mb-5">
           <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center text-xl shadow-xs">
-              🧩
-            </span>
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shadow-xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-[var(--text-main)]">{skill.name}</h3>
                 <Badge variant={skill.enabled ? 'success' : 'secondary'}>
-                  {skill.enabled ? 'Ativa' : 'Inativa'}
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{skill.enabled ? 'Ativa' : 'Inativa'}</span>
                 </Badge>
               </div>
               <p className="text-xs font-mono text-[var(--text-dim)] mt-0.5">
@@ -112,7 +113,8 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   >
                     <summary className="p-3 cursor-pointer text-xs font-bold text-[var(--accent)] flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <span>📄 {ref.name}</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>{ref.name}</span>
                         <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
                           ({(ref.sizeBytes / 1024).toFixed(1)} KB)
                         </span>
@@ -145,7 +147,8 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   >
                     <summary className="p-3 cursor-pointer text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <span>📜 {sc.name}</span>
+                        <Code2 className="w-3.5 h-3.5" />
+                        <span>{sc.name}</span>
                         <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
                           ({(sc.sizeBytes / 1024).toFixed(1)} KB)
                         </span>

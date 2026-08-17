@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Copy, Check, Search, Bot, User } from 'lucide-react'
+import { Copy, Check, Search, Bot, User, Send, Laptop, Terminal, Globe } from 'lucide-react'
 import { type ChatMessage } from '@/api/client'
 import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
@@ -31,15 +31,35 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
   })
 
   const getChannelBadge = (ch: string) => {
-    switch (ch) {
+    switch (ch?.toLowerCase()) {
       case 'macos':
-        return <Badge variant="secondary">💻 macOS</Badge>
+        return (
+          <Badge variant="macos">
+            <Laptop className="w-3 h-3" />
+            <span>macOS</span>
+          </Badge>
+        )
       case 'telegram':
-        return <Badge variant="default">📱 Telegram</Badge>
+        return (
+          <Badge variant="telegram">
+            <Send className="w-3 h-3" />
+            <span>Telegram</span>
+          </Badge>
+        )
       case 'cli':
-        return <Badge variant="outline">💻 Terminal</Badge>
+        return (
+          <Badge variant="cli">
+            <Terminal className="w-3 h-3" />
+            <span>Terminal</span>
+          </Badge>
+        )
       default:
-        return <Badge variant="secondary">🌐 {ch || 'Web'}</Badge>
+        return (
+          <Badge variant="web">
+            <Globe className="w-3 h-3" />
+            <span>{ch || 'Web'}</span>
+          </Badge>
+        )
     }
   }
 
@@ -52,23 +72,23 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
       } max-w-4xl w-full mx-auto`}
     >
       {/* Author and Metadata Header */}
-      <div className={`flex items-center gap-2 px-1 text-xs font-semibold ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      <div className={`flex items-center gap-2.5 px-1 text-xs font-semibold ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         <div
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
+          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
             isUser
               ? 'bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)]'
-              : 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+              : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
           }`}
         >
-          {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+          {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-4 h-4" />}
         </div>
-        <span className={isUser ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}>
+        <span className={isUser ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-main)] font-bold'}>
           {isUser ? (message.senderName || 'Você') : 'Barão'}
         </span>
         <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
           {timeStr}
         </span>
-        <div className="scale-90 origin-left">{getChannelBadge(message.channel)}</div>
+        <div>{getChannelBadge(message.channel)}</div>
       </div>
 
       {/* Message Bubble Body */}
@@ -107,8 +127,8 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             >
               {copied ? (
                 <>
-                  <Check className="w-3 h-3 text-emerald-500" />
-                  <span className="text-emerald-500">Copiado</span>
+                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copiado</span>
                 </>
               ) : (
                 <>

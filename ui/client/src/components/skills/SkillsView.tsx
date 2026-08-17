@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sparkles, RefreshCw, Save, Search, Check, AlertCircle } from 'lucide-react'
+import { Sparkles, RefreshCw, Save, Search, Check, AlertCircle, Folder, Code2 } from 'lucide-react'
 import { ApiClient, type SkillItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -69,20 +69,20 @@ export const SkillsView: React.FC = () => {
   })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full flex-1">
       {/* Toast Alert */}
       {toastMessage && (
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-              : 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : 'bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300'
           }`}
         >
           {toastMessage.type === 'success' ? (
-            <Check className="w-4 h-4 text-emerald-500" />
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-red-500" />
+            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
           )}
           <span>{toastMessage.text}</span>
         </div>
@@ -188,20 +188,23 @@ export const SkillsView: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
+                        <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
                         <CardTitle className="text-xs font-bold text-[var(--text-main)] font-mono">
-                          🧩 {skill.name}
+                          {skill.name}
                         </CardTitle>
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {refCount > 0 && (
-                          <Badge variant="default" className="text-[10px] py-0 px-2">
-                            📂 {refCount} ref(s)
+                          <Badge variant="default" className="text-[10px] py-0 px-2 gap-1">
+                            <Folder className="w-3 h-3" />
+                            <span>{refCount} ref(s)</span>
                           </Badge>
                         )}
                         {scriptCount > 0 && (
-                          <Badge variant="secondary" className="text-[10px] py-0 px-2">
-                            ⚙️ {scriptCount} script(s)
+                          <Badge variant="secondary" className="text-[10px] py-0 px-2 gap-1">
+                            <Code2 className="w-3 h-3" />
+                            <span>{scriptCount} script(s)</span>
                           </Badge>
                         )}
                       </div>
