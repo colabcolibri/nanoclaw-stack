@@ -476,10 +476,19 @@
             </div>
           </div>
 
-          <div class="panel-box" style="padding:20px;">
-            <label class="form-label">Configuração dos Servidores MCP (JSON)</label>
-            <textarea id="mcp-json-editor" class="soul-textarea" style="min-height:280px; font-size:13px;" placeholder='{\n  "github": {\n    "type": "stdio",\n    "command": "npx",\n    "args": ["-y", "@modelcontextprotocol/server-github"]\n  }\n}'></textarea>
-          </div>
+          <!-- ADVANCED CUSTOM MCP SERVERS (COLLAPSIBLE) -->
+          <details class="panel-box" style="padding:16px 20px; margin-top:12px; background:rgba(15, 23, 42, 0.5); cursor:pointer;">
+            <summary style="font-size:13px; font-weight:700; color:var(--text-muted); outline:none; display:flex; justify-content:space-between; align-items:center;">
+              <span>🛠️ Servidores MCP Personalizados (Avançado / JSON)</span>
+              <span style="font-size:11px; font-weight:400; color:var(--text-dim);">Clique para expandir / adicionar outros MCPs (GitHub, Postgres, etc.)</span>
+            </summary>
+            <div style="margin-top:16px; cursor:default;">
+              <p style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">
+                Permite registrar qualquer servidor MCP externo compatível com STDIO ou HTTP Streamable.
+              </p>
+              <textarea id="mcp-json-editor" class="soul-textarea" style="min-height:200px; font-size:12px;" placeholder='{\n  "github": {\n    "type": "stdio",\n    "command": "npx",\n    "args": ["-y", "@modelcontextprotocol/server-github"]\n  }\n}'></textarea>
+            </div>
+          </details>
         </section>
 
         <!-- VIEW 5: CONFIG -->
