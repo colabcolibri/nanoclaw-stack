@@ -52,7 +52,7 @@ export const googleGmailTool: AgentTool = {
           query: {
             type: 'string',
             description:
-              'Termo de busca avançado no padrão Gmail (ex: "is:unread", "newer_than:2d", "from:fulano@empresa.com", "assunto")',
+              'Operadores de busca avançada do Gmail combinados. Exemplos: "is:unread subject:relatório", "is:unread from:cliente@empresa.com", "newer_than:3d has:attachment", "subject:\"proposta comercial\" is:unread", "from:financeiro after:2026/08/01", "-promotions is:unread".',
           },
           max_results: {
             type: 'number',

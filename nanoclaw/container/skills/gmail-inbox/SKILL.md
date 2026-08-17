@@ -1,31 +1,32 @@
 ---
 name: gmail-inbox
-description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada e leitura completa via Gmail API.
+description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada e leitura completa via Gmail API.
 ---
 
-# Gmail Inbox & Executive Assistant Skill
+# Gmail Inbox & Executive Search Skill
 
-Esta habilidade ensina o assistente a gerenciar com maestria a caixa de entrada do usuário utilizando a ferramenta nativa `google_gmail`.
+Esta habilidade capacita o assistente a executar pesquisas avançadas e combinadas na caixa de entrada do Gmail através da ferramenta `google_gmail`.
 
-## 🛠️ Capacidades Disponíveis na Ferramenta `google_gmail`:
+## 🔍 Guia de Operadores de Busca Combinada (`query`):
 
-1. **Listar e Buscar E-mails (`action: "list_messages"`):**
-   * Use o parâmetro `query` com filtros avançados do Gmail:
-     * `is:unread` (não lidos)
-     * `newer_than:2d` (últimos 2 dias)
-     * `from:nome@empresa.com` (de um remetente específico)
-     * `subject:proposta` (pelo assunto)
-   * Use `max_results` (ex: 15 a 50) para trazer a quantidade necessária sem ficar limitado a poucos itens.
+O assistente deve traduzir os pedidos do usuário em operadores nativos do Gmail:
 
-2. **Ler Conteúdo Completo (`action: "read_message"`):**
-   * Passe o `message_id` obtido na listagem para extrair o corpo integral do e-mail, data, remetente e destinatários.
+| Pedido do Usuário | Filtro `query` recomendado |
+| :--- | :--- |
+| **"E-mails não lidos sobre contratos"** | `is:unread subject:contrato` |
+| **"E-mails não lidos de clientes específicos"** | `is:unread from:cliente@empresa.com` |
+| **"E-mails dos últimos 2 dias com anexo"** | `newer_than:2d has:attachment` |
+| **"E-mails não lidos que não sejam promoções"** | `is:unread -category:promotions` |
+| **"E-mails com PDFs ou planilhas recebidos esta semana"** | `filename:pdf OR filename:xlsx newer_than:7d` |
+| **"E-mails importantes do financeiro"** | `is:important from:financeiro` |
+| **"E-mails recebidos em uma data específica"** | `after:2026/08/10 before:2026/08/17` |
+| **"Assunto exato"** | `subject:"Proposta de Parceria 2026"` |
 
-3. **Criar Rascunho (`action: "create_draft"`):**
-   * Passe `to`, `subject` e `body` para deixar o e-mail pronto na caixa de rascunhos para aprovação do usuário.
+---
 
-4. **Enviar E-mail (`action: "send_message"`):**
-   * Envia o e-mail diretamente quando o usuário der a ordem explícita de envio.
+## 🛠️ Fluxo de Trabalho Recomendado:
 
-## 🎯 Regras de Triagem e Apresentação:
-* Sempre apresente os e-mails com data, remetente limpo e assunto em destaque.
-* Ao resumir e-mails longos, destaque o objetivo principal e qualquer ação pendente.
+1. **Busca/Listagem:** Use `list_messages` com a `query` combinada e `max_results` adequado.
+2. **Leitura de Contexto:** Se o usuário pedir detalhes ou se o e-mail for crítico, use `read_message(message_id)` para ler o corpo integral.
+3. **Resumo Executivo:** Apresente os resultados de forma clara, com data, remetente, assunto e o ponto-chave de cada mensagem.
+4. **Ação Rápida:** Ofereça para redigir uma resposta ou criar um rascunho (`create_draft`) quando apropriado.
