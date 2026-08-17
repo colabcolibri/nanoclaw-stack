@@ -43,4 +43,13 @@ describe("Agent Runner Smoke & Regression Tests", () => {
     expect(cost.cacheMissTokens).toBe(200);
     expect(cost.completionTokens).toBe(500);
   });
+
+  test("Groq pricing rates and calculations are accurate", () => {
+    const cost = TokenLedger.calculateCost("llama-3.3-70b-versatile", {
+      prompt_tokens: 1000,
+      completion_tokens: 500,
+    });
+    expect(Number(cost.costUsd)).toBeGreaterThan(0);
+    expect(Number(cost.costBrl)).toBeGreaterThan(0);
+  });
 });

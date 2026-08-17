@@ -112,6 +112,7 @@ export const ConfigView: React.FC = () => {
                 onChange={(e) => setConfig({ ...config, provider: e.target.value })}
               >
                 <option value="deepseek">DeepSeek (Conector Nativo Direto)</option>
+                <option value="groq">Groq (Llama 3.3 70B / DeepSeek R1 - Ultra Rápido)</option>
                 <option value="opencode">OpenCode Gateway</option>
                 <option value="claude">Anthropic Claude Direct</option>
                 <option value="openrouter">OpenRouter AI</option>

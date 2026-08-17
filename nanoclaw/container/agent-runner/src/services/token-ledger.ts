@@ -36,6 +36,26 @@ export const DEEPSEEK_PRICING: Record<
     cacheMissPerMillion: 1.32,
     outputPerMillion: 3.96,
   },
+  'llama-3.3-70b-versatile': {
+    cacheHitPerMillion: 0.59,
+    cacheMissPerMillion: 0.59,
+    outputPerMillion: 0.79,
+  },
+  'llama-3.1-8b-instant': {
+    cacheHitPerMillion: 0.05,
+    cacheMissPerMillion: 0.05,
+    outputPerMillion: 0.08,
+  },
+  'deepseek-r1-distill-llama-70b': {
+    cacheHitPerMillion: 0.59,
+    cacheMissPerMillion: 0.59,
+    outputPerMillion: 0.79,
+  },
+  'mixtral-8x7b-32768': {
+    cacheHitPerMillion: 0.24,
+    cacheMissPerMillion: 0.24,
+    outputPerMillion: 0.24,
+  },
 };
 
 export interface TokenRecord {
