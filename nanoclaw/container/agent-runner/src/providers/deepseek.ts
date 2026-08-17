@@ -159,6 +159,22 @@ export class DeepSeekProvider implements AgentProvider {
 
           const data = (await res.json()) as any;
           const msg = data.choices?.[0]?.message || {};
+
+          try {
+            const logDir = path.join(input.cwd, 'logs');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            const logFile = path.join(logDir, 'deepseek_activity.log');
+            fs.appendFileSync(
+              logFile,
+              `[${new Date().toISOString()}] ${JSON.stringify({
+                event: 'deepseek_response',
+                content: msg.content,
+                tool_calls: msg.tool_calls?.map((tc: any) => ({ name: tc.function?.name, args: tc.function?.arguments })),
+              })}\n`,
+              'utf-8'
+            );
+          } catch {}
+
           return {
             content: msg.content,
             tool_calls: msg.tool_calls,

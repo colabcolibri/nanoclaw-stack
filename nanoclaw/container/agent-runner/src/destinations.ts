@@ -130,11 +130,7 @@ function buildDestinationsSection(mode: SessionMode): string {
   );
   lines.push('');
   lines.push(
-    'The `send_message` MCP tool is the same delivery, available mid-turn — handy for a quick acknowledgment ("on it") before a slow tool call. Always pass its explicit `to` destination. Each `send_message` call and each final-response `<message>` block lands as its own message in the conversation, so they read as a sequence rather than as one combined reply.',
-  );
-  lines.push('');
-  lines.push(
-    'For a short turn, do not narrate. For longer work, send one acknowledgment and then updates only at meaningful milestones, especially before slow operations. Never narrate micro-steps; finish with the outcome, not a play-by-play.',
+    'Quando o usuário fizer uma solicitação que depende de consulta ou execução de ferramentas (ex: consultar e-mails no Gmail, calcular frete ou preços, buscar no Notion ou banco de dados), NUNCA encerre com mensagens preliminares ou avisos conversacionais vazios (ex: "Vou pesquisar", "Deixa eu ver"). Você DEVE invocar a ferramenta correspondente imediatamente via chamada de função (tool_calls) para obter os dados reais e entregar a resposta conclusiva e completa.'
   );
   return lines.join('\n');
 }
