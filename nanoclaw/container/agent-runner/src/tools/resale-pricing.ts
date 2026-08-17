@@ -1,5 +1,23 @@
 import type { AgentTool } from './types.js';
-import { calculateResaleProposal, loadProductsFromCsv } from '../../../skills/store-email-attendant/scripts/calcular_orcamento.js';
+
+async function getCalculatorModule() {
+  const candidates = [
+    '../../skills/store-email-attendant/scripts/calcular_orcamento.js',
+    '/app/skills/store-email-attendant/scripts/calcular_orcamento.js',
+    '../../../skills/store-email-attendant/scripts/calcular_orcamento.js',
+    '/opt/nanoclaw-stack/nanoclaw/container/skills/store-email-attendant/scripts/calcular_orcamento.ts',
+  ];
+
+  for (const p of candidates) {
+    try {
+      const mod = await import(p);
+      if (mod.calculateResaleProposal || mod.calculateResaleQuote || mod.loadProductsFromCsv) {
+        return mod;
+      }
+    } catch {}
+  }
+  throw new Error('Módulo calcular_orcamento não encontrado no ambiente do container.');
+}
 
 export const resalePricingTool: AgentTool = {
   definition: {
@@ -47,14 +65,15 @@ export const resalePricingTool: AgentTool = {
   },
   execute: async (args: any, _cwd: string) => {
     const action = args.action || 'calculate_quote';
+    const calcMod = await getCalculatorModule();
 
     if (action === 'list_table') {
       try {
-        const products = loadProductsFromCsv();
+        const products = calcMod.loadProductsFromCsv();
         return JSON.stringify({
           status: 'ok',
           count: products.length,
-          products: products.map((p) => ({
+          products: products.map((p: any) => ({
             sku: p.sku,
             product: p.product,
             cover_price: p.coverPrice,
@@ -78,7 +97,8 @@ export const resalePricingTool: AgentTool = {
       }
 
       try {
-        const proposal = calculateResaleProposal(args.items, {
+        const calculateFn = calcMod.calculateResaleProposal || calcMod.calculateResaleQuote;
+        const proposal = calculateFn(args.items, {
           buyerName: args.buyer_name,
           buyerDocument: args.buyer_document,
           buyerAddress: args.buyer_address,
