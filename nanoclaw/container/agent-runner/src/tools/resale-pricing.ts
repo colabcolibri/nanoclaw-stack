@@ -1,5 +1,5 @@
 import type { AgentTool } from './types.js';
-import { calculateResaleProposal, loadProductsFromCsv } from '../../skills/store-email-attendant/scripts/calcular_orcamento.js';
+import { calculateResaleProposal, loadProductsFromCsv } from '../../../skills/store-email-attendant/scripts/calcular_orcamento.js';
 
 export const resalePricingTool: AgentTool = {
   definition: {
@@ -58,10 +58,10 @@ export const resalePricingTool: AgentTool = {
             sku: p.sku,
             product: p.product,
             cover_price: p.coverPrice,
-            tier_1_10: p.tier_1_10,
-            tier_11_20: p.tier_11_20,
-            tier_21_40: p.tier_21_40,
-            tier_41_plus: p.tier_41_plus,
+            tier_1_10: p.tier1to10,
+            tier_11_20: p.tier11to20,
+            tier_21_40: p.tier21to40,
+            tier_41_plus: p.tier41plus,
           })),
         });
       } catch (err: any) {

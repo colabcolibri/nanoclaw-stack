@@ -237,6 +237,19 @@ contato@colabcolibri.com | colabcolibri.com
   };
 }
 
+export function calculateResaleProposal(
+  itemsInput: QuoteItemInput[],
+  buyerOptions?: { buyerName?: string; buyerDocument?: string; buyerAddress?: string } | BuyerInfo,
+  isConsignment = false
+): QuoteCalculationResult {
+  const buyer: BuyerInfo = {
+    name: (buyerOptions as any)?.buyerName || (buyerOptions as any)?.name || 'Cliente',
+    document: (buyerOptions as any)?.buyerDocument || (buyerOptions as any)?.document,
+    address: (buyerOptions as any)?.buyerAddress || (buyerOptions as any)?.address,
+  };
+  return calculateResaleQuote(itemsInput, buyer, isConsignment);
+}
+
 // CLI test mode: bun run calcular_orcamento.ts
 if (import.meta.main) {
   const arg = process.argv[2];
