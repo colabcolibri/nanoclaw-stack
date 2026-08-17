@@ -97,19 +97,21 @@ export const googleGmailTool: AgentTool = {
     const action = args.action || 'list_messages';
 
     // 1. READ MESSAGE OR THREAD
-    if (action === 'read_message') {
-      const msgId = args.message_id || args.id;
+    if (action === 'read_message' || action === 'read_thread') {
+      const msgId = args.message_id || args.id || args.thread_id;
       if (!msgId) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro message_id é obrigatório para read_message.' });
+        return JSON.stringify({ status: 'error', error: 'Parâmetro message_id ou thread_id é obrigatório.' });
       }
 
-      // Try fetching as message first, fallback to thread
-      let res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`, {
+      // Try fetching as thread first to get full conversation history
+      let isThread = true;
+      let res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${msgId}?format=full`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
-        res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${msgId}?format=full`, {
+        isThread = false;
+        res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
@@ -119,23 +121,75 @@ export const googleGmailTool: AgentTool = {
       }
 
       const data = (await res.json()) as any;
-      const targetPayload = data.payload || (data.messages && data.messages[data.messages.length - 1]?.payload);
-      const headers = targetPayload?.headers || [];
-      const getHeader = (name: string) =>
-        headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
-      const bodyText = extractBody(targetPayload) || data.snippet || '';
+      if (isThread && Array.isArray(data.messages) && data.messages.length > 0) {
+        const rawMsgs = data.messages;
+        const parsedMsgs = rawMsgs.map((m: any, idx: number) => {
+          const headers = m.payload?.headers || [];
+          const getH = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+          const fromVal = getH('From');
+          const isFromMe = fromVal.includes('colabcolibri') || fromVal.includes('sergio') || fromVal.includes('equipe');
+          const body = extractBody(m.payload) || m.snippet || '';
+
+          return {
+            index: idx + 1,
+            messageId: m.id,
+            from: fromVal,
+            to: getH('To'),
+            subject: getH('Subject'),
+            date: getH('Date'),
+            snippet: m.snippet,
+            isFromMe,
+            body: body.slice(0, 3000),
+          };
+        });
+
+        const lastMsg = parsedMsgs[parsedMsgs.length - 1];
+        const previousMsgs = parsedMsgs.slice(0, -1);
+
+        return JSON.stringify({
+          status: 'ok',
+          threadId: data.id,
+          totalMessagesInThread: parsedMsgs.length,
+          subject: lastMsg.subject,
+          lastSender: lastMsg.from,
+          lastDate: lastMsg.date,
+          needsReply: !lastMsg.isFromMe,
+          lastMessage: {
+            from: lastMsg.from,
+            to: lastMsg.to,
+            date: lastMsg.date,
+            snippet: lastMsg.snippet,
+            body: lastMsg.body,
+          },
+          previousMessages: previousMsgs.map((p: any) => ({
+            from: p.from,
+            date: p.date,
+            snippet: p.snippet,
+            isFromMe: p.isFromMe,
+          })),
+        });
+      }
+
+      // Single message fallback
+      const headers = data.payload?.headers || [];
+      const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+      const bodyText = extractBody(data.payload) || data.snippet || '';
+      const fromVal = getHeader('From');
+      const isFromMe = fromVal.includes('colabcolibri') || fromVal.includes('sergio');
 
       return JSON.stringify({
         status: 'ok',
         id: data.id,
         threadId: data.threadId || data.id,
-        from: getHeader('From'),
+        totalMessagesInThread: 1,
+        from: fromVal,
         to: getHeader('To'),
         subject: getHeader('Subject'),
         date: getHeader('Date'),
         snippet: data.snippet,
-        body: bodyText.slice(0, 4000), // Protect context window
+        needsReply: !isFromMe,
+        body: bodyText.slice(0, 4000),
       });
     }
 
