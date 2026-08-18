@@ -283,4 +283,131 @@ export class MacChannelService {
       timestamp: now,
     };
   }
+
+  /**
+   * Retrieves conversation history for the macOS session.
+   */
+  static async getHistory(
+    groupFolder = 'barao',
+    limit = 50
+  ): Promise<Array<{ id: string; role: 'user' | 'assistant'; text: string; timestamp: string }>> {
+    const { Database } = await import('bun:sqlite');
+    const agentGroupId = 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c';
+    const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', agentGroupId, 'sess-macos-sergio');
+    if (!fs.existsSync(sessionDir)) return [];
+
+    const inDbPath = path.join(sessionDir, 'inbound.db');
+    const outDbPath = path.join(sessionDir, 'outbound.db');
+
+    const combined: Array<{ id: string; role: 'user' | 'assistant'; text: string; timestamp: string }> = [];
+
+    if (fs.existsSync(inDbPath)) {
+      try {
+        const inDb = new Database(inDbPath, { readonly: true });
+        const inRows = inDb.query(`SELECT id, timestamp, content FROM messages_in ORDER BY timestamp DESC LIMIT ?`).all(limit) as any[];
+        inDb.close();
+        for (const r of inRows) {
+          let text = r.content || '';
+          try {
+            if (text.startsWith('{')) {
+              const parsed = JSON.parse(text);
+              text = parsed.text || parsed.content || text;
+            }
+          } catch {}
+          combined.push({ id: r.id || `in-${r.timestamp}`, role: 'user', text, timestamp: r.timestamp });
+        }
+      } catch {}
+    }
+
+    if (fs.existsSync(outDbPath)) {
+      try {
+        const outDb = new Database(outDbPath, { readonly: true });
+        const outRows = outDb.query(`SELECT id, timestamp, content FROM messages_out ORDER BY timestamp DESC LIMIT ?`).all(limit) as any[];
+        outDb.close();
+        for (const r of outRows) {
+          let text = (r.content || '')
+            .replace(/<message[^>]*>/gi, '')
+            .replace(/<\/message>/gi, '')
+            .trim();
+          combined.push({ id: r.id || `out-${r.timestamp}`, role: 'assistant', text, timestamp: r.timestamp });
+        }
+      } catch {}
+    }
+
+    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return combined.slice(-limit);
+  }
+
+  /**
+   * Resets the conversation history for macOS session.
+   */
+  static async resetSession(groupFolder = 'barao'): Promise<boolean> {
+    const { Database } = await import('bun:sqlite');
+    const agentGroupId = 'ag-4c9ad14f-4032-4305-8efc-0cd8b700042c';
+    const sessionDir = path.join(CONFIG.DATA_PATH, 'v2-sessions', agentGroupId, 'sess-macos-sergio');
+    if (!fs.existsSync(sessionDir)) return true;
+
+    const inDbPath = path.join(sessionDir, 'inbound.db');
+    const outDbPath = path.join(sessionDir, 'outbound.db');
+
+    if (fs.existsSync(inDbPath)) {
+      try {
+        const inDb = new Database(inDbPath);
+        inDb.run(`DELETE FROM messages_in`);
+        inDb.close();
+      } catch {}
+    }
+
+    if (fs.existsSync(outDbPath)) {
+      try {
+        const outDb = new Database(outDbPath);
+        outDb.run(`DELETE FROM messages_out`);
+        outDb.close();
+      } catch {}
+    }
+
+    return true;
+  }
+
+  /**
+   * Transcribes incoming audio via local Whisper ASR and executes the prompt.
+   */
+  static async processAudio(
+    audioBlob: Blob | ArrayBuffer | Uint8Array,
+    groupFolder = 'barao'
+  ): Promise<{ transcription: string; reply: string; timestamp: string }> {
+    const formData = new FormData();
+    const blob = audioBlob instanceof Blob ? audioBlob : new Blob([audioBlob as any], { type: 'audio/m4a' });
+    formData.append('audio_file', blob, 'recording.m4a');
+
+    let transcription = '';
+    try {
+      const whisperRes = await fetch('http://127.0.0.1:9000/asr?encode=true&task=transcribe&language=pt&output=json', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!whisperRes.ok) {
+        const err = await whisperRes.text();
+        throw new Error(`Whisper ASR error (${whisperRes.status}): ${err}`);
+      }
+
+      const whisperData = (await whisperRes.json()) as { text?: string };
+      transcription = (whisperData.text || '').trim();
+    } catch (e: any) {
+      throw new Error(`Falha na transcrição de voz: ${e.message}`);
+    }
+
+    if (!transcription) {
+      throw new Error('Nenhum áudio inteligível detectado pelo Whisper.');
+    }
+
+    const result = await this.processPrompt(transcription, groupFolder, false);
+    return {
+      transcription,
+      reply: result.reply,
+      timestamp: result.timestamp,
+    };
+  }
 }
+

@@ -78,31 +78,96 @@ export class ApiRouter {
       return jsonResponse({ success: true }, 200, { "Set-Cookie": expiredCookie });
     }
 
-    // --- MACBOOK / SHORTCUTS DIRECT API (Bearer Token Auth) ---
-    if (url.pathname === "/api/mac/prompt" && method === "POST") {
+    // --- MACBOOK / NATIVE APP API (Bearer Token Auth) ---
+    if (url.pathname.startsWith("/api/mac/")) {
       const authHeader = req.headers.get("Authorization") || "";
       const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
       const folder = url.searchParams.get("group") || "barao";
 
+      // Allow Bearer token auth for all /api/mac/* endpoints
       if (!MacChannelService.validateApiKey(bearerToken, folder)) {
-        return jsonResponse({ error: "Token de autenticação inválido. Configure sua chave nos Atalhos do Mac." }, 401);
+        // If not valid bearer token, check if user is logged in via cookie for config query
+        const cookies = parseCookies(req.headers.get("cookie"));
+        const token = cookies[CONFIG.COOKIE_NAME];
+        const user = token ? TokenManager.verify(token) : null;
+        if (!user) {
+          return jsonResponse({ error: "Token de autenticação inválido. Configure sua chave do Mac." }, 401);
+        }
       }
 
-      const body = (await req.json().catch(() => ({}))) as { prompt?: string; resetSession?: boolean };
-      const prompt = body.prompt?.trim();
-      if (!prompt) return jsonResponse({ error: "Prompt é obrigatório." }, 400);
+      if (url.pathname === "/api/mac/verify" && (method === "GET" || method === "POST")) {
+        return jsonResponse({ success: true, message: "Autenticado com sucesso!", folder });
+      }
 
-      try {
-        const result = await MacChannelService.processPrompt(prompt, folder, !!body.resetSession);
-        return jsonResponse({
-          success: true,
-          reply: result.reply,
-          timestamp: result.timestamp,
-        });
-      } catch (err: any) {
-        return jsonResponse({ error: err.message || "Erro ao processar instrução no Barão." }, 500);
+      if (url.pathname === "/api/mac/history" && method === "GET") {
+        const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+        try {
+          const messages = await MacChannelService.getHistory(folder, limit);
+          return jsonResponse({ success: true, messages });
+        } catch (err: any) {
+          return jsonResponse({ error: err.message || "Erro ao resgatar histórico." }, 500);
+        }
+      }
+
+      if (url.pathname === "/api/mac/prompt" && method === "POST") {
+        const body = (await req.json().catch(() => ({}))) as { prompt?: string; resetSession?: boolean };
+        const prompt = body.prompt?.trim();
+        if (!prompt) return jsonResponse({ error: "Prompt é obrigatório." }, 400);
+
+        try {
+          const result = await MacChannelService.processPrompt(prompt, folder, !!body.resetSession);
+          return jsonResponse({
+            success: true,
+            reply: result.reply,
+            timestamp: result.timestamp,
+          });
+        } catch (err: any) {
+          return jsonResponse({ error: err.message || "Erro ao processar instrução no Barão." }, 500);
+        }
+      }
+
+      if (url.pathname === "/api/mac/audio" && method === "POST") {
+        try {
+          const contentType = req.headers.get("content-type") || "";
+          let audioBuffer: ArrayBuffer;
+
+          if (contentType.includes("multipart/form-data")) {
+            const formData = await req.formData();
+            const file = formData.get("audio") || formData.get("audio_file") || formData.get("file");
+            if (!file || !(file instanceof Blob)) {
+              return jsonResponse({ error: "Arquivo de áudio não encontrado na requisição." }, 400);
+            }
+            audioBuffer = await file.arrayBuffer();
+          } else {
+            audioBuffer = await req.arrayBuffer();
+          }
+
+          if (!audioBuffer || audioBuffer.byteLength === 0) {
+            return jsonResponse({ error: "Buffer de áudio vazio." }, 400);
+          }
+
+          const result = await MacChannelService.processAudio(audioBuffer, folder);
+          return jsonResponse({
+            success: true,
+            transcription: result.transcription,
+            reply: result.reply,
+            timestamp: result.timestamp,
+          });
+        } catch (err: any) {
+          return jsonResponse({ error: err.message || "Erro ao transcrever e processar áudio." }, 500);
+        }
+      }
+
+      if (url.pathname === "/api/mac/reset" && method === "POST") {
+        try {
+          await MacChannelService.resetSession(folder);
+          return jsonResponse({ success: true, message: "Histórico da sessão Mac reiniciado." });
+        } catch (err: any) {
+          return jsonResponse({ error: err.message || "Erro ao reiniciar sessão." }, 500);
+        }
       }
     }
+
 
     // --- PROTECTED ROUTES CHECK ---
     const cookies = parseCookies(req.headers.get("cookie"));
