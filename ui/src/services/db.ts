@@ -292,12 +292,14 @@ export class DatabaseService {
     try {
       const inbounds = glob.sync(`${sessionDir}/**/inbound.db`);
       const outbounds = glob.sync(`${sessionDir}/**/outbound.db`);
+      const inboundMap = new Map<string, any>();
 
       for (const inDbPath of inbounds) {
         try {
           const db = new Database(inDbPath, { readonly: true });
           const rows = db.query("SELECT * FROM messages_in ORDER BY timestamp DESC LIMIT ?").all(limit) as any[];
           for (const r of rows) {
+            inboundMap.set(r.id, r);
             const parsed = this.parseMessageContent(r.content || "", "user");
             const charCount = parsed.text.length;
             const promptTokens = Math.max(1, Math.round(charCount / 3.5));
@@ -309,13 +311,6 @@ export class DatabaseService {
             const costInBrl = costBrl;
             const costOutBrl = 0;
 
-            const msgTime = new Date(r.timestamp || new Date()).getTime();
-            const matchedRuns = allSubRuns.filter((run) => {
-              const runTime = new Date(run.timestamp).getTime();
-              return Math.abs(msgTime - runTime) <= 60000;
-            });
-            const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
-
             messages.push({
               id: r.id,
               seq: r.seq,
@@ -324,7 +319,7 @@ export class DatabaseService {
               channel: r.channel_type || "telegram",
               senderName: parsed.senderName,
               text: parsed.text,
-              model,
+              model: defaultModel,
               threadId: parsed.threadId || r.thread_id,
               charCount,
               tokens: promptTokens,
@@ -351,11 +346,14 @@ export class DatabaseService {
             const parsed = this.parseMessageContent(r.content || "", "assistant");
             const charCount = parsed.text.length;
 
-            // Associate subRuns
-            const msgTime = new Date(r.timestamp || new Date()).getTime();
+            // Associate subRuns strictly belonging to this turn (between inbound and outbound)
+            const outTime = new Date(r.timestamp || new Date()).getTime();
+            const inMsg = r.in_reply_to ? inboundMap.get(r.in_reply_to) : null;
+            const inTime = inMsg ? new Date(inMsg.timestamp).getTime() : outTime - 30000;
+
             const matchedRuns = allSubRuns.filter((run) => {
               const runTime = new Date(run.timestamp).getTime();
-              return Math.abs(msgTime - runTime) <= 60000; // within 1 minute window of the turn
+              return runTime >= inTime - 1000 && runTime <= outTime + 1500;
             });
 
             const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
@@ -423,7 +421,11 @@ export class DatabaseService {
       }
     } catch {}
 
-    messages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    messages.sort((a, b) => {
+      const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return (b.seq || 0) - (a.seq || 0);
+    });
     return messages.slice(0, limit);
   }
 
