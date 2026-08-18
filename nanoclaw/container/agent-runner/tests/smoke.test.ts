@@ -75,4 +75,9 @@ describe("Agent Runner Smoke & Regression Tests", () => {
       }).not.toThrow();
     }
   });
+
+  test("web_search and browse_url are correctly registered in ALL_TOOLS", () => {
+    expect(AGENT_TOOLS.some((t) => t.function.name === "web_search")).toBe(true);
+    expect(AGENT_TOOLS.some((t) => t.function.name === "browse_url")).toBe(true);
+  });
 });

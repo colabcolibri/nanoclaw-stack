@@ -11,6 +11,7 @@ import { correiosShippingTool } from './shipping.js';
 import { tokenUsageTool } from './token-usage.js';
 import { RETRIEVE_MESSAGE_CONTEXT_TOOL, handleRetrieveMessageContext } from './message-context.js';
 import { LOAD_SKILL_TOOL, handleLoadSkill } from './load-skill.js';
+import { webSearchTool, browseUrlTool } from './web-search.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -24,6 +25,8 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   manage_memory: memoryTool,
   schedule_followup: schedulerTool,
   token_usage: tokenUsageTool,
+  web_search: webSearchTool,
+  browse_url: browseUrlTool,
   retrieve_message_context: {
     definition: RETRIEVE_MESSAGE_CONTEXT_TOOL,
     execute: async (args: any) => handleRetrieveMessageContext(args),

@@ -165,6 +165,52 @@ export class ToolRouter {
         /\b(?:leia o arquivo|execute o comando|terminal)\b/i,
       ],
     });
+
+    // 5. Web Search & Real-Time Intelligence Domain
+    this.registerDomain({
+      id: 'web_research',
+      name: 'Pesquisa Web & Inteligência em Tempo Real',
+      description: 'Busca na internet em tempo real, notícias, tendências, leitura de artigos e sites.',
+      toolNames: ['web_search', 'browse_url'],
+      keywords: [
+        'pesquisar',
+        'pesquise',
+        'pesquisa',
+        'buscar',
+        'busque',
+        'busca',
+        'procurar',
+        'procure',
+        'internet',
+        'web',
+        'google',
+        'noticia',
+        'notícia',
+        'noticias',
+        'notícias',
+        'tendencia',
+        'tendência',
+        'tendencias',
+        'tendências',
+        'novidade',
+        'novidades',
+        'artigo',
+        'site',
+        'link',
+        'url',
+        'inteligencia artificial',
+        'inteligência artificial',
+        'ia',
+        'ai',
+        'lancamento',
+        'lançamento',
+      ],
+      patterns: [
+        /\b(?:pesquis(?:ar|e|a)|busqu?e?|procur(?:ar|e))\s+(?:na\s+)?(?:web|internet|google|sobre)\b/i,
+        /\b(?:tend[eê]ncias?|not[ií]cias?|novidades?|artigos?)\b/i,
+        /\bhttps?:\/\/[^\s]+/i,
+      ],
+    });
   }
 
   /**
