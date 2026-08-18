@@ -1,26 +1,27 @@
 ---
 name: yampi-store
-description: E-commerce operations, product inquiries, inventory availability, and order tracking on the Yampi online store platform.
+description: Atendimento inteligente de e-commerce, consulta de produtos, disponibilidade de estoque e rastreamento de pedidos da loja virtual Yampi com trava de privacidade.
 domain: ecommerce_logistics
 tools:
   - yampi_store
 keywords:
   - yampi
-  - store
-  - order
-  - tracking
-  - inventory
-  - stock
-  - catalog
+  - loja
+  - pedido
+  - pedidos
+  - rastreio
+  - rastreamento
+  - estoque
+  - catalogo
 ---
 
-# Yampi E-Commerce Operations Skill
+# Habilidade de Operações da Loja Virtual Yampi
 
-This skill allows the agent to inspect products, verify inventory levels, and check order statuses with privacy safeguards.
+Esta habilidade orienta o assistente a consultar pedidos, status de entrega e estoque de produtos da loja virtual Yampi com segurança e trava de privacidade.
 
-## 🛠️ Operations:
+## 🛠️ Operações:
 
-1. **Check Order:** `yampi_store(action: "get_order", client_email: "...", order_number: "...")`
-2. **Search Products:** `yampi_store(action: "search_products", query: "...")`
-3. **Verify Stock:** `yampi_store(action: "check_product_quantity", product_id: "...")`
-4. **Links:** Always provide official tracking links (`tracking_url`) to clients.
+1. **Rastreamento de Pedido:** `yampi_store(action: "get_order", client_email: "...", order_number: "...")`
+2. **Busca de Produtos:** `yampi_store(action: "search_products", query: "...")`
+3. **Checagem de Estoque:** `yampi_store(action: "check_product_quantity", product_id: "...")`
+4. **Links Oficiais:** Sempre forneça o link oficial de rastreamento (`tracking_url`) para o cliente.

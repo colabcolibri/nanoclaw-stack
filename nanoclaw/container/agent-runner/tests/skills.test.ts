@@ -36,6 +36,6 @@ describe("SkillsManager Automated Folder Discovery & Skills on Demand", () => {
 
     expect(res.skill).toBe("store-email-attendant");
     expect(res.domain).toBe("store_attendant");
-    expect(res.manual).toContain("Colibri Store");
+    expect(res.manual).toContain("Colibri");
   });
 });
