@@ -8,6 +8,11 @@
   "apiKeyStatus": "Status da API Key",
   "keyConfigured": "Chave Configurada",
   "keyPlaceholder": "Nova chave (deixe vazio para manter a atual)",
+  "city": "Cidade Atual",
+  "cityPlaceholder": "Ex: Bruxelas",
+  "country": "País / Região",
+  "countryPlaceholder": "Ex: Bélgica",
+  "timezone": "Fuso Horário (Timezone)",
   "save": "Salvar Parâmetros",
   "savedSuccess": "Parâmetros salvos com sucesso!",
   "saveError": "Erro ao salvar configurações."

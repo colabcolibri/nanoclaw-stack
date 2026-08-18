@@ -8,6 +8,11 @@
   "apiKeyStatus": "API Key Status",
   "keyConfigured": "Key Configured",
   "keyPlaceholder": "New API key (leave empty to retain current key)",
+  "city": "Current City",
+  "cityPlaceholder": "e.g. Brussels",
+  "country": "Country / Region",
+  "countryPlaceholder": "e.g. Belgium",
+  "timezone": "Timezone",
   "save": "Save Parameters",
   "savedSuccess": "Parameters saved successfully!",
   "saveError": "Failed to save configuration."

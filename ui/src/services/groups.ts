@@ -281,7 +281,9 @@ export class GroupManager {
       model: containerCfg.model || envMap[currentMapping.modelName] || (activeProvider === "groq" ? "openai/gpt-oss-120b" : "deepseek-v4-flash"),
       assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Íris",
       timezone: containerCfg.timezone || envMap["TZ"] || "Europe/Brussels",
-      location: containerCfg.location || "Bélgica",
+      city: containerCfg.city || "",
+      country: containerCfg.country || containerCfg.location || "",
+      location: containerCfg.location || [containerCfg.city, containerCfg.country].filter(Boolean).join(", ") || "",
       baseUrl: envMap[currentMapping.urlName] || currentMapping.defaultUrl,
       hasApiKey,
       maskedApiKey: maskedKey,
@@ -299,11 +301,17 @@ export class GroupManager {
       } catch {}
     }
 
+    const city = newConfig.city !== undefined ? newConfig.city : (current.city || "");
+    const country = newConfig.country !== undefined ? newConfig.country : (current.country || "");
+    const location = [city, country].filter(Boolean).join(", ") || newConfig.location || current.location || "";
+
     const merged: any = {
       ...current,
       ...newConfig,
+      city,
+      country,
+      location,
       timezone: newConfig.timezone || current.timezone || "Europe/Brussels",
-      location: newConfig.location || current.location || "Bélgica",
     };
     fs.writeFileSync(configFile, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 

@@ -75,8 +75,18 @@ export class DatabaseService {
       const mcpJson = JSON.stringify(config.mcpServers || {});
       const skillsJson = typeof config.skills === "string" ? `"${config.skills}"` : JSON.stringify(config.skills || "all");
       const provider = config.provider || "deepseek";
+      const model = config.model || "deepseek-v4-flash";
+      const assistantName = config.assistantName || config.groupName || config.name || "Barão";
       const timezone = config.timezone || "Europe/Brussels";
-      const location = config.location || "Bélgica";
+      const city = config.city || "";
+      const country = config.country || config.location || "";
+      const location = [city, country].filter(Boolean).join(", ") || "";
+      const now = new Date().toISOString();
+
+      try {
+        db.run("ALTER TABLE container_configs ADD COLUMN city TEXT;");
+        db.run("ALTER TABLE container_configs ADD COLUMN country TEXT;");
+      } catch {}
 
       db.query(`
         UPDATE container_configs 
@@ -95,6 +105,8 @@ export class DatabaseService {
             model,
             assistantName,
             timezone,
+            city,
+            country,
             location,
           };
           fs.writeFileSync(baraoContainer, JSON.stringify(updated, null, 2), "utf-8");

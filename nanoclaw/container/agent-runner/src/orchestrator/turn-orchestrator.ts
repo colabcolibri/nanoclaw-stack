@@ -10,8 +10,10 @@ import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.j
 
 function getTemporalContext(cwd?: string): string {
   const now = new Date();
-  let tz = process.env.TZ || 'Europe/Brussels';
-  let location = 'Bélgica';
+  let tz = process.env.TZ || '';
+  let city = '';
+  let country = '';
+  let location = '';
 
   const candidateFiles = [
     ...(cwd ? [path.join(cwd, 'container.json')] : []),
@@ -25,21 +27,29 @@ function getTemporalContext(cwd?: string): string {
       if (fs.existsSync(f)) {
         const parsed = JSON.parse(fs.readFileSync(f, 'utf-8'));
         if (parsed.timezone) tz = parsed.timezone;
+        if (parsed.city) city = parsed.city;
+        if (parsed.country) country = parsed.country;
         if (parsed.location) location = parsed.location;
         break;
       }
     } catch {}
   }
 
+  const resolvedLocation = [city, country].filter(Boolean).join(', ') || location;
+  const resolvedTz = tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
   try {
     const formatted = new Intl.DateTimeFormat('pt-BR', {
-      timeZone: tz,
+      timeZone: resolvedTz,
       dateStyle: 'full',
       timeStyle: 'medium',
     }).format(now);
-    return `## Temporal & Geographic Context\n- User Location: ${location}\n- Current Local Date & Time: ${formatted} (${tz})\n- ISO Timestamp: ${now.toISOString()}`;
+
+    const locationLine = resolvedLocation ? `- User Location: ${resolvedLocation}\n` : '';
+    return `## Temporal & Geographic Context\n${locationLine}- Current Local Date & Time: ${formatted} (${resolvedTz})\n- ISO Timestamp: ${now.toISOString()}`;
   } catch {
-    return `## Temporal & Geographic Context\n- User Location: ${location}\n- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
+    const locationLine = resolvedLocation ? `- User Location: ${resolvedLocation}\n` : '';
+    return `## Temporal & Geographic Context\n${locationLine}- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
   }
 }
 

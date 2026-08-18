@@ -270,7 +270,8 @@ export const ConfigView: React.FC = () => {
     provider: 'deepseek',
     model: 'deepseek-v4-flash',
     baseUrl: 'https://api.deepseek.com',
-    location: 'Bélgica',
+    city: '',
+    country: '',
     timezone: 'Europe/Brussels',
   })
   const [keysStatus, setKeysStatus] = useState<Record<string, { hasKey: boolean; masked: string }>>({})
@@ -306,7 +307,8 @@ export const ConfigView: React.FC = () => {
           provider: providerKey,
           model: data.config.model || meta.defaultModel,
           baseUrl: data.config.baseUrl || meta.defaultBaseUrl,
-          location: data.config.location || 'Bélgica',
+          city: data.config.city || '',
+          country: data.config.country || data.config.location || '',
           timezone: data.config.timezone || 'Europe/Brussels',
         })
         if (data.config.keysStatus) {
@@ -377,15 +379,11 @@ export const ConfigView: React.FC = () => {
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
             toast.type === 'success'
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-500/15 border-red-500/30 text-red-700 dark:text-red-300'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
           }`}
         >
-          {toast.type === 'success' ? (
-            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-          )}
+          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           <span>{toast.text}</span>
         </div>
       )}
@@ -413,40 +411,48 @@ export const ConfigView: React.FC = () => {
               />
             </div>
 
-            {/* User Location & Timezone */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* User City, Country & Timezone (100% i18n) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Localização Atual / Cidade</span>
+                  <span>{t('city')}</span>
                 </label>
                 <input
                   type="text"
                   className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                  value={config.location}
-                  onChange={(e) => setConfig({ ...config, location: e.target.value })}
-                  placeholder="Ex: Bélgica, Bruxelas, São Paulo"
+                  value={config.city}
+                  onChange={(e) => setConfig({ ...config, city: e.target.value })}
+                  placeholder={t('cityPlaceholder')}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{t('country')}</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  value={config.country}
+                  onChange={(e) => setConfig({ ...config, country: e.target.value })}
+                  placeholder={t('countryPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Fuso Horário (Timezone)</span>
+                  <span>{t('timezone')}</span>
                 </label>
-                <select
-                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono"
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] font-mono focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={config.timezone}
                   onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
-                >
-                  <option value="Europe/Brussels">Europe/Brussels (Bélgica - UTC+2 / CEST)</option>
-                  <option value="Europe/Lisbon">Europe/Lisbon (Portugal - UTC+1)</option>
-                  <option value="Europe/London">Europe/London (Londres - UTC+1)</option>
-                  <option value="Europe/Paris">Europe/Paris (França - UTC+2)</option>
-                  <option value="America/Sao_Paulo">America/Sao_Paulo (Brasil - UTC-3)</option>
-                  <option value="America/New_York">America/New_York (EUA Leste - UTC-4)</option>
-                  <option value="UTC">UTC (Universal Coordinated Time)</option>
-                </select>
+                  placeholder="Europe/Brussels"
+                />
               </div>
             </div>
 
