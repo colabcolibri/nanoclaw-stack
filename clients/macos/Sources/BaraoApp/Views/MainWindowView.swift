@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 public struct MainWindowView: View {
     @StateObject private var chatViewModel = ChatViewModel()
@@ -11,6 +12,17 @@ public struct MainWindowView: View {
         VStack(spacing: 0) {
             // Header Top Bar
             HStack(spacing: 12) {
+                // Window Traffic Lights / Close button
+                Button(action: {
+                    NSApp.keyWindow?.orderOut(nil)
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Fechar janela (Cmd+W)")
+                
                 HStack(spacing: 8) {
                     RobotAvatarView(size: 24)
                     Text("Barão AI")
@@ -39,28 +51,55 @@ public struct MainWindowView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Configurações")
+                .help("Configurações (Cmd+,)")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(Color(nsColor: .windowBackgroundColor))
+            
+            // Connection Setup Warning Banner
+            if !chatViewModel.isConnected && !chatViewModel.isCheckingConnection {
+                HStack(spacing: 10) {
+                    Image(systemName: "key.fill")
+                        .foregroundColor(.orange)
+                    Text("Conecte seu Barão para começar a conversar.")
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Button("Configurar Agora") {
+                        showSettings = true
+                    }
+                    .font(.caption)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.12))
+            }
             
             Divider()
             
             // Main Chat Area
             ChatView(viewModel: chatViewModel)
         }
-        .frame(minWidth: 420, minHeight: 520)
+        .frame(minWidth: 440, minHeight: 540)
         .onAppear {
             chatViewModel.onAppear()
         }
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: $showSettings, onDismiss: {
+            chatViewModel.onAppear()
+        }) {
             SettingsSheetView(viewModel: settingsViewModel)
         }
         .alert("Aviso", isPresented: $chatViewModel.showErrorAlert) {
             Button("OK", role: .cancel) {}
+            Button("Abrir Configurações") {
+                showSettings = true
+            }
         } message: {
             Text(chatViewModel.errorMessage ?? "Ocorreu um erro desconhecido.")
         }
     }
 }
+

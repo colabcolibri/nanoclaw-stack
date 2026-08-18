@@ -29,12 +29,24 @@ public struct SettingsSheetView: View {
                     TextField("URL do Servidor NanoClaw:", text: $viewModel.serverUrl)
                         .textFieldStyle(.roundedBorder)
                     
-                    SecureField("Chave de API do Mac (Bearer):", text: $viewModel.apiKey)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    Text("Obtenha sua chave no painel web em https://uai.sergioluciano.com")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            SecureField("Chave de API do Mac (mac_...):", text: $viewModel.apiKey)
+                                .textFieldStyle(.roundedBorder)
+                            
+                            Button("Colar") {
+                                if let text = NSPasteboard.general.string(forType: .string) {
+                                    viewModel.apiKey = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .help("Colar chave da área de transferência")
+                        }
+                        
+                        Text("Pegue sua chave no painel web (Configurações > Mac) ou no arquivo mac_channel.json")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Section(header: Text("Preferências de Voz e Som").font(.headline)) {
