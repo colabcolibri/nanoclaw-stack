@@ -175,50 +175,70 @@ export class TurnOrchestrator {
         continue;
       }
 
-      // Model completed its tool calls (or emitted DONE)
+      // Model completed its tool calls
       finalContent = ResponseParser.cleanHumanText(response.content);
       break;
     }
 
-    // Stage 2: Synthesis Pass - ALWAYS applied with Persona & SOUL
-    const synthesisDirective =
-      PromptLoader.load('stage2.synthesis.md') ||
-      '## Response Guidelines\nAnswer the user directly using the verified execution findings.\nSpeak naturally in your persona voice.\nRespond in the language used by the user.';
+    // Stage 2: Synthesis Pass with Persona - Runs when tools were executed
+    if (scratchpad.hasFindings()) {
+      const synthesisDirective =
+        PromptLoader.load('stage2.synthesis.md') ||
+        '## Response Guidelines\nAnswer the user directly using the verified execution findings.\nSpeak naturally in your persona voice.\nRespond in the language used by the user.';
 
-    const personaPrompt = [
-      timeContext,
-      options.personaInstructions || '',
-      options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
-      synthesisDirective,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+      const personaPrompt = [
+        timeContext,
+        options.personaInstructions || '',
+        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+        synthesisDirective,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
-    const synthesisPromptText = scratchpad.hasFindings()
-      ? PromptLoader.load('scratchpad.synthesis.md', {
+      const synthesisPromptText =
+        PromptLoader.load('scratchpad.synthesis.md', {
           USER_GOAL: options.prompt,
           FINDINGS_REPORT: scratchpad.toSynthesisReport(),
-        }) || `## User Request\n${options.prompt}\n\n${scratchpad.toSynthesisReport()}`
-      : options.prompt;
+        }) || `## User Request\n${options.prompt}\n\n${scratchpad.toSynthesisReport()}`;
 
-    const synthesisMessages: any[] = [
-      { role: 'system', content: personaPrompt },
-      ...options.history.slice(-4),
-      {
-        role: 'user',
-        content: synthesisPromptText,
-      },
-    ];
+      const synthesisMessages: any[] = [
+        { role: 'system', content: personaPrompt },
+        ...options.history.slice(-4),
+        {
+          role: 'user',
+          content: synthesisPromptText,
+        },
+      ];
 
-    try {
-      onActivity?.();
-      const synthResponse = await complete(synthesisMessages, false);
-      const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
-      if (synthContent && synthContent.trim().length > 0) {
-        finalContent = synthContent;
+      try {
+        onActivity?.();
+        const synthResponse = await complete(synthesisMessages, false);
+        const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
+        if (synthContent && synthContent.trim().length > 0) {
+          finalContent = synthContent;
+        }
+      } catch (err) {
+        console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
       }
-    } catch (err) {
-      console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
+    } else if (!finalContent || !finalContent.trim()) {
+      // If 0 tools were called and no content, run direct persona pass
+      const personaPrompt = [
+        timeContext,
+        options.personaInstructions || '',
+        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const messages: any[] = [
+        { role: 'system', content: personaPrompt },
+        ...options.history.slice(-6),
+        { role: 'user', content: options.prompt },
+      ];
+
+      onActivity?.();
+      const response = await complete(messages, false);
+      finalContent = ResponseParser.cleanHumanText(response.content);
     }
 
     // Fallback if model returned empty content
