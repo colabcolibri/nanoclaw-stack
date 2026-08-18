@@ -85,9 +85,9 @@ export class TurnOrchestrator {
     const scratchpad = new ExecutionScratchpad(options.prompt, options.history);
     let finalContent = '';
     let toolsRunCount = 0;
-    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 12, 1), 25);
+    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 8, 1), 8);
 
-    // Stage 1: Action & Tool Execution Loop using Scratchpad State
+    // Stage 1: Action & Tool Execution Loop using Scratchpad State (Cap: max 8 runs)
     for (let iter = 0; iter < maxIterations; iter++) {
       onActivity?.();
 
@@ -117,11 +117,11 @@ export class TurnOrchestrator {
       break;
     }
 
-    // Stage 2: Synthesis Pass with Persona & Consolidated Scratchpad Report
-    const hasPersona = Boolean(options.personaInstructions || options.coreMemory);
-    if (scratchpad.hasFindings() && hasPersona) {
+    // Stage 2: Mandatory Synthesis Pass whenever findings exist
+    // Forces the model to synthesize raw findings into an executive human response
+    if (scratchpad.hasFindings()) {
       const synthesisDirective = PromptLoader.load('stage2.synthesis.md') ||
-        '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, and clean formatting.';
+        '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, clickable Markdown reference links, and clean formatting.';
 
       const personaPrompt = [
         options.personaInstructions || '',
@@ -159,9 +159,7 @@ export class TurnOrchestrator {
 
     // Fallback synthesis if empty
     if (!finalContent || !finalContent.trim()) {
-      finalContent = scratchpad.hasFindings()
-        ? `Tudo pronto! Consultei os dados solicitados:\n\n${scratchpad.toSynthesisReport()}`
-        : 'Tudo pronto! As consultas e operações foram concluídas.';
+      finalContent = 'Tudo pronto! As consultas e operações solicitadas foram concluídas.';
     }
 
     const cleanText = finalContent
