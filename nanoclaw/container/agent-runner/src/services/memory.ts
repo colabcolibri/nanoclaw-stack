@@ -12,6 +12,7 @@ export class MemoryManager {
     const candidates = [
       path.join(cwd, 'memory', 'index.md'),
       '/workspace/group/memory/index.md',
+      '/opt/nanoclaw-stack/nanoclaw/groups/barao/memory/index.md',
       '/workspace/agent/memory/index.md',
       ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'memory', 'index.md')] : []),
     ];

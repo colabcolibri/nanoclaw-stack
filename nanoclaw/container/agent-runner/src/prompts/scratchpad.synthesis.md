@@ -4,4 +4,4 @@
 ### Verified Execution Findings:
 {FINDINGS_REPORT}
 
-Please deliver the comprehensive, elegant executive synthesis applying persona and business guidelines:
+Please deliver the comprehensive executive synthesis embodying your persona identity and voice:

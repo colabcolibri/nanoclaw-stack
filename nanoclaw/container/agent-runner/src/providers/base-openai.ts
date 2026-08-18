@@ -88,6 +88,8 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     const candidateFiles = [
       path.join(input.cwd, 'instructions.prepend.md'),
       '/workspace/group/instructions.prepend.md',
+      '/opt/nanoclaw-stack/nanoclaw/groups/barao/instructions.prepend.md',
+      ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'instructions.prepend.md')] : []),
       path.join(input.cwd, 'CLAUDE.local.md'),
       '/workspace/group/CLAUDE.local.md',
     ];
