@@ -24,12 +24,37 @@ groups/*
 **/.claude-shared.md
 **/.claude-fragments/
 
-# Secrets and tokens
+# Secrets, credentials and tokens
 *.keys.json
+*tokens*.json
+*.tokens.json
+*_tokens.json
+credentials*.json
+service-account*.json
+auth.json
+token_ledger*.json
+token-ledger*.json
 .env
 .env*
 google_tokens.json
+notion_tokens.json
+yampi_tokens.json
 acme.json
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.p8
+
+# Database & SQLite files
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Build outputs & caches
 dist/
@@ -40,3 +65,4 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+

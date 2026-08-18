@@ -1,5 +1,17 @@
 node_modules/
 .env
+.env*
 .env.local
+*.keys.json
+*tokens*.json
+*.tokens.json
+*_tokens.json
+credentials*.json
+service-account*.json
+auth.json
+*.sqlite
+*.sqlite3
+*.db
 dist/
 *.log
+

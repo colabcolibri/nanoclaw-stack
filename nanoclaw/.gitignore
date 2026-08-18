@@ -20,10 +20,31 @@ groups/*
 **/.claude-shared.md
 **/.claude-fragments/
 
-# Secrets
+# Secrets, credentials and tokens
 *.keys.json
+*tokens*.json
+*.tokens.json
+*_tokens.json
+credentials*.json
+service-account*.json
+auth.json
+token_ledger*.json
+token-ledger*.json
 .env
 .env*
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.p8
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Temp files
 .tmp-*
