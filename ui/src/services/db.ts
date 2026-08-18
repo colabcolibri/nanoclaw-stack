@@ -13,6 +13,7 @@ export interface ChatMessageItem {
   channel: string;
   senderName: string;
   text: string;
+  model?: string;
   rawJson?: any;
   threadId?: string;
   charCount?: number;
@@ -28,6 +29,7 @@ export interface ChatMessageItem {
   costOutBrl?: number;
   costUsd?: number;
   costBrl?: number;
+  memo?: string | null;
   subRuns?: IntermediateRunItem[];
 }
 
@@ -37,6 +39,7 @@ export interface IntermediateRunItem {
   sessionId: string;
   type: string;
   timestamp: string;
+  model?: string;
   tokens: number;
   charCount: number;
   promptTokens?: number;
@@ -161,6 +164,26 @@ export class DatabaseService {
     return records.slice(0, limit);
   }
 
+  static getDefaultModel(): string {
+    if (fs.existsSync(CONFIG.DB_PATH)) {
+      const db = new Database(CONFIG.DB_PATH, { readonly: true });
+      try {
+        const row = db.query("SELECT model FROM container_configs WHERE model IS NOT NULL AND model != '' ORDER BY updated_at DESC LIMIT 1").get() as any;
+        if (row?.model) return row.model;
+      } catch {} finally {
+        db.close();
+      }
+    }
+    const baraoContainer = path.join(CONFIG.GROUPS_PATH, "barao", "container.json");
+    if (fs.existsSync(baraoContainer)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(baraoContainer, "utf-8"));
+        if (parsed.model) return parsed.model;
+      } catch {}
+    }
+    return "deepseek-v4-flash";
+  }
+
   static getSystemStats(): any {
     let totalSessions = 0;
     let totalUsers = 0;
@@ -184,7 +207,7 @@ export class DatabaseService {
     const totalInbound = messages.filter((m) => m.type === "user").length;
     const totalOutbound = messages.filter((m) => m.type === "assistant").length;
 
-    // Real API Token Metrics from DeepSeek
+    // Real API Token Metrics from DeepSeek / LLM Ledger
     let totalPromptTokens = 0;
     let totalCacheHitTokens = 0;
     let totalCacheMissTokens = 0;
@@ -211,6 +234,10 @@ export class DatabaseService {
     const totalCostBrl = CurrencyService.convertUsdToBrl(totalCostUsd);
     const cacheHitRatio = totalPromptTokens > 0 ? Math.round((totalCacheHitTokens / totalPromptTokens) * 100) : 0;
 
+    const defaultModel = this.getDefaultModel();
+    const distinctModels = Array.from(new Set(realLedger.map((r) => r.model).filter(Boolean)));
+    const modelDisplay = distinctModels.length > 0 ? distinctModels.join(", ") : defaultModel;
+
     return {
       totalSessions,
       totalUsers,
@@ -230,7 +257,7 @@ export class DatabaseService {
       usdToBrlRate,
       estimatedCostUsd: totalCostUsd.toFixed(5),
       estimatedCostBrl: totalCostBrl.toFixed(4),
-      modelName: "DeepSeek V4 Flash (Peak Pricing: $0.014 hit / $0.44 miss / $1.32 out)",
+      modelName: modelDisplay,
     };
   }
 
@@ -259,6 +286,9 @@ export class DatabaseService {
     const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions");
     if (!fs.existsSync(sessionDir)) return messages;
 
+    const defaultModel = this.getDefaultModel();
+    const allSubRuns = this.getDetailedRuns(500);
+
     try {
       const inbounds = glob.sync(`${sessionDir}/**/inbound.db`);
       const outbounds = glob.sync(`${sessionDir}/**/outbound.db`);
@@ -279,6 +309,13 @@ export class DatabaseService {
             const costInBrl = costBrl;
             const costOutBrl = 0;
 
+            const msgTime = new Date(r.timestamp || new Date()).getTime();
+            const matchedRuns = allSubRuns.filter((run) => {
+              const runTime = new Date(run.timestamp).getTime();
+              return Math.abs(msgTime - runTime) <= 60000;
+            });
+            const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
+
             messages.push({
               id: r.id,
               seq: r.seq,
@@ -287,6 +324,7 @@ export class DatabaseService {
               channel: r.channel_type || "telegram",
               senderName: parsed.senderName,
               text: parsed.text,
+              model,
               threadId: parsed.threadId || r.thread_id,
               charCount,
               tokens: promptTokens,
@@ -298,13 +336,12 @@ export class DatabaseService {
               costOutBrl,
               costUsd,
               costBrl,
+              memo: r.memo || null,
             });
           }
           db.close();
         } catch {}
       }
-
-      const allSubRuns = this.getDetailedRuns(500);
 
       for (const outDbPath of outbounds) {
         try {
@@ -320,6 +357,8 @@ export class DatabaseService {
               const runTime = new Date(run.timestamp).getTime();
               return Math.abs(msgTime - runTime) <= 60000; // within 1 minute window of the turn
             });
+
+            const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
 
             let promptTokens = 0;
             let completionTokens = 0;
@@ -360,6 +399,7 @@ export class DatabaseService {
               channel: r.channel_type || "telegram",
               senderName: parsed.senderName || "Assistente",
               text: parsed.text,
+              model,
               threadId: r.thread_id,
               charCount,
               tokens: totalTokens,
@@ -374,6 +414,7 @@ export class DatabaseService {
               costOutBrl,
               costUsd,
               costBrl,
+              memo: r.memo || null,
               subRuns: matchedRuns.length > 0 ? matchedRuns : undefined,
             });
           }
@@ -389,6 +430,7 @@ export class DatabaseService {
   static getDetailedRuns(limit = 100): IntermediateRunItem[] {
     const runs: IntermediateRunItem[] = [];
     const ledgerRecords = this.getRealTokenRecords(limit);
+    const defaultModel = this.getDefaultModel();
 
     for (const rec of ledgerRecords) {
       const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
@@ -410,6 +452,7 @@ export class DatabaseService {
         sessionId: rec.sessionId,
         type: isTool ? "tool_execution" : "model_turn",
         timestamp: rec.timestamp,
+        model: rec.model || defaultModel,
         charCount: rec.totalTokens * 4,
         tokens: rec.totalTokens,
         promptTokens,

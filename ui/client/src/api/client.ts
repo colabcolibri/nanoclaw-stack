@@ -6,6 +6,7 @@ export interface ChatMessage {
   channel: string
   senderName: string
   text: string
+  model?: string
   rawJson?: any
   threadId?: string
   charCount?: number
@@ -21,6 +22,7 @@ export interface ChatMessage {
   costOutBrl?: number
   costUsd?: number
   costBrl?: number
+  memo?: string | null
   subRuns?: any[]
 }
 
@@ -59,6 +61,8 @@ export interface SkillReference {
   relativePath: string
   sizeBytes: number
   content: string
+  charCount?: number
+  tokenCount?: number
 }
 
 export interface SkillScript {
@@ -66,6 +70,8 @@ export interface SkillScript {
   relativePath: string
   sizeBytes: number
   content?: string
+  charCount?: number
+  tokenCount?: number
 }
 
 export interface SkillItem {
@@ -73,8 +79,16 @@ export interface SkillItem {
   description: string
   enabled: boolean
   skillMdContent: string
+  skillMdChars?: number
+  skillMdTokens?: number
   references: SkillReference[]
+  referencesChars?: number
+  referencesTokens?: number
   scripts: SkillScript[]
+  scriptsChars?: number
+  scriptsTokens?: number
+  totalChars?: number
+  totalTokens?: number
 }
 
 export interface ScheduledTask {

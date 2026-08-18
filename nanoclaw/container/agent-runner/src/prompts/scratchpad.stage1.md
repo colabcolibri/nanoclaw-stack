@@ -1,0 +1,6 @@
+## Active User Goal
+{USER_GOAL}
+
+{CONTEXT_MEMOS_SECTION}
+
+{FINDINGS_SECTION}

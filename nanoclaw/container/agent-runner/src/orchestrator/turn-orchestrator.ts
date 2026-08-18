@@ -1,11 +1,17 @@
-import { executeTool } from '../tools/index.js';
+import { executeTool, ToolRouter } from '../tools/index.js';
+import { SkillsManager } from '../services/skills-manager.js';
 import { ResponseParser } from './parser.js';
 import { IntermediateNotifier } from './notifier.js';
+import { ExecutionScratchpad } from './scratchpad.js';
+import { PromptLoader } from '../services/prompt-loader.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
 
 export class TurnOrchestrator {
   /**
-   * Executes a full conversational turn with tool orchestration and guaranteed human delivery.
+   * Executes a two-stage conversational turn with an isolated ExecutionScratchpad (Execution Memory):
+   * Fast-Path: Direct single-turn execution for pure conversations.
+   * Stage 1: State-only tool loop that populates ExecutionScratchpad with dense business findings.
+   * Stage 2: Synthesis pass connecting Persona, Core Memory and the consolidated Scratchpad report.
    */
   static async runTurn(
     complete: LLMCompletionFn,
@@ -13,97 +19,159 @@ export class TurnOrchestrator {
     onActivity?: () => void
   ): Promise<OrchestratorResult> {
     const targetDest = IntermediateNotifier.resolveDestination(options.prompt, options.chatJid);
-    const messages: any[] = [
-      { role: 'system', content: options.systemInstructions },
-      ...options.history,
-      { role: 'user', content: options.prompt },
-    ];
 
-    let currentMessages = [...messages];
+    // 1. Domain Routing: Select only relevant tools for this prompt
+    const routedTools = ToolRouter.selectTools(options.prompt);
+
+    // 2. Direct Conversation Fast-Path (Zero tools needed)
+    if (routedTools.length === 0) {
+      const personaPrompt = [
+        options.personaInstructions || '',
+        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const messages: any[] = [
+        { role: 'system', content: personaPrompt },
+        ...options.history.slice(-6),
+        { role: 'user', content: options.prompt },
+      ];
+
+      onActivity?.();
+      const response = await complete(messages, false);
+      let finalContent = ResponseParser.cleanHumanText(response.content);
+
+      if (!finalContent || !finalContent.trim()) {
+        finalContent = 'Entendido. Como posso te ajudar hoje?';
+      }
+
+      const cleanText = finalContent
+        .replace(/<message\s+to="[^"]*">/gi, '')
+        .replace(/<\/message>/gi, '')
+        .trim();
+
+      const deliveredText = `<message to="${targetDest}">\n${cleanText}\n</message>`;
+
+      const historyLimit = options.historyLimit || 8;
+      const updatedHistory = [
+        ...options.history,
+        { role: 'user', content: options.prompt },
+        { role: 'assistant', content: deliveredText },
+      ].slice(-historyLimit);
+
+      return {
+        deliveredText,
+        updatedHistory,
+        toolsExecutedCount: 0,
+      };
+    }
+
+    // 3. Tool-Assisted Execution Path with Execution Memory (Scratchpad)
+    const activeToolNames = routedTools.map((t) => t.function?.name).filter(Boolean);
+    const skillCatalog = SkillsManager.getSkillInstructionsForTools(activeToolNames, options.cwd);
+
+    const baseActionPrompt = PromptLoader.load('stage1.action.md') ||
+      'You are an autonomous technical execution engine running on NanoClaw.\nExecute tools directly with exact parameters to gather real data with minimal overhead.\nWhen all necessary information has been gathered from the tools, reply ONLY with "DONE".';
+
+    const actionSystemPrompt = [
+      baseActionPrompt,
+      options.systemInstructions || '',
+      skillCatalog || '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const scratchpad = new ExecutionScratchpad(options.prompt, options.history);
     let finalContent = '';
     let toolsRunCount = 0;
-    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 15, 1), 30);
+    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 12, 1), 25);
 
+    // Stage 1: Action & Tool Execution Loop using Scratchpad State
     for (let iter = 0; iter < maxIterations; iter++) {
       onActivity?.();
 
-      const response = await complete(currentMessages, true);
+      const currentMessages = scratchpad.toStage1Messages(actionSystemPrompt);
+      const response = await complete(currentMessages, routedTools);
       const toolCalls = ResponseParser.extractToolCalls(response);
 
-      // If tools were requested
       if (toolCalls.length > 0) {
-        // 1. Send immediate natural pre-text to user if the model generated a preliminary greeting
         const preText = ResponseParser.cleanHumanText(response.content);
         if (preText && iter === 0) {
           IntermediateNotifier.notify(targetDest, preText);
         }
 
-        currentMessages.push({
-          role: 'assistant',
-          content: response.content || null,
-          tool_calls: response.tool_calls,
-        });
-
-        // 2. Execute each tool in sequence
+        // Execute tools and record findings into Scratchpad
         for (const call of toolCalls) {
           onActivity?.();
           toolsRunCount++;
           const resultText = await executeTool(call.name, call.args, options.cwd);
-
-          currentMessages.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            name: call.name,
-            content: resultText,
-          });
+          scratchpad.recordFinding(call.name, call.args, resultText);
         }
 
-        // Loop again to allow model to consume tool outputs
         continue;
       }
 
-      // No tools called — capture model's final response
+      // Model decided all needed tools have run (or emitted DONE)
       finalContent = ResponseParser.cleanHumanText(response.content);
       break;
     }
 
-    // 3. Guaranteed Closure: If tools ran but final content is empty or unformatted, force completion
-    if (!finalContent || !finalContent.trim()) {
+    // Stage 2: Synthesis Pass with Persona & Consolidated Scratchpad Report
+    const hasPersona = Boolean(options.personaInstructions || options.coreMemory);
+    if (scratchpad.hasFindings() && hasPersona) {
+      const synthesisDirective = PromptLoader.load('stage2.synthesis.md') ||
+        '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, and clean formatting.';
+
+      const personaPrompt = [
+        options.personaInstructions || '',
+        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+        synthesisDirective,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const synthesisPromptText = PromptLoader.load('scratchpad.synthesis.md', {
+        USER_GOAL: options.prompt,
+        FINDINGS_REPORT: scratchpad.toSynthesisReport(),
+      }) || `## User Request\n${options.prompt}\n\n${scratchpad.toSynthesisReport()}\n\nPlease deliver the comprehensive executive synthesis:`;
+
+      const synthesisMessages: any[] = [
+        { role: 'system', content: personaPrompt },
+        ...options.history.slice(-4),
+        {
+          role: 'user',
+          content: synthesisPromptText,
+        },
+      ];
+
       try {
         onActivity?.();
-        const closureResponse = await complete(
-          [
-            ...currentMessages,
-            {
-              role: 'user',
-              content:
-                'Based on the tool execution results above, synthesize the complete, helpful, and detailed final response for the user, including all necessary markdown tables, links, or computed data.',
-            },
-          ],
-          false
-        );
-        finalContent = ResponseParser.cleanHumanText(closureResponse.content);
+        const synthResponse = await complete(synthesisMessages, false);
+        const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
+        if (synthContent && synthContent.trim().length > 10) {
+          finalContent = synthContent;
+        }
       } catch (err) {
-        console.error('[TurnOrchestrator] Failed during final closure prompt:', err);
+        console.error('[TurnOrchestrator] Error during persona synthesis pass:', err);
       }
     }
 
-    // 4. Deterministic Domain Synthesis Fallback (Zero Dry Responses)
+    // Fallback synthesis if empty
     if (!finalContent || !finalContent.trim()) {
-      finalContent = this.synthesizeFromToolHistory(currentMessages);
+      finalContent = scratchpad.hasFindings()
+        ? `Tudo pronto! Consultei os dados solicitados:\n\n${scratchpad.toSynthesisReport()}`
+        : 'Tudo pronto! As consultas e operações foram concluídas.';
     }
 
-    // 5. Wrap in <message to="..."> for NanoClaw message delivery
-    let deliveredText = finalContent;
-    if (!deliveredText.includes('<message') && !deliveredText.includes('<internal>')) {
-      deliveredText = `<message to="${targetDest}">\n${deliveredText}\n</message>`;
-    } else if (deliveredText.includes('<message to=')) {
-      // If the LLM put a raw username like <message to="Srg"> instead of the channel name, sanitize to targetDest
-      deliveredText = deliveredText.replace(/<message\s+to="[^"]*">/gi, `<message to="${targetDest}">`);
-    }
+    const cleanText = finalContent
+      .replace(/<message\s+to="[^"]*">/gi, '')
+      .replace(/<\/message>/gi, '')
+      .trim();
 
-    // 5. Update session history
-    const historyLimit = options.historyLimit || 50;
+    const deliveredText = `<message to="${targetDest}">\n${cleanText}\n</message>`;
+
+    const historyLimit = options.historyLimit || 8;
     const updatedHistory = [
       ...options.history,
       { role: 'user', content: options.prompt },
@@ -115,98 +183,5 @@ export class TurnOrchestrator {
       updatedHistory,
       toolsExecutedCount: toolsRunCount,
     };
-  }
-
-  /**
-   * Universally and polymorphically synthesizes any tool execution outputs into structured, human-readable markdown.
-   */
-  private static synthesizeFromToolHistory(messages: any[]): string {
-    const toolMessages = messages.filter((m) => m.role === 'tool' && m.content);
-    if (toolMessages.length === 0) {
-      return 'Tudo pronto! As consultas e operações foram concluídas com sucesso.';
-    }
-
-    const sections: string[] = [];
-
-    for (const tm of toolMessages) {
-      const toolName = tm.name || 'Operação';
-      const rawContent = tm.content;
-
-      if (!rawContent || (typeof rawContent === 'string' && !rawContent.trim())) continue;
-
-      // Case A: Raw text already in Markdown format (tables, headers, lists)
-      if (typeof rawContent === 'string' && (rawContent.includes('# ') || rawContent.includes('| :') || rawContent.includes('\n- ') || rawContent.includes('\n* '))) {
-        sections.push(rawContent.trim());
-        continue;
-      }
-
-      // Case B: Try parsing JSON objects
-      try {
-        const data = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
-
-        // 1. Explicit formatted proposal or summary string
-        if (data.formattedProposalMarkdown) {
-          sections.push(data.formattedProposalMarkdown);
-          continue;
-        }
-        if (data.markdown || data.formattedText || data.summary) {
-          sections.push(data.markdown || data.formattedText || data.summary);
-          continue;
-        }
-
-        // 2. Arrays / Lists of Items (Notion records, Gmail threads, Google Calendar events, products, tasks)
-        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]));
-        if (Array.isArray(data) || (arrayKey && Array.isArray(data[arrayKey]))) {
-          const list: any[] = Array.isArray(data) ? data : data[arrayKey!];
-          if (list.length === 0) {
-            sections.push(`📋 **${toolName}:** Nenhum item ou registro pendente encontrado.`);
-          } else {
-            const formattedItems = list.slice(0, 10).map((item, idx) => {
-              if (typeof item === 'string') return `• ${item}`;
-              // Extract best display attributes
-              const title = item.title || item.name || item.subject || item.summary || item.product || item.action || `Item ${idx + 1}`;
-              const sub = item.from || item.status || item.date || item.price || item.customer_name || item.recurrence || '';
-              const detail = item.needsReply ? '🔴 *(Requer resposta)*' : (sub ? `(${sub})` : '');
-              return `• **${title}** ${detail}`;
-            });
-            const more = list.length > 10 ? `\n*(...e mais ${list.length - 10} itens)*` : '';
-            sections.push(`📋 **Resultado (${toolName} — ${list.length} itens):**\n${formattedItems.join('\n')}${more}`);
-          }
-          continue;
-        }
-
-        // 3. Single Object with key-value properties
-        if (typeof data === 'object' && data !== null) {
-          if (data.message && Object.keys(data).length <= 2) {
-            sections.push(`✅ **${toolName}:** ${data.message}`);
-            continue;
-          }
-
-          const entries = Object.entries(data)
-            .filter(([k, v]) => v !== null && v !== undefined && k !== 'status' && typeof v !== 'object')
-            .map(([k, v]) => `• **${k.replace(/_/g, ' ')}:** ${v}`);
-
-          if (entries.length > 0) {
-            const header = data.message ? `✅ **${data.message}**\n` : `📋 **Dados (${toolName}):**\n`;
-            sections.push(`${header}${entries.join('\n')}`);
-            continue;
-          }
-        }
-
-        // Fallback JSON stringification
-        sections.push(`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
-      } catch {
-        // Case C: Non-JSON raw string
-        if (typeof rawContent === 'string' && rawContent.trim()) {
-          sections.push(rawContent.trim());
-        }
-      }
-    }
-
-    if (sections.length > 0) {
-      return sections.join('\n\n---\n\n');
-    }
-
-    return 'Tudo pronto! As consultas e operações foram concluídas com sucesso.';
   }
 }

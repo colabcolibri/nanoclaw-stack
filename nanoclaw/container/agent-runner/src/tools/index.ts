@@ -8,6 +8,9 @@ import { memoryTool } from './memory.js';
 import { schedulerTool } from './scheduler.js';
 import { resalePricingTool } from './resale-pricing.js';
 import { correiosShippingTool } from './shipping.js';
+import { tokenUsageTool } from './token-usage.js';
+import { RETRIEVE_MESSAGE_CONTEXT_TOOL, handleRetrieveMessageContext } from './message-context.js';
+import { LOAD_SKILL_TOOL, handleLoadSkill } from './load-skill.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -20,6 +23,15 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   correios_shipping: correiosShippingTool,
   manage_memory: memoryTool,
   schedule_followup: schedulerTool,
+  token_usage: tokenUsageTool,
+  retrieve_message_context: {
+    definition: RETRIEVE_MESSAGE_CONTEXT_TOOL,
+    execute: async (args: any) => handleRetrieveMessageContext(args),
+  },
+  load_skill: {
+    definition: LOAD_SKILL_TOOL,
+    execute: async (args: any, cwd: string) => handleLoadSkill(args, cwd),
+  },
 };
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);
@@ -37,3 +49,4 @@ export async function executeTool(name: string, args: any, cwd: string): Promise
 }
 
 export * from './types.js';
+export * from './router.js';

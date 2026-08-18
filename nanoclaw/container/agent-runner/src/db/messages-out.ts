@@ -30,35 +30,37 @@ export interface WriteMessageOut {
   channel_type?: string | null;
   thread_id?: string | null;
   content: string;
+  memo?: string | null;
 }
 
 /**
  * Write a new outbound message, auto-assigning an odd seq number.
  * Container uses odd seq (1, 3, 5...), host uses even (2, 4, 6...).
- *
- * The disjoint namespace is load-bearing, not just collision avoidance:
- * seq is the agent-facing message ID returned by send_message and accepted
- * by edit_message / add_reaction, and getMessageIdBySeq() below looks up
- * by seq across BOTH tables. If inbound and outbound could share a seq,
- * the agent's "edit message #5" could resolve to the wrong row.
  */
 export function writeMessageOut(msg: WriteMessageOut): number {
   const outbound = getOutboundDb();
   const inbound = getInboundDb();
 
-  // Read max seq from both DBs to maintain global ordering.
-  // Safe: each side only reads the other DB, never writes to it.
   const maxOut = (outbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_out').get() as { m: number }).m;
   const maxIn = (inbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_in').get() as { m: number }).m;
   const max = Math.max(maxOut, maxIn);
-  const nextSeq = max % 2 === 0 ? max + 1 : max + 2; // next odd
+  const nextSeq = max % 2 === 0 ? max + 1 : max + 2;
 
-  // bun:sqlite requires named parameters to be passed with the prefix character
-  // in the JS object keys (better-sqlite3 auto-stripped it, bun:sqlite does not).
+  let memoText = msg.memo;
+  if (!memoText) {
+    let clean = msg.content;
+    try {
+      const parsed = JSON.parse(msg.content);
+      clean = parsed.text || msg.content;
+    } catch {}
+    clean = clean.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').replace(/\s+/g, ' ').trim();
+    memoText = clean.length <= 300 ? clean : `${clean.slice(0, 297)}...`;
+  }
+
   outbound
     .prepare(
-      `INSERT INTO messages_out (id, seq, in_reply_to, timestamp, deliver_after, recurrence, kind, platform_id, channel_type, thread_id, content)
-     VALUES ($id, $seq, $in_reply_to, $timestamp, $deliver_after, $recurrence, $kind, $platform_id, $channel_type, $thread_id, $content)`,
+      `INSERT INTO messages_out (id, seq, in_reply_to, timestamp, deliver_after, recurrence, kind, platform_id, channel_type, thread_id, content, memo)
+     VALUES ($id, $seq, $in_reply_to, $timestamp, $deliver_after, $recurrence, $kind, $platform_id, $channel_type, $thread_id, $content, $memo)`,
     )
     .run({
       $id: msg.id,
@@ -72,6 +74,7 @@ export function writeMessageOut(msg: WriteMessageOut): number {
       $channel_type: msg.channel_type ?? null,
       $thread_id: msg.thread_id ?? null,
       $content: msg.content,
+      $memo: memoText,
     });
 
   return nextSeq;

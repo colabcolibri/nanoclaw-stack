@@ -1,6 +1,9 @@
 ---
 name: executive-briefing
 description: Padrões de formatação visual premium, cartões de e-mail elegantes, cronogramas de agenda e resumos executivos para Telegram e macOS.
+domain: executive_briefing
+tools: [google_gmail, google_calendar, notion]
+keywords: [briefing, resumo do dia, panorama, prioridades, relatório executivo, o que tenho hoje]
 ---
 
 # Executive Briefing & Visual Formatting Skill

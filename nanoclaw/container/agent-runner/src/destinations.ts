@@ -138,11 +138,7 @@ function buildDestinationsSection(mode: SessionMode): string {
   }
 
   lines.push(
-    'Wrap each delivered message in a `<message to="name">…</message>` block; include several blocks in one response to address several destinations. `<internal>…</internal>` marks thinking you don\'t want sent.',
-  );
-  lines.push('');
-  lines.push(
-    'When replying to an incoming message, default to addressing the destination it came `from` (every inbound `<message>` tag carries a `from="name"` attribute). Pick a different destination when the request asks for it (e.g., "tell Laura that…").',
+    'Respond clearly, directly and conclusively. Only invoke available tools via standard function calls with valid JSON arguments.',
   );
   lines.push('');
   lines.push(

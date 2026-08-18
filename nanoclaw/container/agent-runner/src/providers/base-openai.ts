@@ -83,11 +83,8 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       }
     }
 
-    // Build system instructions
-    const systemParts: string[] = [
-      `You are ${this.assistantName}, a helpful, fast, and intelligent personal AI assistant running on NanoClaw.`,
-    ];
-
+    // Extract persona instructions
+    let personaInstructions = '';
     const candidateFiles = [
       path.join(input.cwd, 'instructions.prepend.md'),
       '/workspace/group/instructions.prepend.md',
@@ -99,22 +96,15 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
         if (fs.existsSync(f)) {
           const content = fs.readFileSync(f, 'utf-8').trim();
           if (content) {
-            systemParts.push(content);
+            personaInstructions = content;
             break;
           }
         }
       } catch {}
     }
 
-    if (input.systemContext?.instructions) {
-      systemParts.push(input.systemContext.instructions);
-    }
-
-    // Inject Long-Term Semantic Memory
-    const coreMemory = MemoryManager.loadCoreMemory(input.cwd);
-    if (coreMemory) {
-      systemParts.push(coreMemory);
-    }
+    const technicalDirectives = input.systemContext?.instructions || '';
+    const coreMemory = MemoryManager.loadCoreMemory(input.cwd) || '';
 
     const customHeaders = this.config.customHeaders || {};
 
@@ -133,7 +123,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       try {
         const url = `${baseURL}/chat/completions`;
 
-        const completeFn = async (currentMessages: any[], enableTools: boolean) => {
+        const completeFn = async (currentMessages: any[], enableTools: boolean | any[]) => {
           if (aborted) throw new Error('Query aborted');
 
           const payload: any = {
@@ -142,7 +132,9 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             stream: false,
           };
 
-          if (enableTools && AGENT_TOOLS.length > 0) {
+          if (Array.isArray(enableTools)) {
+            if (enableTools.length > 0) payload.tools = enableTools;
+          } else if (enableTools && AGENT_TOOLS.length > 0) {
             payload.tools = AGENT_TOOLS;
           }
 
@@ -162,6 +154,50 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
 
           if (!res.ok) {
             const errText = await res.text();
+
+            // Auto-rescue Groq/OpenAI tool parse errors (failed_generation recovery)
+            try {
+              const errJson = JSON.parse(errText);
+              const failedGen = errJson.error?.failed_generation;
+              if (failedGen) {
+                let extractedText = failedGen;
+                try {
+                  const parsedGen = JSON.parse(failedGen);
+                  extractedText = parsedGen.arguments || parsedGen.content || failedGen;
+                } catch {
+                  const match = failedGen.match(/"arguments":\s*"?([\s\S]*?)"?\s*\}?$/);
+                  if (match && match[1]) {
+                    extractedText = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+                  }
+                }
+
+                if (extractedText && extractedText.trim().length > 5) {
+                  return {
+                    content: extractedText.trim(),
+                    tool_calls: undefined,
+                  };
+                }
+              }
+
+              // Fallback retry: If tools caused a 400 error, retry immediately without tools
+              if (payload.tools && (errJson.error?.code === 'tool_use_failed' || res.status === 400)) {
+                delete payload.tools;
+                const retryRes = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(payload),
+                });
+                if (retryRes.ok) {
+                  const retryData = (await retryRes.json()) as any;
+                  const retryMsg = retryData.choices?.[0]?.message || {};
+                  return {
+                    content: retryMsg.content,
+                    tool_calls: retryMsg.tool_calls,
+                  };
+                }
+              }
+            } catch {}
+
             throw new Error(`${providerName} API Error (${res.status}): ${errText}`);
           }
 
@@ -210,7 +246,9 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             cwd: input.cwd,
             chatJid: (input as any).chatJid,
             history,
-            systemInstructions: systemParts.join('\n\n'),
+            systemInstructions: technicalDirectives,
+            personaInstructions,
+            coreMemory,
             historyLimit,
           },
           () => {

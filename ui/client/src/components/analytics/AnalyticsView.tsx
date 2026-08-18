@@ -71,13 +71,41 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const totalCostInBrl = totalCostInUsd * exchangeRate
   const totalCostOutBrl = totalCostOutUsd * exchangeRate
 
+  // Helper to format model badge with consistent styling
+  const renderModelBadge = (model?: string) => {
+    const m = model || stats?.modelName || 'deepseek-v4-flash'
+    const lower = m.toLowerCase()
+    const isDeepSeek = lower.includes('deepseek')
+    const isOpenAi = lower.includes('openai') || lower.includes('gpt')
+    const isGroq = lower.includes('groq') || lower.includes('llama')
+    const isClaude = lower.includes('claude') || lower.includes('anthropic')
+
+    let colorClasses = 'border-slate-500/20 bg-slate-500/10 text-slate-400'
+    if (isDeepSeek) {
+      colorClasses = 'border-sky-500/30 bg-sky-500/10 text-sky-400 dark:text-sky-300'
+    } else if (isOpenAi) {
+      colorClasses = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 dark:text-emerald-300'
+    } else if (isGroq) {
+      colorClasses = 'border-amber-500/30 bg-amber-500/10 text-amber-400 dark:text-amber-300'
+    } else if (isClaude) {
+      colorClasses = 'border-orange-500/30 bg-orange-500/10 text-orange-400 dark:text-orange-300'
+    }
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono font-medium whitespace-nowrap ${colorClasses}`}>
+        <Cpu className="w-3 h-3 opacity-80" />
+        <span>{m}</span>
+      </span>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6 relative w-full">
       {/* Standard PageHeader */}
       <PageHeader
         icon={<BarChart3 className="w-5 h-5" />}
         title="Extrato & Consumo de Tokens"
-        subtitle="Monitore a telemetria em tempo real, tokens de entrada/saída em colunas dedicadas e custos discriminados."
+        subtitle="Monitore a telemetria em tempo real, tokens de entrada/saída, modelos utilizados e custos discriminados."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -119,8 +147,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 : `$ ${stats?.estimatedCostUsd || '0.0000'}`}
             </div>
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1">
-            Cotação: R$ {exchangeRate.toFixed(4)} / USD
+          <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1 flex items-center justify-between">
+            <span>Cotação: R$ {exchangeRate.toFixed(4)}</span>
+            <span className="text-[10px] text-[var(--accent)] truncate max-w-[120px]" title={stats?.modelName}>
+              {stats?.modelName || 'deepseek-v4-flash'}
+            </span>
           </div>
         </div>
 
@@ -191,32 +222,39 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               description="Nenhuma mensagem ou chamada de API foi registrada ainda."
             />
           ) : (
-            <table className="w-full text-left text-xs min-w-[1050px]">
+            <table className="w-full text-left text-xs min-w-[1180px]">
               <thead className="bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)] text-[var(--text-muted)] font-mono">
                 <tr>
-                  <th className="p-3.5 px-4 font-bold min-w-[100px]">Tipo</th>
-                  <th className="p-3.5 px-4 font-bold min-w-[130px]">Data & Hora</th>
-                  <th className="p-3.5 px-4 font-bold min-w-[90px]">Canal</th>
-                  <th className="p-3.5 px-4 font-bold min-w-[130px]">Remetente</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[95px]">Tipo</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[125px]">Data & Hora</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[85px]">Canal</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[120px]">Remetente</th>
+                  {/* Model Column */}
+                  <th className="p-3.5 px-4 font-bold text-[var(--text-main)] min-w-[145px]">
+                    <div className="flex items-center gap-1">
+                      <Cpu className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>Modelo</span>
+                    </div>
+                  </th>
                   {/* Separate Token In Column (Generous Width) */}
-                  <th className="p-3.5 px-4 font-bold text-sky-700 dark:text-sky-300 min-w-[145px]">
+                  <th className="p-3.5 px-4 font-bold text-sky-700 dark:text-sky-300 min-w-[135px]">
                     <div>Token In (Entrada)</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">Custo Entrada</div>
                   </th>
                   {/* Separate Token Out Column (Generous Width) */}
-                  <th className="p-3.5 px-4 font-bold text-purple-700 dark:text-purple-300 min-w-[145px]">
+                  <th className="p-3.5 px-4 font-bold text-purple-700 dark:text-purple-300 min-w-[135px]">
                     <div>Token Out (Saída)</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">Custo Saída</div>
                   </th>
                   {/* Total Cost Column (Generous Width) */}
-                  <th className="p-3.5 px-4 font-bold text-emerald-700 dark:text-emerald-300 min-w-[135px]">
+                  <th className="p-3.5 px-4 font-bold text-emerald-700 dark:text-emerald-300 min-w-[125px]">
                     <div>Custo Total</div>
                     <div className="text-[10px] text-[var(--text-dim)] font-normal">({currency})</div>
                   </th>
                   {/* Execução Column (Generous Width) */}
-                  <th className="p-3.5 px-4 font-bold min-w-[160px]">Execução</th>
-                  <th className="p-3.5 px-4 font-bold min-w-[200px]">Mensagem</th>
-                  <th className="p-3.5 px-4 font-bold text-right min-w-[80px]">Auditar</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[150px]">Execução</th>
+                  <th className="p-3.5 px-4 font-bold min-w-[180px]">Mensagem</th>
+                  <th className="p-3.5 px-4 font-bold text-right min-w-[70px]">Auditar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-main)]">
@@ -252,6 +290,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       <td className="p-3.5 px-4 font-mono text-[var(--text-muted)] whitespace-nowrap">{dateStr}</td>
                       <td className="p-3.5 px-4 font-mono text-[var(--text-main)] font-semibold">{m.channel}</td>
                       <td className="p-3.5 px-4 font-semibold text-[var(--text-main)] whitespace-nowrap">{m.senderName}</td>
+
+                      {/* MODEL BADGE COLUMN */}
+                      <td className="p-3.5 px-4 whitespace-nowrap">
+                        {renderModelBadge(m.model)}
+                      </td>
 
                       {/* 1. SEPARATE COLUMN: TOKEN IN + CUSTO IN */}
                       <td className="p-3.5 px-4 font-mono">
@@ -326,19 +369,39 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <Sparkles className="w-5 h-5 text-[var(--accent)]" />
                     <h3 className="text-lg font-bold text-[var(--text-main)]">Auditoria da Chamada & Sub-Runs</h3>
                   </div>
-                  <p className="text-xs font-mono text-[var(--text-dim)]">ID: {selectedMessage.id}</p>
+                  <div className="flex items-center gap-3 text-xs font-mono text-[var(--text-dim)]">
+                    <span>ID: {selectedMessage.id}</span>
+                    <span>•</span>
+                    <span className="text-[var(--accent)] font-semibold">
+                      Modelo: {selectedMessage.model || stats?.modelName || 'deepseek-v4-flash'}
+                    </span>
+                  </div>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedMessage(null)} className="h-8 w-8 p-0 cursor-pointer">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
 
-              {/* Interaction Summary Metrics with Distinct In/Out & Costs */}
-              <div className="grid grid-cols-3 gap-3 font-mono">
+              {/* Interaction Summary Metrics with Distinct In/Out & Costs & Model */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+                {/* Model Card */}
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                  <div className="text-[10px] text-[var(--text-dim)] uppercase font-bold flex items-center gap-1">
+                    <Cpu className="w-3 h-3 text-[var(--accent)]" />
+                    <span>Modelo</span>
+                  </div>
+                  <div className="text-xs font-bold text-[var(--text-main)] mt-1 truncate" title={selectedMessage.model || stats?.modelName}>
+                    {selectedMessage.model || stats?.modelName || 'deepseek-v4-flash'}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                    {selectedMessage.channel}
+                  </div>
+                </div>
+
                 {/* Total Cost */}
-                <div className="p-3.5 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-[var(--text-dim)] uppercase font-bold">Custo Total</div>
-                  <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                  <div className="text-[10px] text-[var(--text-dim)] uppercase font-bold">Custo Total</div>
+                  <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                     {formatCost(selectedMessage.costUsd, selectedMessage.costBrl)}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
@@ -347,30 +410,30 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </div>
 
                 {/* Token In + Custo In */}
-                <div className="p-3.5 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-sky-700 dark:text-sky-300 uppercase font-bold flex items-center gap-1">
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                  <div className="text-[10px] text-sky-700 dark:text-sky-300 uppercase font-bold flex items-center gap-1">
                     <ArrowDownLeft className="w-3 h-3 text-sky-500" />
                     <span>Token In</span>
                   </div>
-                  <div className="text-base font-bold text-sky-600 dark:text-sky-400 mt-1">
+                  <div className="text-sm font-bold text-sky-600 dark:text-sky-400 mt-1">
                     {(selectedMessage.promptTokens || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
-                    Custo: {formatCost(selectedMessage.costInUsd, selectedMessage.costInBrl)}
+                    {formatCost(selectedMessage.costInUsd, selectedMessage.costInBrl)}
                   </div>
                 </div>
 
                 {/* Token Out + Custo Out */}
-                <div className="p-3.5 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                  <div className="text-[11px] text-purple-700 dark:text-purple-300 uppercase font-bold flex items-center gap-1">
+                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                  <div className="text-[10px] text-purple-700 dark:text-purple-300 uppercase font-bold flex items-center gap-1">
                     <ArrowUpRight className="w-3 h-3 text-purple-500" />
                     <span>Token Out</span>
                   </div>
-                  <div className="text-base font-bold text-purple-600 dark:text-purple-400 mt-1">
+                  <div className="text-sm font-bold text-purple-600 dark:text-purple-400 mt-1">
                     {(selectedMessage.completionTokens || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
-                    Custo: {formatCost(selectedMessage.costOutUsd, selectedMessage.costOutBrl)}
+                    {formatCost(selectedMessage.costOutUsd, selectedMessage.costOutBrl)}
                   </div>
                 </div>
               </div>
@@ -405,10 +468,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         className="p-3.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-2 font-mono text-xs"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant={step.type === 'tool_execution' ? 'warning' : 'secondary'} className="text-[10px]">
                               Passo #{idx + 1} • {step.type === 'tool_execution' ? 'TOOL RUN' : 'SÍNTESE'}
                             </Badge>
+                            {step.model && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-main)] font-semibold flex items-center gap-1">
+                                <Cpu className="w-2.5 h-2.5 opacity-70 text-[var(--accent)]" />
+                                <span>{step.model}</span>
+                              </span>
+                            )}
                             {step.toolName && (
                               <span className="font-bold text-[var(--accent)] flex items-center gap-1">
                                 <Wrench className="w-3 h-3 text-amber-500" />

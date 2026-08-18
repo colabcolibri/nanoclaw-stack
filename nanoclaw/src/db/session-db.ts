@@ -119,13 +119,26 @@ export function insertMessage(
      * Dying containers (past first poll) skip these rows.
      */
     onWake?: 0 | 1;
+    memo?: string | null;
   },
 ): void {
+  let memoText = message.memo;
+  if (!memoText) {
+    let clean = message.content;
+    try {
+      const parsed = JSON.parse(message.content);
+      clean = parsed.text || message.content;
+    } catch {}
+    clean = clean.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').replace(/\s+/g, ' ').trim();
+    memoText = clean.length <= 300 ? clean : `${clean.slice(0, 297)}...`;
+  }
+
   db.prepare(
-    `INSERT INTO messages_in (id, seq, kind, timestamp, status, platform_id, channel_type, thread_id, content, process_after, recurrence, series_id, trigger, source_session_id, on_wake)
-     VALUES (@id, @seq, @kind, @timestamp, 'pending', @platformId, @channelType, @threadId, @content, @processAfter, @recurrence, @id, @trigger, @sourceSessionId, @onWake)`,
+    `INSERT INTO messages_in (id, seq, kind, timestamp, status, platform_id, channel_type, thread_id, content, process_after, recurrence, series_id, trigger, source_session_id, on_wake, memo)
+     VALUES (@id, @seq, @kind, @timestamp, 'pending', @platformId, @channelType, @threadId, @content, @processAfter, @recurrence, @id, @trigger, @sourceSessionId, @onWake, @memo)`,
   ).run({
     ...message,
+    memo: memoText,
     trigger: message.trigger ?? 1,
     onWake: message.onWake ?? 0,
     sourceSessionId: message.sourceSessionId ?? null,

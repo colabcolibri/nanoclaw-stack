@@ -193,7 +193,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
                 const formData = new FormData();
                 const blob = new Blob([buffer], { type: att.mimeType || 'audio/ogg' });
                 formData.append('audio_file', blob, att.name || 'voice.ogg');
-                const whisperRes = await fetch('http://127.0.0.1:9000/asr?task=transcribe&language=pt&output=txt', {
+                const whisperRes = await fetch('http://127.0.0.1:9000/asr?task=transcribe&output=txt', {
                   method: 'POST',
                   body: formData,
                 });

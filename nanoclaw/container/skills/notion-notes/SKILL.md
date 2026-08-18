@@ -1,6 +1,9 @@
 ---
 name: notion-notes
 description: Toma notas inteligentes, organiza atas de reunião, cria tarefas e gerencia bancos de dados e páginas no Notion.
+domain: notion_management
+tools: [notion]
+keywords: [notion, tarefa, tarefas, task, tasks, quadro, database, pagina, anotação, notas, ata, reunião]
 ---
 
 # 📝 Skill: Notion Note Taking & Knowledge Management

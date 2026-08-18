@@ -18,6 +18,8 @@ const badgeVariants = cva(
         macos: "border-slate-300 bg-slate-100 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100",
         cli: "border-purple-300 bg-purple-100 text-purple-950 dark:border-purple-500/50 dark:bg-purple-950/80 dark:text-purple-200",
         web: "border-teal-300 bg-teal-100 text-teal-950 dark:border-teal-500/50 dark:bg-teal-950/80 dark:text-teal-200",
+        tokens: "border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-950/80 dark:text-amber-200",
+        chars: "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-500/50 dark:bg-emerald-950/80 dark:text-emerald-200",
         outline: "text-[var(--text-main)] border-[var(--border-main)] bg-[var(--bg-card)]",
       },
     },

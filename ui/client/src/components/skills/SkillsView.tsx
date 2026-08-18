@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sparkles, RefreshCw, Save, Search, Check, AlertCircle, Folder, Code2 } from 'lucide-react'
+import { Sparkles, RefreshCw, Save, Search, Check, AlertCircle, Folder, Code2, Zap, AlignLeft, Layers } from 'lucide-react'
 import { ApiClient, type SkillItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -67,6 +67,14 @@ export const SkillsView: React.FC = () => {
     const q = searchQuery.toLowerCase()
     return s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
   })
+
+  // Cumulative Context footprint metrics
+  const activeSkills = skills.filter((s) => (mode === 'all' ? true : s.enabled))
+  const totalActiveSkills = activeSkills.length
+  const totalActiveTokens = activeSkills.reduce((acc, s) => acc + (s.totalTokens || 0), 0)
+  const totalActiveChars = activeSkills.reduce((acc, s) => acc + (s.totalChars || 0), 0)
+
+  const formatK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString('pt-BR'))
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
@@ -161,6 +169,31 @@ export const SkillsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Context Footprint Summary Banner */}
+      <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] shadow-xs flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+          <span className="font-bold text-[var(--text-main)]">Pegada de Contexto das Skills Ativas:</span>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Badge variant="default" className="text-xs py-1 px-3 gap-1.5 font-bold">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{totalActiveSkills} de {skills.length} skills ativas</span>
+          </Badge>
+
+          <Badge variant="tokens" className="text-xs py-1 px-3 gap-1.5 font-bold">
+            <Zap className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+            <span>~{formatK(totalActiveTokens)} tokens estimados</span>
+          </Badge>
+
+          <Badge variant="chars" className="text-xs py-1 px-3 gap-1.5 font-bold">
+            <AlignLeft className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
+            <span>{totalActiveChars.toLocaleString('pt-BR')} caracteres</span>
+          </Badge>
+        </div>
+      </div>
+
       {/* Skills Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSkills.length === 0 ? (
@@ -176,6 +209,8 @@ export const SkillsView: React.FC = () => {
             const isEnabled = mode === 'all' ? true : skill.enabled
             const refCount = skill.references ? skill.references.length : 0
             const scriptCount = skill.scripts ? skill.scripts.length : 0
+            const skillTokens = skill.totalTokens || 0
+            const skillChars = skill.totalChars || 0
 
             return (
               <Card
@@ -186,7 +221,7 @@ export const SkillsView: React.FC = () => {
               >
                 <CardHeader className="p-4 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
                         <CardTitle className="text-xs font-bold text-[var(--text-main)] font-mono">
@@ -194,17 +229,26 @@ export const SkillsView: React.FC = () => {
                         </CardTitle>
                       </div>
 
+                      {/* Metrics and Files Badges */}
                       <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge variant="tokens" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                          <Zap className="w-3 h-3 text-amber-700 dark:text-amber-300" />
+                          <span>~{formatK(skillTokens)} tok</span>
+                        </Badge>
+                        <Badge variant="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                          <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
+                          <span>{formatK(skillChars)} chars</span>
+                        </Badge>
                         {refCount > 0 && (
                           <Badge variant="ref" className="text-[10px] py-0 px-2 gap-1 font-bold">
                             <Folder className="w-3 h-3 text-sky-800 dark:text-sky-300" />
-                            <span>{refCount} ref(s)</span>
+                            <span>{refCount} ref</span>
                           </Badge>
                         )}
                         {scriptCount > 0 && (
                           <Badge variant="script" className="text-[10px] py-0 px-2 gap-1 font-bold">
                             <Code2 className="w-3 h-3 text-purple-800 dark:text-purple-300" />
-                            <span>{scriptCount} script(s)</span>
+                            <span>{scriptCount} script</span>
                           </Badge>
                         )}
                       </div>
@@ -236,7 +280,7 @@ export const SkillsView: React.FC = () => {
                       className="w-full gap-1.5 text-xs font-bold h-8 border-[var(--border-main)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-subtle)] text-[var(--text-main)]"
                     >
                       <Search className="w-3.5 h-3.5 text-[var(--accent)]" />
-                      <span>Abrir</span>
+                      <span>Abrir Detalhes</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -255,3 +299,4 @@ export const SkillsView: React.FC = () => {
     </div>
   )
 }
+

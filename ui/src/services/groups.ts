@@ -342,8 +342,30 @@ export class GroupManager {
       description: string;
       enabled: boolean;
       skillMdContent: string;
-      references: Array<{ name: string; relativePath: string; sizeBytes: number; content: string }>;
-      scripts: Array<{ name: string; relativePath: string; sizeBytes: number }>;
+      skillMdChars: number;
+      skillMdTokens: number;
+      references: Array<{
+        name: string;
+        relativePath: string;
+        sizeBytes: number;
+        content: string;
+        charCount: number;
+        tokenCount: number;
+      }>;
+      referencesChars: number;
+      referencesTokens: number;
+      scripts: Array<{
+        name: string;
+        relativePath: string;
+        sizeBytes: number;
+        content?: string;
+        charCount: number;
+        tokenCount: number;
+      }>;
+      scriptsChars: number;
+      scriptsTokens: number;
+      totalChars: number;
+      totalTokens: number;
     }> = [];
 
     if (fs.existsSync(CONFIG.SKILLS_PATH)) {
@@ -354,9 +376,13 @@ export class GroupManager {
           const skillMdPath = path.join(skillDir, "SKILL.md");
           let description = "Habilidade do assistente.";
           let skillMdContent = "";
+          let skillMdChars = 0;
+          let skillMdTokens = 0;
 
           if (fs.existsSync(skillMdPath)) {
             skillMdContent = fs.readFileSync(skillMdPath, "utf-8");
+            skillMdChars = skillMdContent.length;
+            skillMdTokens = Math.ceil(skillMdChars / 3.8);
             // Parse YAML frontmatter description
             const descMatch = skillMdContent.match(/description:\s*([^\n\r]+)/i);
             if (descMatch && descMatch[1]) {
@@ -368,7 +394,17 @@ export class GroupManager {
           }
 
           // Scan references/
-          const references: Array<{ name: string; relativePath: string; sizeBytes: number; content: string }> = [];
+          const references: Array<{
+            name: string;
+            relativePath: string;
+            sizeBytes: number;
+            content: string;
+            charCount: number;
+            tokenCount: number;
+          }> = [];
+          let referencesChars = 0;
+          let referencesTokens = 0;
+
           const refDir = path.join(skillDir, "references");
           if (fs.existsSync(refDir)) {
             try {
@@ -378,11 +414,17 @@ export class GroupManager {
                   const fullPath = path.join(refDir, rf.name);
                   const stat = fs.statSync(fullPath);
                   const content = fs.readFileSync(fullPath, "utf-8");
+                  const charCount = content.length;
+                  const tokenCount = Math.ceil(charCount / 3.8);
+                  referencesChars += charCount;
+                  referencesTokens += tokenCount;
                   references.push({
                     name: rf.name,
                     relativePath: `references/${rf.name}`,
                     sizeBytes: stat.size,
                     content,
+                    charCount,
+                    tokenCount,
                   });
                 }
               }
@@ -390,7 +432,17 @@ export class GroupManager {
           }
 
           // Scan scripts/
-          const scripts: Array<{ name: string; relativePath: string; sizeBytes: number }> = [];
+          const scripts: Array<{
+            name: string;
+            relativePath: string;
+            sizeBytes: number;
+            content?: string;
+            charCount: number;
+            tokenCount: number;
+          }> = [];
+          let scriptsChars = 0;
+          let scriptsTokens = 0;
+
           const scriptDir = path.join(skillDir, "scripts");
           if (fs.existsSync(scriptDir)) {
             try {
@@ -400,24 +452,42 @@ export class GroupManager {
                   const fullPath = path.join(scriptDir, sf.name);
                   const stat = fs.statSync(fullPath);
                   const content = fs.readFileSync(fullPath, "utf-8");
+                  const charCount = content.length;
+                  const tokenCount = Math.ceil(charCount / 3.8);
+                  scriptsChars += charCount;
+                  scriptsTokens += tokenCount;
                   scripts.push({
                     name: sf.name,
                     relativePath: `scripts/${sf.name}`,
                     sizeBytes: stat.size,
                     content,
+                    charCount,
+                    tokenCount,
                   });
                 }
               }
             } catch {}
           }
 
+          // Scripts are local executables executed on-demand via bash, NOT loaded into the LLM context prompt
+          const totalChars = skillMdChars + referencesChars;
+          const totalTokens = skillMdTokens + referencesTokens;
+
           skills.push({
             name: ent.name,
             description,
             enabled: isAll || enabledList.includes(ent.name),
             skillMdContent,
+            skillMdChars,
+            skillMdTokens,
             references,
+            referencesChars,
+            referencesTokens,
             scripts,
+            scriptsChars,
+            scriptsTokens: 0,
+            totalChars,
+            totalTokens,
           });
         }
       }

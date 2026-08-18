@@ -1,3 +1,5 @@
+import type { ToolDefinition } from '../tools/types.js';
+
 export interface ExtractedToolCall {
   id: string;
   name: string;
@@ -10,6 +12,8 @@ export interface TurnOptions {
   chatJid?: string;
   history: Array<{ role: string; content?: string; [key: string]: any }>;
   systemInstructions: string;
+  personaInstructions?: string;
+  coreMemory?: string;
   historyLimit?: number;
   maxIterations?: number;
 }
@@ -19,7 +23,7 @@ export interface LLMResponse {
   tool_calls?: any[];
 }
 
-export type LLMCompletionFn = (messages: any[], enableTools: boolean) => Promise<LLMResponse>;
+export type LLMCompletionFn = (messages: any[], enableTools: boolean | ToolDefinition[]) => Promise<LLMResponse>;
 
 export interface OrchestratorResult {
   deliveredText: string;

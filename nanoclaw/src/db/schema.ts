@@ -185,9 +185,8 @@ CREATE TABLE IF NOT EXISTS messages_in (
   -- group's "newest" session. NULL on channel-side inbound and on a2a rows
   -- written before this column existed.
   source_session_id TEXT,
-  on_wake        INTEGER NOT NULL DEFAULT 0
-               -- 1 = only deliver on the container's first poll (fresh start).
-               -- Dying containers (past first poll) skip these rows.
+  on_wake        INTEGER NOT NULL DEFAULT 0,
+  memo           TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_messages_in_series ON messages_in(series_id);
 
@@ -239,7 +238,8 @@ CREATE TABLE IF NOT EXISTS messages_out (
   platform_id    TEXT,
   channel_type   TEXT,
   thread_id      TEXT,
-  content        TEXT NOT NULL
+  content        TEXT NOT NULL,
+  memo           TEXT
 );
 
 -- Container tracks processing status here instead of updating messages_in.

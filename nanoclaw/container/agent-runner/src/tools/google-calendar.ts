@@ -6,42 +6,42 @@ export const googleCalendarTool: AgentTool = {
     type: 'function',
     function: {
       name: 'google_calendar',
-      description: 'Queries, creates, and manages events across all user Google Calendars (primary, personal, team, shared).',
+      description: 'Consulta e gerencia eventos no Google Calendar.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['list_calendars', 'list_events', 'create_event', 'search_events'],
-            description: 'Action to perform: "list_calendars" (list available calendars), "list_events" (list upcoming events), "search_events" (search events by title/text), "create_event" (schedule new event).',
+            description: 'Ação: "list_events" (agenda do dia/período), "create_event" (agendar), "search_events" (busca texto).',
           },
           calendar_id: {
             type: 'string',
-            description: 'Calendar ID (e.g. "primary", or ID from list_calendars). If omitted, searches across all active user calendars.',
+            description: 'ID do calendário ("primary" ou ID específico).',
           },
           query: {
             type: 'string',
-            description: 'Search term (for search_events) or event summary/title (for create_event).',
+            description: 'Termo de busca ou título do evento.',
           },
           date: {
             type: 'string',
-            description: 'Target event date in YYYY-MM-DD format (filters strictly to that day).',
+            description: 'Data alvo (YYYY-MM-DD).',
           },
           start_time: {
             type: 'string',
-            description: 'Start time ISO 8601 (for create_event).',
+            description: 'Início ISO 8601.',
           },
           end_time: {
             type: 'string',
-            description: 'End time ISO 8601 (for create_event).',
+            description: 'Término ISO 8601.',
           },
           description: {
             type: 'string',
-            description: 'Description or meeting details of the event.',
+            description: 'Descrição do evento.',
           },
           location: {
             type: 'string',
-            description: 'Meeting location, physical address, or virtual meeting link.',
+            description: 'Local ou link de reunião.',
           },
         },
         required: ['action'],

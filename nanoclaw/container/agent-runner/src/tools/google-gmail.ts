@@ -132,58 +132,55 @@ export const googleGmailTool: AgentTool = {
     type: 'function',
     function: {
       name: 'google_gmail',
-      description:
-        'Accesses Gmail to list conversation threads, search messages, read full message/thread contents, create drafts, send email replies in the same thread, list drafts, or delete drafts.',
+      description: 'Gerencia e-mails no Gmail (listar, ler conteúdo, criar rascunho, enviar resposta).',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['list_messages', 'read_message', 'create_draft', 'send_message', 'list_drafts', 'delete_draft'],
-            description:
-              'Action to perform: "list_messages" (list inbox/search conversations), "read_message" (read full email content by message_id or thread_id), "create_draft" (create a draft in thread), "send_message" (send email in thread), "list_drafts" (list all existing drafts), "delete_draft" (delete a draft by draft_id).',
+            description: 'Ação: "list_messages" (busca/inbox), "read_message" (lê thread/corpo), "create_draft" (cria rascunho), "send_message" (envia resposta).',
           },
           folder: {
             type: 'string',
             enum: ['inbox', 'sent', 'starred', 'all'],
-            description: 'Folder to query (default: "inbox").',
+            description: 'Pasta (padrão: inbox).',
           },
           query: {
             type: 'string',
-            description:
-              'Gmail search operators (e.g. "is:unread", "newer_than:3d", "from:user@example.com", "subject:quote"). Default searches within Inbox.',
+            description: 'Filtro Gmail (ex: "is:unread", "newer_than:2d", "from:x").',
           },
           max_results: {
             type: 'number',
-            description: 'Maximum number of conversations to return (default 50, max 100).',
-          },
-          message_id: {
-            type: 'string',
-            description: 'Message ID or Thread ID to read or reply to.',
+            description: 'Limite de conversas (padrão 8, max 25).',
           },
           thread_id: {
             type: 'string',
-            description: 'Thread ID to reply within (ensures response stays in the exact same conversation thread).',
+            description: 'ID da thread para ler ou responder.',
+          },
+          message_id: {
+            type: 'string',
+            description: 'ID da mensagem.',
           },
           draft_id: {
             type: 'string',
-            description: 'Draft ID to delete (required for delete_draft).',
+            description: 'ID do rascunho.',
           },
           to: {
             type: 'string',
-            description: 'Recipient email address for sending or creating a draft.',
+            description: 'Destinatário.',
           },
           subject: {
             type: 'string',
-            description: 'Subject line of the email.',
+            description: 'Assunto.',
           },
           body: {
             type: 'string',
-            description: 'Text content/body of the email (will be formatted as continuous flowing text).',
+            description: 'Corpo do e-mail.',
           },
           from_alias: {
             type: 'string',
-            description: 'Sender alias/signature to use (e.g. "Assistente Virtual da Colibri <contato@colabcolibri.com>").',
+            description: 'Assinatura/remetente.',
           },
         },
         required: ['action'],

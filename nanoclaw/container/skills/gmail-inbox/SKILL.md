@@ -1,6 +1,9 @@
 ---
 name: gmail-inbox
-description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada, leitura completa, criação/exclusão de rascunhos e respostas na mesma thread via Gmail API.
+description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada, leitura completa e respostas via Gmail API.
+domain: google_suite
+tools: [google_gmail]
+keywords: [email, e-mail, emails, e-mails, gmail, inbox, caixa de entrada, mensagem, mensagens, darf, inss, gestta]
 ---
 
 # Gmail Inbox & Executive Search Skill

@@ -1,6 +1,9 @@
 ---
 name: store-email-attendant
 description: Atendente oficial de e-mails da Loja Colibri. Gerencia respostas informativas a clientes, mantém respostas na mesma conversa (thread), permite excluir rascunhos e redige em texto corrido e fluído.
+domain: store_attendant
+tools: [google_gmail]
+keywords: [sac, atendimento, suporte, cliente, colibri, íris, iris, devolução, troca, rascunho de email]
 ---
 
 # Atendente de E-mails & Suporte da Loja Colibri

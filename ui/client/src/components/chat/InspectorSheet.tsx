@@ -87,6 +87,17 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
               </span>
             </div>
 
+            {message.memo && (
+              <div>
+                <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px] mb-1">
+                  Memo de Contexto (≤ 300 chars)
+                </span>
+                <div className="p-3 rounded-lg bg-[var(--accent-subtle)]/15 border border-[var(--accent)]/30 text-[var(--text-main)] font-sans text-xs leading-relaxed">
+                  {message.memo}
+                </div>
+              </div>
+            )}
+
             <div>
               <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
                 Métricas de Consumo

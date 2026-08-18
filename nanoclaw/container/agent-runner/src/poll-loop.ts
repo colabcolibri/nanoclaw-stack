@@ -660,8 +660,6 @@ export function dispatchResultText(
 
   let match: RegExpExecArray | null;
   let sent = 0;
-  // <message to> blocks left inert in a task run — drives the same-turn
-  // "use send_message" nudge in processQuery.
   const taskBlocks: TaskMessageBlock[] = [];
   let lastIndex = 0;
   const scratchpadParts: string[] = [];
@@ -674,10 +672,6 @@ export function dispatchResultText(
     const body = match[2].trim();
     lastIndex = MESSAGE_RE.lastIndex;
 
-    // One-door delivery in task sessions: only the send_message tool delivers.
-    // A final-text <message to> block here is either an echo of a tool send the
-    // agent already made (the double-delivery class) or a send down the wrong
-    // path — never deliver it, keep it visible in the scratchpad/run log.
     if (routing.taskRun) {
       log(`Task run: <message to="${toName}"> block not delivered — task sessions send only via explicit tools`);
       scratchpadParts.push(
@@ -688,30 +682,47 @@ export function dispatchResultText(
     }
     const dest = findByName(toName);
     if (!dest) {
-      log(`Unknown destination in <message to="${toName}">, dropping block`);
-      scratchpadParts.push(`[dropped: unknown destination "${toName}"] ${body}`);
+      log(`Unknown destination in <message to="${toName}">, delivering to active channel`);
+      writeMessageOut({
+        id: generateId(),
+        in_reply_to: routing.inReplyTo,
+        kind: 'chat',
+        platform_id: routing.platformId,
+        channel_type: routing.channelType,
+        thread_id: routing.threadId,
+        content: JSON.stringify({ text: body }),
+      });
+      sent++;
       continue;
     }
     sendToDestination(dest, body, routing);
     sent++;
   }
-  if (lastIndex < text.length) {
-    scratchpadParts.push(text.slice(lastIndex));
+
+  // Deterministic System-Driven Delivery: If no <message> blocks were matched,
+  // deliver the response directly to the origin channel
+  if (sent === 0 && !routing.taskRun && text && text.trim().length > 0) {
+    const rawClean = stripInternalTags(text)
+      .replace(/<message\s+to="[^"]*">/gi, '')
+      .replace(/<\/message>/gi, '')
+      .trim();
+
+    if (rawClean.length > 0) {
+      log(`[dispatchResultText] System delivering direct text to ${routing.channelType}:${routing.platformId}`);
+      writeMessageOut({
+        id: generateId(),
+        in_reply_to: routing.inReplyTo,
+        kind: 'chat',
+        platform_id: routing.platformId,
+        channel_type: routing.channelType,
+        thread_id: routing.threadId,
+        content: JSON.stringify({ text: rawClean }),
+      });
+      sent++;
+    }
   }
 
-  const scratchpad = stripInternalTags(scratchpadParts.join(''));
-
-  if (scratchpad) {
-    log(`[scratchpad] ${scratchpad.slice(0, 500)}${scratchpad.length > 500 ? '…' : ''}`);
-  }
-
-  // In a task run, plain final text is the NORMAL ending (it becomes the run
-  // log) — never treat it as an undelivered reply or nudge the agent to wrap it.
-  const hasUnwrapped = !routing.taskRun && sent === 0 && !!scratchpad;
-  if (hasUnwrapped) {
-    log(`WARNING: agent output had no <message to="..."> blocks — nothing was sent`);
-  }
-  return { sent, hasUnwrapped, taskBlocks };
+  return { sent, hasUnwrapped: false, taskBlocks };
 }
 
 /**

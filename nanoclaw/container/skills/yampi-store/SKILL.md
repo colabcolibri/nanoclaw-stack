@@ -1,6 +1,9 @@
 ---
 name: yampi-store
 description: Atendimento inteligente de e-commerce, consulta de produtos, disponibilidade de estoque e rastreamento de pedidos da loja virtual Yampi com trava de privacidade.
+domain: ecommerce_logistics
+tools: [yampi_store]
+keywords: [yampi, pedido, pedidos, loja, venda, produto, produtos, estoque, grok, jogo grok, cliente, compra]
 ---
 
 # Yampi Store & E-commerce Operations Skill
