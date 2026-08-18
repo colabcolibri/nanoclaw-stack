@@ -43,8 +43,10 @@ public struct ChatView: View {
                 text: $viewModel.inputText,
                 isSending: viewModel.isSending,
                 isRecording: viewModel.isRecording,
+                isDictating: viewModel.isDictating,
                 audioLevel: viewModel.audioLevel,
                 onSend: viewModel.sendMessage,
+                onToggleDictation: viewModel.toggleLiveDictation,
                 onStartRecording: viewModel.startVoiceRecording,
                 onStopRecording: viewModel.stopAndSendVoiceRecording,
                 onCancelRecording: viewModel.cancelVoiceRecording

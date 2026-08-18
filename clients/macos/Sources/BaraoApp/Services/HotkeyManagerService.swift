@@ -8,11 +8,11 @@ public final class HotkeyManagerService {
     
     private init() {}
     
-    /// Starts monitoring for local keyboard shortcuts
+    /// Starts monitoring for local keyboard shortcuts: Ctrl + \ (keyCode 42)
     public func registerLocalShortcuts(onToggleWindow: @escaping () -> Void) {
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Option + Space or Cmd + Shift + B
-            if event.modifierFlags.contains(.option) && event.keyCode == 49 { // 49 = Spacebar
+            // Check for Control modifier + Backslash key (\, keyCode 42)
+            if event.modifierFlags.contains(.control) && event.keyCode == 42 {
                 onToggleWindow()
                 return nil
             }

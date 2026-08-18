@@ -1,49 +1,51 @@
 # 💻 Barão — App Nativo para macOS
 
-> Aplicativo nativo em **Swift & SwiftUI** para interação instantânea via texto e voz com o ecossistema **NanoClaw / Barão AI**.
+> Aplicativo de desktop independente, nativo em **Swift & SwiftUI**, para interação via texto e voz em tempo real com o assistente **Barão AI / NanoClaw**.
 
 ---
 
 ## ✨ Recursos
 
-* **⚡ Ultraleve & Instantâneo:** Desenvolvido 100% em Swift/SwiftUI nativo (sem Electron, consumo mínimo de memória RAM).
-* **💬 Chat Thread Completo:** Visualização contínua com histórico salvo no Mac e sincronizado com o servidor.
-* **🎙️ Voz Nativa (Push to Talk):** Gravação de áudio com visualizador de ondas e transcrição no Whisper local.
-* **🔊 Text-to-Speech (TTS):** Opção de ouvir as respostas do Barão em voz alta.
-* **👑 Menu Bar & Atalhos:** Ícone fixado na barra de menus superior do macOS para acesso em 1 clique.
-* **🔒 Segurança por Chave Bearer:** Armazenamento seguro de credenciais com validação estrita.
+* **⚡ 100% Nativo & Ultraleve:** Desenvolvido em Swift & SwiftUI puro (sem Electron, ~3 MB de tamanho).
+* **🎙️ Reconhecimento de Fala Nativo em Tempo Real:** Transcrição ao vivo de voz enquanto você fala utilizando o framework oficial da Apple (`SFSpeechRecognizer` com pontuação automática).
+* **💬 Chat Thread Completo:** Histórico de conversa contínuo e persistente, sincronizado com o servidor.
+* **⌨️ Atalho Global Rápido:** Pressione **`Control + \`** (`Ctrl + \`) em qualquer lugar do Mac para abrir/ocultar a janela instantaneamente.
+* **🔊 Text-to-Speech (TTS):** Opção de ouvir as respostas lidas em voz alta pelo sintetizador da Apple.
+* **👑 Barra de Menus (Menu Bar) & Dock:** Acesso rápido no topo da tela do macOS.
+* **🔒 Armazenamento Seguro:** Credenciais salvas com segurança no Keychain do macOS.
 
 ---
 
-## 🛠️ Como Compilar e Instalar no seu Mac
+## 🛠️ Como Compilar e Usar
 
 No terminal do seu Mac:
 
 ```bash
-# 1. Acesse a pasta do projeto
-cd clients/macos
+# 1. Clone ou baixe este repositório no seu Mac
+git clone git@github.com:colabcolibri/barao-macos.git
+cd barao-macos
 
-# 2. Execute o script de compilação
+# 2. Compile o aplicativo (leva menos de 10 segundos)
 ./build.sh
 ```
 
-O script irá gerar o aplicativo pronto em:
-* `dist/Barao.app`
-* `dist/Barao-macOS.zip`
+O script criará o **`dist/Barao.app`** e o **`dist/Barao-macOS.zip`**.
 
 ### Instalação:
-1. Abra a pasta `dist/` no Finder (`open dist/`).
-2. Arraste o **`Barao.app`** para a pasta **`Aplicativos` (`/Applications`)**.
-3. Ao abrir pela primeira vez, clique em **Configurações (ícone de engrenagem)**:
-   * **URL do Servidor:** `https://uai.sergioluciano.com`
-   * **Chave de API:** Sua chave do Mac (`mac_...`)
+1. Arraste o **`Barao.app`** para a sua pasta **`Aplicativos` (`/Applications`)**.
+2. Abra o aplicativo.
+3. Se necessário, clique no ícone de **Configurações ⚙️**:
+   - **URL do Servidor:** `https://uai.sergioluciano.com`
+   - **Chave de API:** Sua chave do Mac (`mac_...`)
 4. Clique em **Testar Conexão** e pronto!
 
 ---
 
-## 🏛️ Arquitetura do Código (SOLID / SRP / DRY)
+## ⌨️ Atalhos Úteis
 
-* **`Models/`**: Entidades imutáveis e decodificáveis (`ChatMessage`, `AppConfig`, `ApiResponse`).
-* **`Services/`**: Módulos desacoplados orientados a protocolos (`ApiClientService`, `AudioRecordingService`, `AudioPlaybackService`, `KeychainStorageService`).
-* **`ViewModels/`**: Gerenciamento reativo de estado com `Combine` e `@MainActor` (`ChatViewModel`, `SettingsViewModel`).
-* **`Views/`**: Componentes reutilizáveis e modulares em SwiftUI puro (`ChatView`, `ChatMessageBubbleView`, `ChatInputBarView`, `SettingsSheetView`).
+* **`Control + \`**: Abre ou oculta a janela do Barão em qualquer aplicativo.
+* **`Return` (Enter)**: Envia a mensagem.
+* **`Shift + Return`**: Pula uma linha no campo de texto.
+* **`Cmd + W`**: Fecha/oculta a janela.
+* **`Cmd + Q`**: Encerra o aplicativo.
+* **`ESC`**: Fecha a tela de configurações.

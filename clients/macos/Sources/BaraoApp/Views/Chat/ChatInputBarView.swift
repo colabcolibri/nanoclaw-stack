@@ -4,8 +4,10 @@ public struct ChatInputBarView: View {
     @Binding public var text: String
     public let isSending: Bool
     public let isRecording: Bool
+    public let isDictating: Bool
     public let audioLevel: Float
     public let onSend: () -> Void
+    public let onToggleDictation: () -> Void
     public let onStartRecording: () -> Void
     public let onStopRecording: () -> Void
     public let onCancelRecording: () -> Void
@@ -14,8 +16,10 @@ public struct ChatInputBarView: View {
         text: Binding<String>,
         isSending: Bool,
         isRecording: Bool,
+        isDictating: Bool = false,
         audioLevel: Float,
         onSend: @escaping () -> Void,
+        onToggleDictation: @escaping () -> Void,
         onStartRecording: @escaping () -> Void,
         onStopRecording: @escaping () -> Void,
         onCancelRecording: @escaping () -> Void
@@ -23,8 +27,10 @@ public struct ChatInputBarView: View {
         self._text = text
         self.isSending = isSending
         self.isRecording = isRecording
+        self.isDictating = isDictating
         self.audioLevel = audioLevel
         self.onSend = onSend
+        self.onToggleDictation = onToggleDictation
         self.onStartRecording = onStartRecording
         self.onStopRecording = onStopRecording
         self.onCancelRecording = onCancelRecording
@@ -36,7 +42,7 @@ public struct ChatInputBarView: View {
             
             HStack(alignment: .center, spacing: 10) {
                 if isRecording {
-                    // Recording HUD
+                    // Raw Audio Recording HUD
                     HStack(spacing: 12) {
                         Button(action: onCancelRecording) {
                             Image(systemName: "trash.fill")
@@ -51,7 +57,7 @@ public struct ChatInputBarView: View {
                         
                         AudioWaveformView(audioLevel: audioLevel)
                         
-                        Text("Gravando...")
+                        Text("Gravando áudio...")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.red)
                         
@@ -60,7 +66,7 @@ public struct ChatInputBarView: View {
                         Button(action: onStopRecording) {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.up.circle.fill")
-                                Text("Enviar Voz")
+                                Text("Enviar")
                             }
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.white)
@@ -74,32 +80,49 @@ public struct ChatInputBarView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 } else {
-                    // Standard Text Input
-                    TextField("Envie uma mensagem ao Barão... (Pressione Return)", text: $text, axis: .vertical)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .lineLimit(1...5)
-                        .onSubmit {
-                            if !NSEvent.modifierFlags.contains(.shift) {
-                                onSend()
-                            }
+                    // Standard Text Input with Live Dictation
+                    HStack(spacing: 6) {
+                        if isDictating {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
                         }
+                        
+                        TextField(isDictating ? "Ouvindo sua voz em tempo real..." : "Envie uma mensagem ao Barão... (Return para enviar)", text: $text, axis: .vertical)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .lineLimit(1...5)
+                            .onSubmit {
+                                if !NSEvent.modifierFlags.contains(.shift) {
+                                    if isDictating {
+                                        onToggleDictation()
+                                    }
+                                    onSend()
+                                }
+                            }
+                    }
                     
-                    // Voice Mic Button
-                    Button(action: onStartRecording) {
-                        Image(systemName: "mic.fill")
+                    // Live Speech Dictation Button
+                    Button(action: onToggleDictation) {
+                        Image(systemName: isDictating ? "mic.fill" : "mic")
                             .font(.system(size: 15))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isDictating ? .white : .secondary)
                             .frame(width: 30, height: 30)
-                            .background(Color(nsColor: .controlBackgroundColor))
+                            .background(isDictating ? Color.red : Color(nsColor: .controlBackgroundColor))
                             .clipShape(Circle())
+                            .shadow(color: isDictating ? Color.red.opacity(0.4) : Color.clear, radius: 4)
                     }
                     .buttonStyle(.plain)
                     .disabled(isSending)
-                    .help("Gravar áudio (Push to talk)")
+                    .help(isDictating ? "Parar transcrição de voz" : "Falar por voz (Transcrição em tempo real)")
                     
                     // Send Button
-                    Button(action: onSend) {
+                    Button(action: {
+                        if isDictating {
+                            onToggleDictation()
+                        }
+                        onSend()
+                    }) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 26))
                             .foregroundColor(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? .secondary.opacity(0.4) : .accentColor)
@@ -115,3 +138,4 @@ public struct ChatInputBarView: View {
         }
     }
 }
+

@@ -6,6 +6,8 @@
     <string>pt-BR</string>
     <key>CFBundleExecutable</key>
     <string>Barao</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.colabcolibri.barao</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -20,14 +22,12 @@
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>O Barão necessita de acesso ao microfone para permitir que você envie instruções e perguntas por voz.</string>
+    <string>O Barão precisa do microfone para permitir instruções e perguntas por voz.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Permite a transcrição e processamento inteligente de suas notas de voz.</string>
+    <string>O Barão usa o reconhecimento de voz nativo da Apple para transcrever sua fala em tempo real.</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Colibri. Todos os direitos reservados.</string>
 </dict>

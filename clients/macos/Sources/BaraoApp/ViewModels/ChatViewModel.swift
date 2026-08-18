@@ -8,6 +8,7 @@ public final class ChatViewModel: ObservableObject {
     @Published public var inputText: String = ""
     @Published public var isSending: Bool = false
     @Published public var isRecording: Bool = false
+    @Published public var isDictating: Bool = false
     @Published public var audioLevel: Float = 0.0
     @Published public var errorMessage: String? = nil
     @Published public var showErrorAlert: Bool = false
@@ -18,18 +19,21 @@ public final class ChatViewModel: ObservableObject {
     private let storage: StorageServiceProtocol
     private let audioRecorder: AudioRecordingProtocol
     private let audioPlayback: AudioPlaybackProtocol
+    private let liveSpeech: LiveSpeechRecognitionProtocol
     private var cancellables = Set<AnyCancellable>()
     
     public init(
         apiClient: ApiClientProtocol = ApiClientService.shared,
         storage: StorageServiceProtocol = KeychainStorageService.shared,
         audioRecorder: AudioRecordingProtocol = AudioRecordingService.shared,
-        audioPlayback: AudioPlaybackProtocol = AudioPlaybackService.shared
+        audioPlayback: AudioPlaybackProtocol = AudioPlaybackService.shared,
+        liveSpeech: LiveSpeechRecognitionProtocol = LiveSpeechRecognitionService.shared
     ) {
         self.apiClient = apiClient
         self.storage = storage
         self.audioRecorder = audioRecorder
         self.audioPlayback = audioPlayback
+        self.liveSpeech = liveSpeech
         
         setupBindings()
     }
@@ -199,6 +203,35 @@ public final class ChatViewModel: ObservableObject {
         audioRecorder.cancelRecording()
     }
     
+    public func toggleLiveDictation() {
+        if isDictating {
+            stopLiveDictation()
+        } else {
+            startLiveDictation()
+        }
+    }
+    
+    public func startLiveDictation() {
+        guard !isDictating, !isSending else { return }
+        isDictating = true
+        liveSpeech.startDictation(
+            onPartialText: { [weak self] transcript in
+                self?.inputText = transcript
+            },
+            onError: { [weak self] error in
+                self?.isDictating = false
+                self?.errorMessage = error.localizedDescription
+                self?.showErrorAlert = true
+            }
+        )
+    }
+    
+    public func stopLiveDictation() {
+        guard isDictating else { return }
+        liveSpeech.stopDictation()
+        isDictating = false
+    }
+
     public func speakMessage(_ text: String) {
         if audioPlayback.isSpeaking {
             audioPlayback.stop()
@@ -215,3 +248,4 @@ public final class ChatViewModel: ObservableObject {
         }
     }
 }
+
