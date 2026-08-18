@@ -58,6 +58,12 @@ fi
 # PkgInfo
 echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
+# 2.5 Assinatura de Codigo Ad-hoc com Entitlements
+if command -v codesign >/dev/null 2>&1; then
+    echo "🔏 Assinando aplicativo com Entitlements (permissão única permanente)..."
+    codesign --force --deep --sign - --entitlements "$SCRIPT_DIR/Entitlements.plist" "$APP_DIR" 2>/dev/null || codesign --force --deep --sign - "$APP_DIR" 2>/dev/null || true
+fi
+
 # 3. Gerar arquivo ZIP
 echo "🗜️ Gerando arquivo compactado Barao-macOS-v1.1.0.zip..."
 cd "$SCRIPT_DIR/dist"

@@ -27,42 +27,56 @@ public final class LiveSpeechRecognitionService: NSObject, LiveSpeechRecognition
         self.speechRecognizer?.delegate = self
     }
     
-    public func requestAuthorization(completion: @escaping (Bool) -> Void) {
-        SFSpeechRecognizer.requestAuthorization { status in
-            DispatchQueue.main.async {
-                completion(status == .authorized)
-            }
-        }
-    }
-    
     public func startDictation(
         onPartialText: @escaping (String) -> Void,
         onError: @escaping (Error) -> Void
     ) {
         guard !isListening else { return }
         
-        // Ensure authorization
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        
+        // If already authorized, start directly without asking or prompting!
+        if speechStatus == .authorized && micStatus == .authorized {
+            do {
+                try self.startAudioEngine(onPartialText: onPartialText)
+            } catch {
+                onError(error)
+            }
+            return
+        }
+        
+        // If not determined, request authorization once
         SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
             guard let self = self else { return }
             guard authStatus == .authorized else {
                 DispatchQueue.main.async {
-                    onError(NSError(domain: "Speech", code: 1, userInfo: [NSLocalizedDescriptionKey: "Permissão de reconhecimento de fala negada nas Preferências do Sistema."]))
+                    onError(NSError(domain: "Speech", code: 1, userInfo: [NSLocalizedDescriptionKey: "Permissão de fala negada nas Preferências do Sistema."]))
                 }
                 return
             }
             
-            DispatchQueue.main.async {
-                do {
-                    try self.startAudioEngine(onPartialText: onPartialText)
-                } catch {
-                    onError(error)
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                guard granted else {
+                    DispatchQueue.main.async {
+                        onError(NSError(domain: "Audio", code: 1, userInfo: [NSLocalizedDescriptionKey: "Permissão de microfone negada nas Preferências do Sistema."]))
+                    }
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    do {
+                        try self.startAudioEngine(onPartialText: onPartialText)
+                    } catch {
+                        onError(error)
+                    }
                 }
             }
         }
     }
     
     private func startAudioEngine(onPartialText: @escaping (String) -> Void) throws {
-        // Cancel existing task
+        // Cancel existing task if any
         recognitionTask?.cancel()
         recognitionTask = nil
         
@@ -78,7 +92,8 @@ public final class LiveSpeechRecognitionService: NSObject, LiveSpeechRecognition
             recognitionRequest.addsPunctuation = true
         }
         
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
+        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+            guard let self = self else { return }
             if let result = result {
                 let transcription = result.bestTranscription.formattedString
                 DispatchQueue.main.async {
