@@ -26,7 +26,9 @@ public struct ChatView: View {
                             }
                         }
                         .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onChange(of: viewModel.messages.count) { _ in
                         if let last = viewModel.messages.last {
                             withAnimation(.easeOut(duration: 0.2)) {
@@ -48,5 +50,6 @@ public struct ChatView: View {
                 onCancelRecording: viewModel.cancelVoiceRecording
             )
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

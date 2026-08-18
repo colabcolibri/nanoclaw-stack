@@ -28,17 +28,20 @@ public struct ChatMessageBubbleView: View {
             }
             
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                HStack {
+                HStack(alignment: .top, spacing: 6) {
                     if message.isSending {
                         ProgressView()
                             .scaleEffect(0.6)
                             .frame(width: 14, height: 14)
+                            .padding(.top, 2)
                     }
                     
                     Text(LocalizedStringKey(message.text))
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(isUser ? .white : Color(nsColor: .textColor))
                         .textSelection(.enabled)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -80,7 +83,7 @@ public struct ChatMessageBubbleView: View {
                 }
                 .padding(.horizontal, 4)
             }
-            .onHover { isHovering = $0 }
+            .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
             
             if isUser {
                 Image(systemName: "person.crop.circle.fill")
@@ -90,6 +93,7 @@ public struct ChatMessageBubbleView: View {
                 Spacer(minLength: 40)
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
     }

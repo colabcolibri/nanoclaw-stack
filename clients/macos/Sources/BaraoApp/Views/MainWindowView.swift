@@ -83,7 +83,7 @@ public struct MainWindowView: View {
             // Main Chat Area
             ChatView(viewModel: chatViewModel)
         }
-        .frame(minWidth: 440, minHeight: 540)
+        .frame(minWidth: 440, idealWidth: 540, maxWidth: .infinity, minHeight: 540, idealHeight: 700, maxHeight: .infinity)
         .onAppear {
             chatViewModel.onAppear()
         }

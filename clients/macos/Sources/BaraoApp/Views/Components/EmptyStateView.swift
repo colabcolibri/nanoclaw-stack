@@ -34,9 +34,11 @@ public struct EmptyStateView: View {
                     Button(action: { onSelectPrompt(prompt) }) {
                         Text(prompt)
                             .font(.callout)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .frame(maxWidth: 380, alignment: .leading)
+                            .frame(maxWidth: 440, alignment: .leading)
                             .background(Color(nsColor: .controlBackgroundColor))
                             .cornerRadius(10)
                             .overlay(
@@ -47,10 +49,12 @@ public struct EmptyStateView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 16)
             .padding(.top, 10)
             
             Spacer()
         }
+        .frame(maxWidth: .infinity)
         .padding()
     }
 }
