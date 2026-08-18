@@ -3,6 +3,7 @@ import { AGENT_TOOLS } from "../src/tools/index.js";
 import { ResalePricingEngine } from "../src/services/pricing.js";
 import { MemoryManager } from "../src/services/memory.js";
 import { TokenLedger } from "../src/services/token-ledger.js";
+import { MemoService } from "../src/services/memo-service.js";
 
 describe("Agent Runner Smoke & Regression Tests", () => {
   test("All agent tools are properly defined and typed", () => {
@@ -27,6 +28,34 @@ describe("Agent Runner Smoke & Regression Tests", () => {
   test("MemoryManager initializes and loads memory cleanly", () => {
     const mem = MemoryManager.loadCoreMemory("/tmp");
     expect(typeof mem).toBe("string");
+  });
+
+  test("MemoService fast-paths messages <= 300 chars without LLM calls", async () => {
+    let llmCalled = false;
+    const shortText = "Você sabe onde eu moro?";
+    const memo = await MemoService.generateSemanticMemo(shortText, async () => {
+      llmCalled = true;
+      return "Resumo";
+    });
+    expect(llmCalled).toBe(false);
+    expect(memo).toBe(shortText);
+  });
+
+  test("MemoService invokes LLM English summarizer for messages > 300 chars", async () => {
+    let passedSystem = "";
+    let passedUser = "";
+    const longText = "A".repeat(500);
+
+    const memo = await MemoService.generateSemanticMemo(longText, async (sys, usr) => {
+      passedSystem = sys;
+      passedUser = usr;
+      return "Resumo executivo denso em menos de 280 caracteres.";
+    });
+
+    expect(passedSystem).toContain("conversational memo generator");
+    expect(passedUser).toContain("Text to summarize:");
+    expect(memo).toBe("Resumo executivo denso em menos de 280 caracteres.");
+    expect(memo.length).toBeLessThanOrEqual(300);
   });
 
   test("TokenLedger rates and peak calculations are deterministic", () => {

@@ -37,15 +37,15 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
   const skillMdChars = skill.skillMdChars || (skill.skillMdContent || '').length
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
+      onClick={onClose}
+    >
       {/* Drawer Panel */}
-      <div className="relative w-full max-w-2xl bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)]">
+      <div
+        className="relative w-full max-w-2xl bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)] cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top Header */}
         <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4 mb-5">
           <div className="flex items-center gap-3">

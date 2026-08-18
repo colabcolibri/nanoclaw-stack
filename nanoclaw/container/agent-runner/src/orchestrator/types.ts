@@ -29,4 +29,5 @@ export interface OrchestratorResult {
   deliveredText: string;
   updatedHistory: any[];
   toolsExecutedCount: number;
+  memo?: string;
 }

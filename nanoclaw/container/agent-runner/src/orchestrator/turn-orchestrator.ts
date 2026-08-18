@@ -6,6 +6,7 @@ import { ResponseParser } from './parser.js';
 import { IntermediateNotifier } from './notifier.js';
 import { ExecutionScratchpad } from './scratchpad.js';
 import { PromptLoader } from '../services/prompt-loader.js';
+import { MemoService } from '../services/memo-service.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
 
 function getTemporalContext(cwd?: string): string {
@@ -102,6 +103,17 @@ export class TurnOrchestrator {
 
       const deliveredText = `<message to="${targetDest}">\n${cleanText}\n</message>`;
 
+      const memo = await MemoService.generateSemanticMemo(cleanText, async (sys, usr) => {
+        const resp = await complete(
+          [
+            { role: 'system', content: sys },
+            { role: 'user', content: usr },
+          ],
+          false,
+        );
+        return resp.content || '';
+      });
+
       const historyLimit = options.historyLimit || 8;
       const updatedHistory = [
         ...options.history,
@@ -113,6 +125,7 @@ export class TurnOrchestrator {
         deliveredText,
         updatedHistory,
         toolsExecutedCount: 0,
+        memo,
       };
     }
 
@@ -219,6 +232,17 @@ export class TurnOrchestrator {
 
     const deliveredText = `<message to="${targetDest}">\n${cleanText}\n</message>`;
 
+    const memo = await MemoService.generateSemanticMemo(cleanText, async (sys, usr) => {
+      const resp = await complete(
+        [
+          { role: 'system', content: sys },
+          { role: 'user', content: usr },
+        ],
+        false,
+      );
+      return resp.content || '';
+    });
+
     const historyLimit = options.historyLimit || 8;
     const updatedHistory = [
       ...options.history,
@@ -230,6 +254,7 @@ export class TurnOrchestrator {
       deliveredText,
       updatedHistory,
       toolsExecutedCount: toolsRunCount,
+      memo,
     };
   }
 }

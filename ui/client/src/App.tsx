@@ -187,11 +187,6 @@ function AppContent() {
         onLogout={handleLogout}
         currency={currency}
         onToggleCurrency={setCurrency}
-        onOpenInfo={() => {
-          if (messages.length > 0) {
-            handleInspectMessage(messages[0])
-          }
-        }}
       />
 
       <div className="flex flex-1 overflow-hidden relative">

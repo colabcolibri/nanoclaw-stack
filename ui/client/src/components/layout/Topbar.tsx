@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, LogOut, Info, Sun, Moon, PanelLeftClose, PanelLeft, Zap } from 'lucide-react'
+import { Globe, LogOut, Sun, Moon, PanelLeftClose, PanelLeft, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,6 @@ interface TopbarProps {
   isSidebarOpen: boolean
   onToggleSidebar: () => void
   onLogout: () => void
-  onOpenInfo: () => void
   currency?: 'BRL' | 'USD'
   onToggleCurrency?: (curr: 'BRL' | 'USD') => void
 }
@@ -22,7 +21,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   isSidebarOpen,
   onToggleSidebar,
   onLogout,
-  onOpenInfo,
   currency = 'BRL',
   onToggleCurrency,
 }) => {
@@ -118,17 +116,6 @@ export const Topbar: React.FC<TopbarProps> = ({
         >
           <Globe className="w-3.5 h-3.5 text-[var(--accent)]" />
           <span>{currentLangLabel}</span>
-        </Button>
-
-        {/* Info Drawer */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpenInfo}
-          className="h-8 gap-1.5 text-xs border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] hidden sm:flex cursor-pointer"
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>{t('details')}</span>
         </Button>
 
         {/* Logout */}

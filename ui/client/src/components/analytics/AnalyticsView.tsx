@@ -359,8 +359,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* Interactive Sheet / Drawer: Opens details & all intermediate runs of this message */}
       {selectedMessage && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-end transition-opacity">
-          <div className="w-full max-w-2xl bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)]">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-end transition-opacity cursor-pointer"
+          onClick={() => setSelectedMessage(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)] cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="space-y-6">
               {/* Header */}
               <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4">

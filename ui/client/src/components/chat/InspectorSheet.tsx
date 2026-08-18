@@ -29,15 +29,15 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
+      onClick={onClose}
+    >
       {/* Drawer Panel */}
-      <div className="relative w-full max-w-md bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200">
+      <div
+        className="relative w-full max-w-md bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-[var(--border-main)] pb-4 mb-5">
           <h3 className="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
             <Search className="w-4 h-4 text-[var(--accent)]" />
