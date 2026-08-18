@@ -40,7 +40,7 @@ public struct ChatMessageBubbleView: View {
                             .frame(width: 14, height: 14)
                     }
                     
-                    Text(message.text)
+                    Text(LocalizedStringKey(message.text))
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(isUser ? .white : Color(nsColor: .textColor))
                         .textSelection(.enabled)
