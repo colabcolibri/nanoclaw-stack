@@ -66,3 +66,10 @@ dist/
 .idea/
 .vscode/
 
+
+# Swift & macOS Builds
+.build/
+**/clients/**/.build/
+**/clients/**/dist/
+*.dmg
+*.app

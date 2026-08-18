@@ -1,0 +1,32 @@
+# Swift Package Manager & Xcode Builds
+.build/
+dist/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+.swiftpm/
+
+# macOS App & Installer Artifacts
+*.app
+*.dmg
+*.pkg
+*.zip
+*.iconset
+
+# Secrets and local config
+.env
+.env*
+*.keys.json
+*tokens*.json
+
+# OS & Editor
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.vscode/
+.idea/
+*.swp
+*~
