@@ -6,6 +6,21 @@ import { ExecutionScratchpad } from './scratchpad.js';
 import { PromptLoader } from '../services/prompt-loader.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
 
+function getTemporalContext(): string {
+  const now = new Date();
+  const tz = process.env.TZ || 'America/Sao_Paulo';
+  try {
+    const formatted = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: tz,
+      dateStyle: 'full',
+      timeStyle: 'medium',
+    }).format(now);
+    return `## Temporal Context\n- Current Date & Time: ${formatted} (${tz})\n- ISO Timestamp: ${now.toISOString()}`;
+  } catch {
+    return `## Temporal Context\n- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
+  }
+}
+
 export class TurnOrchestrator {
   /**
    * Executes a two-stage conversational turn with an isolated ExecutionScratchpad (Execution Memory):
@@ -19,6 +34,7 @@ export class TurnOrchestrator {
     onActivity?: () => void
   ): Promise<OrchestratorResult> {
     const targetDest = IntermediateNotifier.resolveDestination(options.prompt, options.chatJid);
+    const timeContext = getTemporalContext();
 
     // 1. Domain Routing: Select only relevant tools for this prompt
     const routedTools = ToolRouter.selectTools(options.prompt);
@@ -26,6 +42,7 @@ export class TurnOrchestrator {
     // 2. Direct Conversation Fast-Path (Zero tools needed)
     if (routedTools.length === 0) {
       const personaPrompt = [
+        timeContext,
         options.personaInstructions || '',
         options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
       ]
@@ -75,6 +92,7 @@ export class TurnOrchestrator {
       'You are an autonomous technical execution engine running on NanoClaw.\nExecute tools directly with exact parameters to gather real data with minimal overhead.\nWhen all necessary information has been gathered from the tools, reply ONLY with "DONE".';
 
     const actionSystemPrompt = [
+      timeContext,
       baseActionPrompt,
       options.systemInstructions || '',
       skillCatalog || '',
@@ -123,6 +141,7 @@ export class TurnOrchestrator {
         '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, clickable Markdown reference links, and clean formatting.';
 
       const personaPrompt = [
+        timeContext,
         options.personaInstructions || '',
         options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
         synthesisDirective,
