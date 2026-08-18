@@ -352,6 +352,9 @@ export class DatabaseService {
             const inTime = inMsg ? new Date(inMsg.timestamp).getTime() : outTime - 30000;
 
             const matchedRuns = allSubRuns.filter((run) => {
+              if (r.in_reply_to && run.messageId && run.messageId === r.in_reply_to) {
+                return true;
+              }
               const runTime = new Date(run.timestamp).getTime();
               return runTime >= inTime - 1000 && runTime <= outTime + 1500;
             });

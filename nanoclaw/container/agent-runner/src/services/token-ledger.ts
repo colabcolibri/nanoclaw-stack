@@ -77,6 +77,7 @@ export interface TokenRecord {
   id: string;
   timestamp: string;
   model: string;
+  messageId?: string;
   promptTokens: number;
   cacheHitTokens: number;
   cacheMissTokens: number;
@@ -150,6 +151,7 @@ export class TokenLedger {
           id TEXT PRIMARY KEY,
           timestamp TEXT NOT NULL,
           model TEXT NOT NULL,
+          message_id TEXT,
           prompt_tokens INTEGER NOT NULL,
           cache_hit_tokens INTEGER NOT NULL,
           cache_miss_tokens INTEGER NOT NULL,
@@ -166,7 +168,14 @@ export class TokenLedger {
           preview TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_token_ledger_ts ON token_ledger(timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_token_ledger_msg ON token_ledger(message_id);
       `);
+
+      // Migration for existing tables
+      try {
+        db.run('ALTER TABLE token_ledger ADD COLUMN message_id TEXT;');
+      } catch {}
+
       return db;
     } catch {
       return null;
@@ -184,6 +193,7 @@ export class TokenLedger {
       toolCallsCount?: number;
       latencyMs?: number;
       preview?: string;
+      messageId?: string;
     } = {}
   ): TokenRecord {
     const costData = this.calculateCost(model, usage);
@@ -191,6 +201,7 @@ export class TokenLedger {
       id: `tok-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: new Date().toISOString(),
       model,
+      messageId: meta.messageId,
       ...costData,
       hasToolCalls: (meta.toolCallsCount || 0) > 0,
       toolCallsCount: meta.toolCallsCount || 0,
@@ -218,12 +229,12 @@ export class TokenLedger {
           if (db) {
             db.query(`
               INSERT OR REPLACE INTO token_ledger (
-                id, timestamp, model, prompt_tokens, cache_hit_tokens, cache_miss_tokens,
+                id, timestamp, model, message_id, prompt_tokens, cache_hit_tokens, cache_miss_tokens,
                 completion_tokens, total_tokens, rate_hit_per_million, rate_miss_per_million,
                 rate_out_per_million, cost_usd, cost_brl, has_tool_calls, tool_calls_count,
                 latency_ms, preview
               ) VALUES (
-                $id, $timestamp, $model, $prompt_tokens, $cache_hit_tokens, $cache_miss_tokens,
+                $id, $timestamp, $model, $message_id, $prompt_tokens, $cache_hit_tokens, $cache_miss_tokens,
                 $completion_tokens, $total_tokens, $rate_hit_per_million, $rate_miss_per_million,
                 $rate_out_per_million, $cost_usd, $cost_brl, $has_tool_calls, $tool_calls_count,
                 $latency_ms, $preview
@@ -232,6 +243,7 @@ export class TokenLedger {
               $id: record.id,
               $timestamp: record.timestamp,
               $model: record.model,
+              $message_id: record.messageId ?? null,
               $prompt_tokens: record.promptTokens,
               $cache_hit_tokens: record.cacheHitTokens,
               $cache_miss_tokens: record.cacheMissTokens,

@@ -98,6 +98,9 @@ export interface QueryInput {
   systemContext?: {
     instructions?: string;
   };
+
+  /** The inbound message ID triggering this query (for relational execution tracking). */
+  messageId?: string;
 }
 
 export type McpServerConfig =

@@ -236,11 +236,14 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
 
     log(`Processing ${keep.length} message(s), kinds: ${[...new Set(keep.map((m) => m.kind))].join(',')}`);
 
+    const triggerMessageId = routing.inReplyTo || (keep[0] ? keep[0].id : undefined);
+
     const query = config.provider.query({
       prompt,
       continuation,
       cwd: config.cwd,
       systemContext: config.systemContext,
+      messageId: triggerMessageId,
     });
 
     // Process the query while concurrently polling for new messages

@@ -211,6 +211,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
               toolCallsCount: msg.tool_calls?.length || 0,
               latencyMs,
               preview: msg.content || (msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : ''),
+              messageId: input.messageId,
             });
           } catch {}
 
