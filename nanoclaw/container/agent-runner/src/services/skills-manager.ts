@@ -112,7 +112,7 @@ export class SkillsManager {
       lines.push(`- **${domain.replace(/_/g, ' ').toUpperCase()}**: ${items.join(', ')}`);
     }
 
-    lines.push('\n*(If you need to load full operational guidelines, policies, or domain-specific manual, execute `load_skill({ name: "..." })`)*');
+    lines.push('\n*(Important: The entries above are business rule SKILLS, not tool names. To read a skill manual, call `load_skill({ name: "..." })`. To execute real-world actions, invoke tools directly like `web_search`, `browse_url`, `google_gmail`, etc.)*');
     return lines.join('\n');
   }
 

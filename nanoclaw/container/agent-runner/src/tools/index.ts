@@ -11,7 +11,7 @@ import { correiosShippingTool } from './shipping.js';
 import { tokenUsageTool } from './token-usage.js';
 import { RETRIEVE_MESSAGE_CONTEXT_TOOL, handleRetrieveMessageContext } from './message-context.js';
 import { LOAD_SKILL_TOOL, handleLoadSkill } from './load-skill.js';
-import { webSearchTool, browseUrlTool } from './web-search.js';
+import { webSearchTool, browseUrlTool, WEB_RESEARCH_TOOL } from './web-search.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -26,6 +26,10 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   schedule_followup: schedulerTool,
   token_usage: tokenUsageTool,
   web_search: webSearchTool,
+  web_research: {
+    definition: WEB_RESEARCH_TOOL,
+    execute: async (args: any) => webSearchTool.execute(args),
+  },
   browse_url: browseUrlTool,
   retrieve_message_context: {
     definition: RETRIEVE_MESSAGE_CONTEXT_TOOL,
@@ -40,7 +44,8 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);
 
 export async function executeTool(name: string, args: any, cwd: string): Promise<string> {
-  const tool = ALL_TOOLS[name];
+  const normalized = name.toLowerCase().replace(/-/g, '_');
+  const tool = ALL_TOOLS[name] || ALL_TOOLS[normalized];
   if (!tool) {
     return `Ferramenta desconhecida: ${name}`;
   }

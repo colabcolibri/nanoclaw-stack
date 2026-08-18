@@ -159,33 +159,52 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             try {
               const errJson = JSON.parse(errText);
               const failedGen = errJson.error?.failed_generation;
+
               if (failedGen) {
-                let extractedText = failedGen;
                 try {
                   const parsedGen = JSON.parse(failedGen);
-                  extractedText = parsedGen.arguments || parsedGen.content || failedGen;
-                } catch {
-                  const match = failedGen.match(/"arguments":\s*"?([\s\S]*?)"?\s*\}?$/);
-                  if (match && match[1]) {
-                    extractedText = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+                  // If it attempted a tool call with an alias name (e.g. web-research -> web_search)
+                  if (parsedGen && typeof parsedGen === 'object' && parsedGen.name) {
+                    const normalized = String(parsedGen.name).toLowerCase().replace(/-/g, '_');
+                    const targetName = normalized === 'web_research' ? 'web_search' : normalized;
+                    const targetTool = ALL_TOOLS[parsedGen.name] || ALL_TOOLS[normalized] || ALL_TOOLS[targetName];
+                    if (targetTool) {
+                      return {
+                        content: '',
+                        tool_calls: [
+                          {
+                            id: `call_${Date.now()}`,
+                            type: 'function',
+                            function: {
+                              name: targetTool.definition.function.name,
+                              arguments: typeof parsedGen.arguments === 'string' ? parsedGen.arguments : JSON.stringify(parsedGen.arguments || {}),
+                            },
+                          },
+                        ],
+                      };
+                    }
                   }
-                }
 
-                if (extractedText && extractedText.trim().length > 5) {
-                  return {
-                    content: extractedText.trim(),
-                    tool_calls: undefined,
-                  };
-                }
+                  const extractedText = typeof parsedGen === 'string'
+                    ? parsedGen
+                    : (typeof parsedGen.content === 'string' ? parsedGen.content : (typeof parsedGen.arguments === 'string' ? parsedGen.arguments : ''));
+                  if (extractedText && typeof extractedText === 'string' && extractedText.trim().length > 5) {
+                    return {
+                      content: extractedText.trim(),
+                      tool_calls: undefined,
+                    };
+                  }
+                } catch {}
               }
 
               // Fallback retry: If tools caused a 400 error, retry immediately without tools
               if (payload.tools && (errJson.error?.code === 'tool_use_failed' || res.status === 400)) {
-                delete payload.tools;
+                const fallbackPayload = { ...payload };
+                delete fallbackPayload.tools;
                 const retryRes = await fetch(url, {
                   method: 'POST',
                   headers,
-                  body: JSON.stringify(payload),
+                  body: JSON.stringify(fallbackPayload),
                 });
                 if (retryRes.ok) {
                   const retryData = (await retryRes.json()) as any;

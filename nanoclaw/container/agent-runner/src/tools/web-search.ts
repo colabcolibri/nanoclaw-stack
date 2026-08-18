@@ -42,6 +42,14 @@ export const BROWSE_URL_TOOL: ToolDefinition = {
   },
 };
 
+export const WEB_RESEARCH_TOOL: ToolDefinition = {
+  ...WEB_SEARCH_TOOL,
+  function: {
+    ...WEB_SEARCH_TOOL.function,
+    name: 'web_research',
+  },
+};
+
 export async function performWebSearch(query: string, maxResults = 5): Promise<string> {
   if (!query || !query.trim()) {
     return JSON.stringify({ error: 'query parameter is required' });
