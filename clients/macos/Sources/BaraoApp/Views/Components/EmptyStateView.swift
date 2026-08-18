@@ -18,14 +18,7 @@ public struct EmptyStateView: View {
         VStack(spacing: 18) {
             Spacer()
             
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundColor(.accentColor)
-            }
+            RobotAvatarView(size: 72)
             
             VStack(spacing: 6) {
                 Text("Olá, Sérgio!")

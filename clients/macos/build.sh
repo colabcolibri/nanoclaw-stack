@@ -31,6 +31,30 @@ chmod +x "$MACOS_DIR/Barao"
 # Copiar Info.plist
 cp "$SCRIPT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 
+# Copiar ícone e gerar .icns nativo para macOS
+if [ -f "$SCRIPT_DIR/Resources/AppIcon.png" ]; then
+    cp "$SCRIPT_DIR/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
+    cp "$SCRIPT_DIR/Resources/"AppIcon*.png "$RESOURCES_DIR/" 2>/dev/null || true
+    
+    if command -v iconutil >/dev/null 2>&1 && command -v sips >/dev/null 2>&1; then
+        echo "🎨 Gerando ícone Apple (.icns)..."
+        ICONSET_DIR="$SCRIPT_DIR/dist/AppIcon.iconset"
+        mkdir -p "$ICONSET_DIR"
+        sips -z 16 16 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_16x16.png" 2>/dev/null || true
+        sips -z 32 32 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_16x16@2x.png" 2>/dev/null || true
+        sips -z 32 32 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_32x32.png" 2>/dev/null || true
+        sips -z 64 64 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_32x32@2x.png" 2>/dev/null || true
+        sips -z 128 128 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_128x128.png" 2>/dev/null || true
+        sips -z 256 256 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_128x128@2x.png" 2>/dev/null || true
+        sips -z 256 256 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_256x256.png" 2>/dev/null || true
+        sips -z 512 512 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_256x256@2x.png" 2>/dev/null || true
+        sips -z 512 512 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_512x512.png" 2>/dev/null || true
+        sips -z 1024 1024 "$SCRIPT_DIR/Resources/AppIcon.png" --out "$ICONSET_DIR/icon_512x512@2x.png" 2>/dev/null || true
+        iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null || true
+        rm -rf "$ICONSET_DIR"
+    fi
+fi
+
 # PkgInfo
 echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 

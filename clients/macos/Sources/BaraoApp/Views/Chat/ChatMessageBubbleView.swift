@@ -24,12 +24,7 @@ public struct ChatMessageBubbleView: View {
             }
             
             if !isUser {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 28, height: 28)
-                    .background(Color.accentColor.opacity(0.15))
-                    .clipShape(Circle())
+                RobotAvatarView(size: 28)
             }
             
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {

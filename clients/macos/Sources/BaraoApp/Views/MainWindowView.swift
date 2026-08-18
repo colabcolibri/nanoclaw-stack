@@ -12,9 +12,7 @@ public struct MainWindowView: View {
             // Header Top Bar
             HStack(spacing: 12) {
                 HStack(spacing: 8) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.accentColor)
+                    RobotAvatarView(size: 24)
                     Text("Barão AI")
                         .font(.headline)
                         .fontWeight(.bold)
