@@ -99,7 +99,7 @@ export class SkillsManager {
     const domainGroups: Record<string, string[]> = {};
 
     for (const skill of allSkills) {
-      const domain = skill.domain || 'Geral';
+      const domain = skill.domain || 'General';
       if (!domainGroups[domain]) {
         domainGroups[domain] = [];
       }
@@ -107,12 +107,12 @@ export class SkillsManager {
       domainGroups[domain].push(`\`${skill.name}\`${desc}`);
     }
 
-    const lines: string[] = ['## 📚 Catálogo de Habilidades Disponíveis (Skills on Demand):'];
+    const lines: string[] = ['## 📚 Available Skills Catalog (Skills on Demand):'];
     for (const [domain, items] of Object.entries(domainGroups)) {
       lines.push(`- **${domain.replace(/_/g, ' ').toUpperCase()}**: ${items.join(', ')}`);
     }
 
-    lines.push('\n*(Se precisar carregar diretrizes completas ou regras de negócio específicas, execute `load_skill({ name: "..." })`)*');
+    lines.push('\n*(If you need to load full operational guidelines, policies, or domain-specific manual, execute `load_skill({ name: "..." })`)*');
     return lines.join('\n');
   }
 

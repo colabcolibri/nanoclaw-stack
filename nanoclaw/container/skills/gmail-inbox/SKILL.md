@@ -1,38 +1,42 @@
 ---
 name: gmail-inbox
-description: Gerenciamento inteligente de e-mails, triagem de caixa de entrada, busca avançada combinada, leitura completa e respostas via Gmail API.
+description: Advanced Gmail inbox search, filter operations, full email reading, and thread replies via Gmail API.
 domain: google_suite
-tools: [google_gmail]
-keywords: [email, e-mail, emails, e-mails, gmail, inbox, caixa de entrada, mensagem, mensagens, darf, inss, gestta]
+tools:
+  - google_gmail
+keywords:
+  - email
+  - gmail
+  - inbox
+  - messages
+  - unread
+  - mail
 ---
 
 # Gmail Inbox & Executive Search Skill
 
-Esta habilidade capacita o assistente a executar pesquisas avançadas e combinadas na caixa de entrada do Gmail, ler conversas completas em thread, criar ou excluir rascunhos e enviar respostas anexadas diretamente na mesma conversa.
+This skill guides the agent to execute advanced searches, read email conversations in threads, create drafts, and send replies directly within existing email threads.
 
-## 🔍 Guia de Operadores de Busca Combinada (`query`):
+## 🔍 Gmail Search Operator Guide (`query`):
 
-O assistente deve traduzir os pedidos do usuário em operadores nativos do Gmail:
+Translate user requests into native Gmail search queries:
 
-| Pedido do Usuário | Filtro `query` recomendado |
+| User Intent | Recommended `query` |
 | :--- | :--- |
-| **"E-mails não lidos sobre contratos"** | `is:unread subject:contrato` |
-| **"E-mails não lidos de clientes específicos"** | `is:unread from:cliente@empresa.com` |
-| **"E-mails dos últimos 2 dias com anexo"** | `newer_than:2d has:attachment` |
-| **"E-mails não lidos que não sejam promoções"** | `is:unread -category:promotions` |
-| **"E-mails com PDFs ou planilhas recebidos esta semana"** | `filename:pdf OR filename:xlsx newer_than:7d` |
-| **"E-mails importantes do financeiro"** | `is:important from:financeiro` |
-| **"E-mails recebidos em uma data específica"** | `after:2026/08/10 before:2026/08/17` |
-| **"Assunto exato"** | `subject:"Proposta de Parceria 2026"` |
+| **"Unread emails about contracts"** | `is:unread subject:contract` |
+| **"Unread emails from specific senders"** | `is:unread from:client@company.com` |
+| **"Recent emails with attachments"** | `newer_than:2d has:attachment` |
+| **"Unread primary emails excluding promotions"** | `is:unread -category:promotions` |
+| **"Invoices, bills, or payment slips"** | `boleto OR fatura OR pagar OR vencimento OR invoice` |
+| **"Quotes, proposals, or order inquiries"** | `orçamento OR pedido OR proposta OR quote` |
+| **"Emails with PDFs or spreadsheets"** | `filename:pdf OR filename:xlsx newer_than:7d` |
+| **"Important financial emails"** | `is:important from:finance` |
 
 ---
 
-## 🛠️ Fluxo de Trabalho & Operações:
+## 🛠️ Standard Workflow & Operations:
 
-1. **Busca/Listagem:** Use `list_messages` com a `query` combinada e `max_results` adequado.
-2. **Leitura de Contexto:** Se o usuário pedir detalhes ou se o e-mail for crítico, use `read_message(message_id)` para ler o corpo e o histórico completo da thread.
-3. **Respostas em Thread:** Ao criar rascunho (`create_draft`) ou enviar (`send_message`), **SEMPRE passe `thread_id` e `message_id`** para garantir que a resposta permaneça na mesma thread existente.
-4. **Gerenciamento de Rascunhos:**
-   * Listar rascunhos: `google_gmail(action: "list_drafts")`
-   * Excluir rascunho: `google_gmail(action: "delete_draft", draft_id: "...")`
-5. **Formatação de Texto:** Redija o corpo do e-mail em texto corrido contínuo, sem quebras arbitrárias no meio das frases.
+1. **Search & Listing:** Use `list_messages` with combined `query` and adequate `max_results`.
+2. **Deep Reading:** Use `read_message(message_id)` to retrieve complete message body and thread details.
+3. **Thread Replies:** When drafting (`create_draft`) or sending (`send_message`), **ALWAYS pass `thread_id` and `message_id`** to preserve conversation continuity.
+4. **Source Links:** Always extract and present links (e.g. portal URLs, invoices, payment documents) found in the email bodies.
