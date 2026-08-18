@@ -180,44 +180,45 @@ export class TurnOrchestrator {
       break;
     }
 
-    // Stage 2: Synthesis Pass with findings gathered in Stage 1
-    if (scratchpad.hasFindings()) {
-      const synthesisDirective = PromptLoader.load('stage2.synthesis.md') ||
-        '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, clickable Markdown reference links, and clean formatting.';
+    // Stage 2: Synthesis Pass - ALWAYS applied with Persona & SOUL
+    const synthesisDirective =
+      PromptLoader.load('stage2.synthesis.md') ||
+      '## Response Guidelines\nAnswer the user directly using the verified execution findings.\nSpeak naturally in your persona voice.\nRespond in the language used by the user.';
 
-      const personaPrompt = [
-        timeContext,
-        options.personaInstructions || '',
-        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
-        synthesisDirective,
-      ]
-        .filter(Boolean)
-        .join('\n\n');
+    const personaPrompt = [
+      timeContext,
+      options.personaInstructions || '',
+      options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+      synthesisDirective,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
-      const synthesisPromptText = PromptLoader.load('scratchpad.synthesis.md', {
-        USER_GOAL: options.prompt,
-        FINDINGS_REPORT: scratchpad.toSynthesisReport(),
-      }) || `## User Request\n${options.prompt}\n\n${scratchpad.toSynthesisReport()}\n\nPlease deliver the comprehensive executive synthesis:`;
+    const synthesisPromptText = scratchpad.hasFindings()
+      ? PromptLoader.load('scratchpad.synthesis.md', {
+          USER_GOAL: options.prompt,
+          FINDINGS_REPORT: scratchpad.toSynthesisReport(),
+        }) || `## User Request\n${options.prompt}\n\n${scratchpad.toSynthesisReport()}`
+      : options.prompt;
 
-      const synthesisMessages: any[] = [
-        { role: 'system', content: personaPrompt },
-        ...options.history.slice(-4),
-        {
-          role: 'user',
-          content: synthesisPromptText,
-        },
-      ];
+    const synthesisMessages: any[] = [
+      { role: 'system', content: personaPrompt },
+      ...options.history.slice(-4),
+      {
+        role: 'user',
+        content: synthesisPromptText,
+      },
+    ];
 
-      try {
-        onActivity?.();
-        const synthResponse = await complete(synthesisMessages, false);
-        const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
-        if (synthContent && synthContent.trim().length > 0) {
-          finalContent = synthContent;
-        }
-      } catch (err) {
-        console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
+    try {
+      onActivity?.();
+      const synthResponse = await complete(synthesisMessages, false);
+      const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
+      if (synthContent && synthContent.trim().length > 0) {
+        finalContent = synthContent;
       }
+    } catch (err) {
+      console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
     }
 
     // Fallback if model returned empty content
