@@ -89,6 +89,21 @@ export class MacChannelService {
       outDb.run(`DELETE FROM messages_out`);
     }
 
+    // Record user message arrival timestamp BEFORE turn starts
+    const requestTimestamp = new Date().toISOString();
+    const userMsgId = `msg-mac-in-${Date.now()}`;
+    inDb.run(
+      `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        userMsgId,
+        requestTimestamp,
+        'chat',
+        'macos',
+        'mac:sergio',
+        JSON.stringify({ text: prompt, sender: 'MacBook (Sérgio)', channel: 'macos' }),
+      ]
+    );
+
     // Read previous conversation history directly from SQLite
     let history: Array<{ role: string; content?: string }> = [];
     try {
@@ -116,7 +131,14 @@ export class MacChannelService {
         combined.push({ timestamp: r.timestamp, role: 'assistant', text });
       }
 
-      combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      combined.sort((a, b) => {
+        const tA = new Date(a.timestamp).getTime();
+        const tB = new Date(b.timestamp).getTime();
+        if (tA !== tB) return tA - tB;
+        if (a.role === 'user' && b.role === 'assistant') return -1;
+        if (a.role === 'assistant' && b.role === 'user') return 1;
+        return 0;
+      });
       history = combined.slice(-30).map((c) => ({ role: c.role, content: c.text }));
     } catch {}
 
@@ -133,35 +155,41 @@ export class MacChannelService {
     const skillParts: string[] = [];
     if (fs.existsSync(skillsDir)) {
       for (const skillName of fs.readdirSync(skillsDir)) {
-        const skillFolder = path.join(skillsDir, skillName);
-        const skillMd = path.join(skillFolder, 'SKILL.md');
-        if (fs.existsSync(skillMd)) {
-          let content = fs.readFileSync(skillMd, 'utf-8').trim();
-          const refDir = path.join(skillFolder, 'references');
-          if (fs.existsSync(refDir)) {
-            const refFiles = fs.readdirSync(refDir).filter((f) => f.endsWith('.md') || f.endsWith('.txt'));
-            if (refFiles.length > 0) {
-              content += '\n\n### Documentos de Referência Disponíveis:\n';
-              for (const rf of refFiles) {
-                const refContent = fs.readFileSync(path.join(refDir, rf), 'utf-8').trim();
-                content += `\n#### Referência: ${rf}\n${refContent}\n`;
-              }
-            }
-          }
-          skillParts.push(content);
+        const skillDoc = path.join(skillsDir, skillName, 'SKILL.md');
+        if (fs.existsSync(skillDoc)) {
+          const doc = fs.readFileSync(skillDoc, 'utf-8');
+          skillParts.push(`### Skill: ${skillName}\n${doc}`);
         }
       }
     }
 
-    const envMap = GroupManager.readNanoClawEnv();
-    const apiKey = envMap['DEEPSEEK_API_KEY'] || process.env.DEEPSEEK_API_KEY || '';
-    const baseURL = (envMap['DEEPSEEK_BASE_URL'] || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
-    const model = (envMap['DEEPSEEK_MODEL'] || process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash').replace(/^deepseek\//, '');
+    const systemParts = [
+      soulContent,
+      `## Personalização Local:\nVocê está interagindo diretamente com o Sérgio Luciano através do seu aplicativo oficial nativo no macOS. Seja objetivo, resolutivo e mantenha um tom de parceria executiva inteligente.`,
+    ];
+
+    if (skillParts.length > 0) {
+      systemParts.push(`## Habilidades Disponíveis:\n${skillParts.join('\n\n')}`);
+    }
+
+    // Connectors: primary Groq with deep fallback to DeepSeek
+    const groqKey = process.env.GROQ_API_KEY;
+    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+
+    let baseURL = 'https://api.groq.com/openai/v1';
+    let apiKey = groqKey;
+    let modelName = 'llama-3.3-70b-versatile';
+
+    if (!apiKey && deepseekKey) {
+      baseURL = 'https://api.deepseek.com/v1';
+      apiKey = deepseekKey;
+      modelName = 'deepseek-chat';
+    }
 
     if (!apiKey) {
       inDb.close();
       outDb.close();
-      throw new Error('DEEPSEEK_API_KEY não configurada no NanoClaw.');
+      throw new Error('Nenhuma chave de provedor LLM configurada no servidor (GROQ ou DEEPSEEK).');
     }
 
     // Import tools and turn orchestrator directly
@@ -177,24 +205,26 @@ export class MacChannelService {
     );
     const coreMemory = MemoryManager.loadCoreMemory(groupDir);
 
-    const systemParts = [
-      soulContent,
+    const finalSystem = [
+      ...systemParts,
       coreMemory,
-      skillParts.length > 0 ? `## Habilidades e Skills Disponíveis:\n${skillParts.join('\n\n')}` : '',
-      `Você está conversando diretamente com o usuário através do canal macOS (MacBook).`,
       `Você possui ferramentas nativas conectadas para Notion, Google Calendar, Gmail, Yampi Store e Memória. Sempre execute a ferramenta apropriada quando solicitado.`,
-    ].filter(Boolean);
+    ].join('\n\n');
 
     // Completion function contract
-    const completeFn = async (currentMessages: any[], enableTools: boolean) => {
+    const completeFn = async (messages: any[], tools?: any[]) => {
       const payload: any = {
-        model,
-        messages: currentMessages,
-        stream: false,
+        model: modelName,
+        messages: messages.map((m) => {
+          const formatted: any = { role: m.role, content: m.content || '' };
+          if (m.tool_calls) formatted.tool_calls = m.tool_calls;
+          if (m.tool_call_id) formatted.tool_call_id = m.tool_call_id;
+          return formatted;
+        }),
       };
-
-      if (enableTools && AGENT_TOOLS && AGENT_TOOLS.length > 0) {
-        payload.tools = AGENT_TOOLS;
+      if (tools && tools.length > 0) {
+        payload.tools = tools;
+        payload.tool_choice = 'auto';
       }
 
       const res = await fetch(`${baseURL}/chat/completions`, {
@@ -208,7 +238,7 @@ export class MacChannelService {
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`DeepSeek API Error (${res.status}): ${errText}`);
+        throw new Error(`LLM API Error (${res.status}): ${errText}`);
       }
 
       const data = (await res.json()) as any;
@@ -225,7 +255,7 @@ export class MacChannelService {
       cwd: groupDir,
       chatJid: 'mac:sergio',
       history,
-      systemInstructions: systemParts.join('\n\n'),
+      systemInstructions: finalSystem,
       historyLimit: 30,
     });
 
@@ -234,29 +264,17 @@ export class MacChannelService {
       .replace(/<\/message>/gi, '')
       .trim();
 
-    const now = new Date().toISOString();
-    const userMsgId = `msg-mac-in-${Date.now()}`;
-    const assistantMsgId = `msg-mac-out-${Date.now() + 1}`;
+    // Record response timestamp AFTER turn finished
+    const responseTimestamp = new Date().toISOString();
+    const assistantMsgId = `msg-mac-out-${Date.now()}`;
 
-    // Write to SQLite inbound & outbound
-    inDb.run(
-      `INSERT INTO messages_in (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        userMsgId,
-        now,
-        'chat',
-        'macos',
-        'mac:sergio',
-        JSON.stringify({ text: prompt, sender: 'MacBook (Sérgio)', channel: 'macos' }),
-      ]
-    );
     inDb.close();
 
     outDb.run(
       `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
       [
         assistantMsgId,
-        now,
+        responseTimestamp,
         'chat',
         'macos',
         'mac:sergio',
@@ -272,7 +290,7 @@ export class MacChannelService {
         centralDb.run(
           `INSERT INTO sessions (id, agent_group_id, created_at, updated_at) VALUES (?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
-          ['sess-macos-sergio', agentGroupId, now, now]
+          ['sess-macos-sergio', agentGroupId, responseTimestamp, responseTimestamp]
         );
       } catch {}
       centralDb.close();
@@ -280,7 +298,7 @@ export class MacChannelService {
 
     return {
       reply: cleanReply,
-      timestamp: now,
+      timestamp: responseTimestamp,
     };
   }
 
@@ -334,7 +352,14 @@ export class MacChannelService {
       } catch {}
     }
 
-    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    combined.sort((a, b) => {
+      const tA = new Date(a.timestamp).getTime();
+      const tB = new Date(b.timestamp).getTime();
+      if (tA !== tB) return tA - tB;
+      if (a.role === 'user' && b.role === 'assistant') return -1;
+      if (a.role === 'assistant' && b.role === 'user') return 1;
+      return 0;
+    });
     return combined.slice(-limit);
   }
 

@@ -108,7 +108,7 @@ public final class ApiClientService: ApiClientProtocol {
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        return list.compactMap { dto in
+        var chatMessages = list.compactMap { dto -> ChatMessage? in
             let date = isoFormatter.date(from: dto.timestamp) ?? ISO8601DateFormatter().date(from: dto.timestamp) ?? Date()
             let role: ChatMessage.Role = dto.role == "assistant" ? .assistant : .user
             return ChatMessage(
@@ -120,6 +120,15 @@ public final class ApiClientService: ApiClientProtocol {
                 isSending: false
             )
         }
+        
+        chatMessages.sort { a, b in
+            if a.timestamp != b.timestamp {
+                return a.timestamp < b.timestamp
+            }
+            return a.role == .user && b.role == .assistant
+        }
+        
+        return chatMessages
     }
     
     public func resetHistory(config: AppConfig) async throws -> Bool {
