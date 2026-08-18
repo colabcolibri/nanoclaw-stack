@@ -18,7 +18,7 @@ describe("TurnOrchestrator Two-Stage Pipeline & Execution Memory", () => {
         // Stage 1 - tool execution
         stage1ToolsPassed = enableTools;
         const sys = messages.find((m) => m.role === "system")?.content || "";
-        expect(sys).not.toContain("Mineiro Sarcástico");
+        expect(sys).toContain("Mineiro Sarcástico");
 
         return {
           content: "Vou verificar seus e-mails.",

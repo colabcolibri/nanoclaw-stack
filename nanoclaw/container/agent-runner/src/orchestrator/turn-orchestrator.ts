@@ -138,6 +138,8 @@ export class TurnOrchestrator {
 
     const actionSystemPrompt = [
       timeContext,
+      options.personaInstructions || '',
+      options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
       baseActionPrompt,
       options.systemInstructions || '',
       skillCatalog || '',
@@ -175,27 +177,26 @@ export class TurnOrchestrator {
         continue;
       }
 
-      // Model completed its tool calls
+      // Model answered directly without tools (already in Persona voice)
       finalContent = ResponseParser.cleanHumanText(response.content);
       break;
     }
 
-    // Stage 2: Synthesis & Response Pass with SOUL
-    const synthesisDirective =
-      PromptLoader.load('stage2.synthesis.md') ||
-      '## Response Guidelines\nAnswer the user directly using the verified execution findings.\nSpeak naturally in your persona voice.\nRespond in the language used by the user.';
-
-    const personaPrompt = [
-      timeContext,
-      options.personaInstructions || '',
-      options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
-      scratchpad.hasFindings() ? synthesisDirective : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
-
+    // Stage 2: Synthesis Pass - Executed ONLY when tools were called and gathered findings
     if (scratchpad.hasFindings()) {
-      // Scenario B: Tools were executed -> Synthesize findings through SOUL
+      const synthesisDirective =
+        PromptLoader.load('stage2.synthesis.md') ||
+        '## Response Guidelines\nAnswer the user directly using the verified execution findings.\nSpeak naturally in your persona voice.\nRespond in the language used by the user.';
+
+      const personaPrompt = [
+        timeContext,
+        options.personaInstructions || '',
+        options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
+        synthesisDirective,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
       const synthesisPromptText =
         PromptLoader.load('scratchpad.synthesis.md', {
           USER_GOAL: options.prompt,
@@ -220,24 +221,6 @@ export class TurnOrchestrator {
         }
       } catch (err) {
         console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
-      }
-    } else {
-      // Scenario A: No tools were executed -> Direct response generated with SOUL
-      const directMessages: any[] = [
-        { role: 'system', content: personaPrompt },
-        ...options.history.slice(-6),
-        { role: 'user', content: options.prompt },
-      ];
-
-      try {
-        onActivity?.();
-        const directResponse = await complete(directMessages, false);
-        const directContent = ResponseParser.cleanHumanText(directResponse.content);
-        if (directContent && directContent.trim().length > 0) {
-          finalContent = directContent;
-        }
-      } catch (err) {
-        console.error('[TurnOrchestrator] Error during direct persona response pass:', err);
       }
     }
 
