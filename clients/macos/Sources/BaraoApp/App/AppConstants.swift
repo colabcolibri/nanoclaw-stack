@@ -6,8 +6,8 @@ public enum AppConstants {
     public static let appName = "Barão"
     public static let defaultServerUrl = "https://uai.sergioluciano.com"
     public static let defaultGroup = "barao"
-    public static let appVersion = "1.1.0"
-    public static let buildNumber = "2"
+    public static let appVersion = "1.2.0"
+    public static let buildNumber = "3"
     public static let bundleIdentifier = "com.colabcolibri.barao"
     
     public enum KeychainKeys {
