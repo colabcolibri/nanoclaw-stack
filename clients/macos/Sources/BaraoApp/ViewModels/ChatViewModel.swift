@@ -45,6 +45,20 @@ public final class ChatViewModel: ObservableObject {
                 self?.audioLevel = level
             }
             .store(in: &cancellables)
+            
+        NotificationCenter.default.publisher(for: NSNotification.Name("BaraoMessageFromSiri"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                if let info = notification.userInfo,
+                   let prompt = info["prompt"] as? String,
+                   let reply = info["reply"] as? String {
+                    let userMsg = ChatMessage(role: .user, text: prompt)
+                    let asstMsg = ChatMessage(role: .assistant, text: reply)
+                    self?.messages.append(userMsg)
+                    self?.messages.append(asstMsg)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     public func onAppear() {
