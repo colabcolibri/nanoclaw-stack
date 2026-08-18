@@ -9,6 +9,9 @@ public final class ChatViewModel: ObservableObject {
     @Published public var isSending: Bool = false
     @Published public var isRecording: Bool = false
     @Published public var isDictating: Bool = false
+    @Published public var hasMoreHistory: Bool = false
+    @Published public var isLoadingMore: Bool = false
+    @Published public var currentHistoryLimit: Int = 25
     @Published public var audioLevel: Float = 0.0
     @Published public var errorMessage: String? = nil
     @Published public var showErrorAlert: Bool = false
@@ -88,13 +91,42 @@ public final class ChatViewModel: ObservableObject {
         let config = storage.loadConfig()
         guard config.isValid else { return }
         
+        currentHistoryLimit = 25
         do {
-            let history = try await apiClient.fetchHistory(config: config, limit: 50)
+            let history = try await apiClient.fetchHistory(config: config, limit: currentHistoryLimit)
             if !history.isEmpty {
                 self.messages = history
+                self.hasMoreHistory = history.count >= currentHistoryLimit
+            } else {
+                self.hasMoreHistory = false
             }
         } catch {
             // Non-critical, ignore on startup
+        }
+    }
+    
+    public func loadMoreHistory() {
+        guard !isLoadingMore, hasMoreHistory else { return }
+        let config = storage.loadConfig()
+        guard config.isValid else { return }
+        
+        isLoadingMore = true
+        let nextLimit = currentHistoryLimit + 25
+        
+        Task {
+            do {
+                let history = try await apiClient.fetchHistory(config: config, limit: nextLimit)
+                if history.count > self.messages.count {
+                    self.messages = history
+                    self.currentHistoryLimit = nextLimit
+                    self.hasMoreHistory = history.count >= nextLimit
+                } else {
+                    self.hasMoreHistory = false
+                }
+            } catch {
+                self.hasMoreHistory = false
+            }
+            self.isLoadingMore = false
         }
     }
     
