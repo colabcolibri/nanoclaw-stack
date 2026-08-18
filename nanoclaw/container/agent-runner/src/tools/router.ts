@@ -372,9 +372,9 @@ export class ToolRouter {
       return tools;
     }
 
-    // 3. Fallback: If no specific domain matched but the user asked an action-oriented question,
-    // safely provide all tools defensively so no capabilities are lost.
-    if (options.fallbackToAll !== false) {
+    // 3. Fallback: Only fallback to full toolset if explicitly forced or if the prompt has action imperative commands
+    const isActionPrompt = /\b(?:provid[eê]ncias?|execute|rode|automatize|script|rotina|a[çc][aã]o|crie uma tool|fa[çc]a o deploy)\b/i.test(prompt);
+    if (options.fallbackToAll === true || (isActionPrompt && options.fallbackToAll !== false)) {
       return AGENT_TOOLS;
     }
 
