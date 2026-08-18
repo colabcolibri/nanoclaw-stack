@@ -75,15 +75,31 @@ export class DatabaseService {
       const mcpJson = JSON.stringify(config.mcpServers || {});
       const skillsJson = typeof config.skills === "string" ? `"${config.skills}"` : JSON.stringify(config.skills || "all");
       const provider = config.provider || "deepseek";
-      const model = config.model || "deepseek-v4-flash";
-      const assistantName = config.assistantName || config.groupName || "Barão";
-      const now = new Date().toISOString();
+      const timezone = config.timezone || "Europe/Brussels";
+      const location = config.location || "Bélgica";
 
       db.query(`
         UPDATE container_configs 
-        SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, updated_at = ?
+        SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, timezone = ?, location = ?, updated_at = ?
         WHERE agent_group_id = ?
-      `).run(provider, model, assistantName, skillsJson, mcpJson, now, agentGroupId);
+      `).run(provider, model, assistantName, skillsJson, mcpJson, timezone, location, now, agentGroupId);
+
+      // Also sync to container.json for container runtime access
+      const baraoContainer = path.join(CONFIG.GROUPS_PATH, "barao", "container.json");
+      if (fs.existsSync(baraoContainer)) {
+        try {
+          const current = JSON.parse(fs.readFileSync(baraoContainer, "utf-8"));
+          const updated = {
+            ...current,
+            provider,
+            model,
+            assistantName,
+            timezone,
+            location,
+          };
+          fs.writeFileSync(baraoContainer, JSON.stringify(updated, null, 2), "utf-8");
+        } catch {}
+      }
     } catch (err) {
       console.error("Error updating container_configs in DB:", err);
     } finally {

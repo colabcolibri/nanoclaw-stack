@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sliders, Save, CheckCircle2, AlertCircle, Check, ChevronDown, ChevronUp, Zap, ArrowDownToLine, ArrowUpFromLine, Layers, Database, Target, Coins, Cpu } from 'lucide-react'
+import { Sliders, Save, CheckCircle2, AlertCircle, Check, ChevronDown, ChevronUp, Zap, ArrowDownToLine, ArrowUpFromLine, Layers, Database, Target, Coins, Cpu, MapPin, Clock } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -30,72 +30,72 @@ export interface ProviderMeta {
   models: ModelItem[]
 }
 
-const PROVIDERS_META: Record<string, ProviderMeta> = {
+export const PROVIDERS_META: Record<string, ProviderMeta> = {
   deepseek: {
-    name: 'DeepSeek (Conector Nativo Direto)',
+    name: 'DeepSeek Official (Direct Peak & Non-Peak)',
     defaultBaseUrl: 'https://api.deepseek.com',
     defaultModel: 'deepseek-v4-flash',
     models: [
       {
         id: 'deepseek-v4-flash',
-        label: 'DeepSeek V4 Flash (Padrão - Ultrarrápido & Econômico)',
+        label: 'DeepSeek V4 Flash (0.44/M - Ultra Fast)',
         recommended: true,
         pricing: {
           inputPerMillion: 0.44,
           outputPerMillion: 1.32,
           cacheWritePerMillion: 0.44,
           cacheHitPerMillion: 0.014,
-          contextWindow: '64k',
+          contextWindow: '128k',
           savingsPct: 97,
         },
       },
       {
         id: 'deepseek-chat',
-        label: 'DeepSeek V3 Chat',
+        label: 'DeepSeek V3 (Chat Standard)',
         pricing: {
           inputPerMillion: 0.44,
           outputPerMillion: 1.32,
           cacheWritePerMillion: 0.44,
           cacheHitPerMillion: 0.014,
-          contextWindow: '64k',
+          contextWindow: '128k',
           savingsPct: 97,
         },
       },
       {
-        id: 'deepseek-reasoner',
-        label: 'DeepSeek R1 (Raciocínio Avançado)',
+        id: 'deepseek-v4-pro',
+        label: 'DeepSeek V4 Pro (Reasoning & Deep Analysis)',
         pricing: {
           inputPerMillion: 1.32,
           outputPerMillion: 3.96,
           cacheWritePerMillion: 1.32,
           cacheHitPerMillion: 0.044,
-          contextWindow: '64k',
+          contextWindow: '128k',
+          savingsPct: 97,
+        },
+      },
+      {
+        id: 'deepseek-reasoner',
+        label: 'DeepSeek R1 (Thinking CoT / Reasoning)',
+        pricing: {
+          inputPerMillion: 1.32,
+          outputPerMillion: 3.96,
+          cacheWritePerMillion: 1.32,
+          cacheHitPerMillion: 0.044,
+          contextWindow: '128k',
           savingsPct: 97,
         },
       },
     ],
   },
   groq: {
-    name: 'Groq (OpenAI GPT-OSS / Ultra-Rápido 500+ T/s)',
+    name: 'Groq Cloud (Ultra-Low Latency Llama/DeepSeek)',
     defaultBaseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'openai/gpt-oss-120b',
+    defaultModel: 'openai/gpt-oss-20b',
     models: [
       {
-        id: 'openai/gpt-oss-120b',
-        label: 'OpenAI GPT-OSS 120B (Recomendado - 500 T/s)',
-        recommended: true,
-        pricing: {
-          inputPerMillion: 0.15,
-          outputPerMillion: 0.60,
-          cacheWritePerMillion: 0.15,
-          cacheHitPerMillion: 0.15,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-      {
         id: 'openai/gpt-oss-20b',
-        label: 'OpenAI GPT-OSS 20B (Mais Leve - 1.000 T/s)',
+        label: 'Grok 20B (Groq / gpt-oss-20b - Ultra Fast)',
+        recommended: true,
         pricing: {
           inputPerMillion: 0.075,
           outputPerMillion: 0.30,
@@ -106,8 +106,20 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
         },
       },
       {
+        id: 'openai/gpt-oss-120b',
+        label: 'Grok 120B (Groq / gpt-oss-120b - High Intelligence)',
+        pricing: {
+          inputPerMillion: 0.15,
+          outputPerMillion: 0.60,
+          cacheWritePerMillion: 0.15,
+          cacheHitPerMillion: 0.15,
+          contextWindow: '128k',
+          savingsPct: 0,
+        },
+      },
+      {
         id: 'llama-3.3-70b-versatile',
-        label: 'Meta Llama 3.3 70B Versatile',
+        label: 'Llama 3.3 70B Versatile (128k Context)',
         pricing: {
           inputPerMillion: 0.59,
           outputPerMillion: 0.79,
@@ -119,7 +131,7 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
       },
       {
         id: 'llama-3.1-8b-instant',
-        label: 'Meta Llama 3.1 8B Instant',
+        label: 'Llama 3.1 8B Instant (Ultra Fast)',
         pricing: {
           inputPerMillion: 0.05,
           outputPerMillion: 0.08,
@@ -131,7 +143,7 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
       },
       {
         id: 'deepseek-r1-distill-llama-70b',
-        label: 'DeepSeek R1 Distill Llama 70B',
+        label: 'DeepSeek R1 Distill Llama 70B (Reasoning)',
         pricing: {
           inputPerMillion: 0.59,
           outputPerMillion: 0.79,
@@ -141,28 +153,16 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
           savingsPct: 0,
         },
       },
-      {
-        id: 'mixtral-8x7b-32768',
-        label: 'Mistral Mixtral 8x7B',
-        pricing: {
-          inputPerMillion: 0.24,
-          outputPerMillion: 0.24,
-          cacheWritePerMillion: 0.24,
-          cacheHitPerMillion: 0.24,
-          contextWindow: '32k',
-          savingsPct: 0,
-        },
-      },
     ],
   },
   claude: {
-    name: 'Anthropic Claude Direct',
+    name: 'Anthropic Claude Official (Direct API)',
     defaultBaseUrl: 'https://api.anthropic.com',
-    defaultModel: 'claude-3-5-sonnet-20241022',
+    defaultModel: 'claude-3-5-sonnet-latest',
     models: [
       {
-        id: 'claude-3-5-sonnet-20241022',
-        label: 'Claude 3.5 Sonnet (Recomendado)',
+        id: 'claude-3-5-sonnet-latest',
+        label: 'Claude 3.5 Sonnet (State of the Art)',
         recommended: true,
         pricing: {
           inputPerMillion: 3.00,
@@ -174,8 +174,8 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
         },
       },
       {
-        id: 'claude-3-5-haiku-20241022',
-        label: 'Claude 3.5 Haiku',
+        id: 'claude-3-5-haiku-latest',
+        label: 'Claude 3.5 Haiku (Fast & Lightweight)',
         pricing: {
           inputPerMillion: 0.80,
           outputPerMillion: 4.00,
@@ -186,8 +186,8 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
         },
       },
       {
-        id: 'claude-3-opus-20240229',
-        label: 'Claude 3 Opus',
+        id: 'claude-3-opus-latest',
+        label: 'Claude 3 Opus (Deep Complex Reasoning)',
         pricing: {
           inputPerMillion: 15.00,
           outputPerMillion: 75.00,
@@ -200,80 +200,13 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
     ],
   },
   openrouter: {
-    name: 'OpenRouter AI (Multi-Provedor)',
+    name: 'OpenRouter Aggregator (Multi-Model Gateway)',
     defaultBaseUrl: 'https://openrouter.ai/api/v1',
     defaultModel: 'deepseek/deepseek-chat',
     models: [
       {
         id: 'deepseek/deepseek-chat',
-        label: 'DeepSeek V3 (OpenRouter)',
-        pricing: {
-          inputPerMillion: 0.55,
-          outputPerMillion: 1.65,
-          cacheWritePerMillion: 0.55,
-          cacheHitPerMillion: 0.02,
-          contextWindow: '64k',
-          savingsPct: 96,
-        },
-      },
-      {
-        id: 'deepseek/deepseek-r1',
-        label: 'DeepSeek R1 (OpenRouter)',
-        pricing: {
-          inputPerMillion: 1.50,
-          outputPerMillion: 4.50,
-          cacheWritePerMillion: 1.50,
-          cacheHitPerMillion: 0.05,
-          contextWindow: '64k',
-          savingsPct: 96,
-        },
-      },
-      {
-        id: 'anthropic/claude-3.5-sonnet',
-        label: 'Claude 3.5 Sonnet (OpenRouter)',
-        pricing: {
-          inputPerMillion: 3.00,
-          outputPerMillion: 15.00,
-          cacheWritePerMillion: 3.75,
-          cacheHitPerMillion: 0.30,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-      {
-        id: 'openai/gpt-4o',
-        label: 'GPT-4o (OpenRouter)',
-        pricing: {
-          inputPerMillion: 2.50,
-          outputPerMillion: 10.00,
-          cacheWritePerMillion: 2.50,
-          cacheHitPerMillion: 1.25,
-          contextWindow: '128k',
-          savingsPct: 50,
-        },
-      },
-      {
-        id: 'google/gemini-2.0-flash-exp:free',
-        label: 'Gemini 2.0 Flash (Free)',
-        pricing: {
-          inputPerMillion: 0.00,
-          outputPerMillion: 0.00,
-          cacheWritePerMillion: 0.00,
-          cacheHitPerMillion: 0.00,
-          contextWindow: '1000k',
-          savingsPct: 0,
-        },
-      },
-    ],
-  },
-  opencode: {
-    name: 'OpenCode Gateway (Local)',
-    defaultBaseUrl: 'http://127.0.0.1:4096',
-    defaultModel: 'deepseek-v4-flash',
-    models: [
-      {
-        id: 'deepseek-v4-flash',
-        label: 'deepseek-v4-flash',
+        label: 'OpenRouter / DeepSeek V3',
         pricing: {
           inputPerMillion: 0.44,
           outputPerMillion: 1.32,
@@ -284,8 +217,39 @@ const PROVIDERS_META: Record<string, ProviderMeta> = {
         },
       },
       {
-        id: 'claude-3-5-sonnet-20241022',
-        label: 'claude-3-5-sonnet-20241022',
+        id: 'deepseek/deepseek-r1',
+        label: 'OpenRouter / DeepSeek R1',
+        pricing: {
+          inputPerMillion: 1.32,
+          outputPerMillion: 3.96,
+          cacheWritePerMillion: 1.32,
+          cacheHitPerMillion: 0.044,
+          contextWindow: '64k',
+          savingsPct: 97,
+        },
+      },
+      {
+        id: 'anthropic/claude-3.5-sonnet',
+        label: 'OpenRouter / Claude 3.5 Sonnet',
+        pricing: {
+          inputPerMillion: 3.00,
+          outputPerMillion: 15.00,
+          cacheWritePerMillion: 3.75,
+          cacheHitPerMillion: 0.30,
+          contextWindow: '200k',
+          savingsPct: 90,
+        },
+      },
+    ],
+  },
+  opencode: {
+    name: 'OpenCode Local / Self-Hosted Gateway',
+    defaultBaseUrl: 'http://127.0.0.1:4096',
+    defaultModel: 'claude-3-5-sonnet',
+    models: [
+      {
+        id: 'claude-3-5-sonnet',
+        label: 'Local OpenCode / Claude 3.5 Sonnet',
         pricing: {
           inputPerMillion: 3.00,
           outputPerMillion: 15.00,
@@ -306,6 +270,8 @@ export const ConfigView: React.FC = () => {
     provider: 'deepseek',
     model: 'deepseek-v4-flash',
     baseUrl: 'https://api.deepseek.com',
+    location: 'Bélgica',
+    timezone: 'Europe/Brussels',
   })
   const [keysStatus, setKeysStatus] = useState<Record<string, { hasKey: boolean; masked: string }>>({})
   const [newApiKey, setNewApiKey] = useState<string>('')
@@ -336,10 +302,12 @@ export const ConfigView: React.FC = () => {
         const meta = PROVIDERS_META[providerKey] || PROVIDERS_META.deepseek
 
         setConfig({
-          name: data.config.name || 'Barão',
+          name: data.config.assistantName || data.config.name || 'Barão',
           provider: providerKey,
           model: data.config.model || meta.defaultModel,
           baseUrl: data.config.baseUrl || meta.defaultBaseUrl,
+          location: data.config.location || 'Bélgica',
+          timezone: data.config.timezone || 'Europe/Brussels',
         })
         if (data.config.keysStatus) {
           setKeysStatus(data.config.keysStatus)
@@ -379,19 +347,24 @@ export const ConfigView: React.FC = () => {
     }
   }
 
-  const activeMeta = PROVIDERS_META[config.provider] || PROVIDERS_META.deepseek
-  const availableModels = activeMeta.models
+  const currentProviderMeta = PROVIDERS_META[config.provider] || PROVIDERS_META.deepseek
+  const availableModels = currentProviderMeta.models
   const activeKeyInfo = keysStatus[config.provider] || { hasKey: false, masked: '' }
 
-  const selectedModelObj = availableModels.find((m) => m.id === config.model) || availableModels[0]
-  const pricing = selectedModelObj?.pricing || {
-    inputPerMillion: 0.44,
-    outputPerMillion: 1.32,
-    cacheWritePerMillion: 0.44,
-    cacheHitPerMillion: 0.014,
-    contextWindow: '64k',
-    savingsPct: 97,
+  const selectedModelObj = availableModels.find((m) => m.id === config.model) || availableModels[0] || {
+    id: config.model,
+    label: config.model,
+    pricing: {
+      inputPerMillion: 0.44,
+      outputPerMillion: 1.32,
+      cacheWritePerMillion: 0.44,
+      cacheHitPerMillion: 0.014,
+      contextWindow: '128k',
+      savingsPct: 97,
+    },
   }
+
+  const pricing = selectedModelObj.pricing
 
   const inputBrl = pricing.inputPerMillion * usdToBrlRate
   const outputBrl = pricing.outputPerMillion * usdToBrlRate
@@ -399,7 +372,7 @@ export const ConfigView: React.FC = () => {
   const cacheHitBrl = pricing.cacheHitPerMillion * usdToBrlRate
 
   return (
-    <div className="flex flex-col gap-6 w-full flex-1 max-w-2xl">
+    <div className="space-y-6 max-w-4xl">
       {toast && (
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
@@ -438,6 +411,43 @@ export const ConfigView: React.FC = () => {
                 onChange={(e) => setConfig({ ...config, name: e.target.value })}
                 placeholder="Barão"
               />
+            </div>
+
+            {/* User Location & Timezone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Localização Atual / Cidade</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  value={config.location}
+                  onChange={(e) => setConfig({ ...config, location: e.target.value })}
+                  placeholder="Ex: Bélgica, Bruxelas, São Paulo"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Fuso Horário (Timezone)</span>
+                </label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono"
+                  value={config.timezone}
+                  onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
+                >
+                  <option value="Europe/Brussels">Europe/Brussels (Bélgica - UTC+2 / CEST)</option>
+                  <option value="Europe/Lisbon">Europe/Lisbon (Portugal - UTC+1)</option>
+                  <option value="Europe/London">Europe/London (Londres - UTC+1)</option>
+                  <option value="Europe/Paris">Europe/Paris (França - UTC+2)</option>
+                  <option value="America/Sao_Paulo">America/Sao_Paulo (Brasil - UTC-3)</option>
+                  <option value="America/New_York">America/New_York (EUA Leste - UTC-4)</option>
+                  <option value="UTC">UTC (Universal Coordinated Time)</option>
+                </select>
+              </div>
             </div>
 
             {/* Provider Selector */}
@@ -595,7 +605,7 @@ export const ConfigView: React.FC = () => {
                 ) : (
                   <Badge variant="warning" className="bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300">
                     <AlertCircle className="w-3 h-3" />
-                    <span>Nenhuma chave configurada para {activeMeta.name}</span>
+                    <span>Nenhuma chave configurada para {currentProviderMeta.name}</span>
                   </Badge>
                 )}
               </div>
@@ -630,7 +640,7 @@ export const ConfigView: React.FC = () => {
                     className="w-full px-3.5 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] font-mono focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                     value={config.baseUrl}
                     onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
-                    placeholder={activeMeta.defaultBaseUrl}
+                    placeholder={currentProviderMeta.defaultBaseUrl}
                   />
                 </div>
               )}

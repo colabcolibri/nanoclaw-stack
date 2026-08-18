@@ -280,6 +280,8 @@ export class GroupManager {
       provider: activeProvider,
       model: containerCfg.model || envMap[currentMapping.modelName] || (activeProvider === "groq" ? "openai/gpt-oss-120b" : "deepseek-v4-flash"),
       assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Íris",
+      timezone: containerCfg.timezone || envMap["TZ"] || "Europe/Brussels",
+      location: containerCfg.location || "Bélgica",
       baseUrl: envMap[currentMapping.urlName] || currentMapping.defaultUrl,
       hasApiKey,
       maskedApiKey: maskedKey,
@@ -297,7 +299,12 @@ export class GroupManager {
       } catch {}
     }
 
-    const merged: any = { ...current, ...newConfig };
+    const merged: any = {
+      ...current,
+      ...newConfig,
+      timezone: newConfig.timezone || current.timezone || "Europe/Brussels",
+      location: newConfig.location || current.location || "Bélgica",
+    };
     fs.writeFileSync(configFile, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 
     // Sync SQLite table container_configs in central DB (Primary source of truth for NanoClaw)
@@ -318,6 +325,7 @@ export class GroupManager {
     envUpdates["NANOCLAW_AGENT_PROVIDER"] = provider;
 
     if (newConfig.assistantName) envUpdates["NANOCLAW_AGENT_NAME"] = newConfig.assistantName;
+    if (newConfig.timezone) envUpdates["TZ"] = newConfig.timezone;
 
     const mapping = PROVIDER_ENV_MAP[provider] || PROVIDER_ENV_MAP.deepseek;
     if (newConfig.model) envUpdates[mapping.modelName] = newConfig.model;

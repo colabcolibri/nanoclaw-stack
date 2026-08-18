@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { executeTool, ToolRouter } from '../tools/index.js';
 import { SkillsManager } from '../services/skills-manager.js';
 import { ResponseParser } from './parser.js';
@@ -6,18 +8,38 @@ import { ExecutionScratchpad } from './scratchpad.js';
 import { PromptLoader } from '../services/prompt-loader.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
 
-function getTemporalContext(): string {
+function getTemporalContext(cwd?: string): string {
   const now = new Date();
-  const tz = process.env.TZ || 'America/Sao_Paulo';
+  let tz = process.env.TZ || 'Europe/Brussels';
+  let location = 'Bélgica';
+
+  const candidateFiles = [
+    ...(cwd ? [path.join(cwd, 'container.json')] : []),
+    '/workspace/group/container.json',
+    '/opt/nanoclaw-stack/nanoclaw/groups/barao/container.json',
+    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'container.json')] : []),
+  ];
+
+  for (const f of candidateFiles) {
+    try {
+      if (fs.existsSync(f)) {
+        const parsed = JSON.parse(fs.readFileSync(f, 'utf-8'));
+        if (parsed.timezone) tz = parsed.timezone;
+        if (parsed.location) location = parsed.location;
+        break;
+      }
+    } catch {}
+  }
+
   try {
     const formatted = new Intl.DateTimeFormat('pt-BR', {
       timeZone: tz,
       dateStyle: 'full',
       timeStyle: 'medium',
     }).format(now);
-    return `## Temporal Context\n- Current Date & Time: ${formatted} (${tz})\n- ISO Timestamp: ${now.toISOString()}`;
+    return `## Temporal & Geographic Context\n- User Location: ${location}\n- Current Local Date & Time: ${formatted} (${tz})\n- ISO Timestamp: ${now.toISOString()}`;
   } catch {
-    return `## Temporal Context\n- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
+    return `## Temporal & Geographic Context\n- User Location: ${location}\n- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
   }
 }
 
@@ -34,7 +56,7 @@ export class TurnOrchestrator {
     onActivity?: () => void
   ): Promise<OrchestratorResult> {
     const targetDest = IntermediateNotifier.resolveDestination(options.prompt, options.chatJid);
-    const timeContext = getTemporalContext();
+    const timeContext = getTemporalContext(options.cwd);
 
     // 1. Domain Routing: Select only relevant tools for this prompt
     const routedTools = ToolRouter.selectTools(options.prompt);
