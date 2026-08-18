@@ -1,0 +1,52 @@
+name: Build & Release macOS DMG
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ v* ]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "5.10"
+
+      - name: Build App & DMG
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Barao-v1.1.0-macOS
+          path: |
+            dist/Barao.dmg
+            dist/Barao-macOS.zip
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, refs/tags/v)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Barao.dmg
+            dist/Barao-macOS.zip
+          title: "Barão AI para macOS ${{ github.ref_name }}"
+          body: |
+            ### 🚀 Barão AI para macOS v1.1.0
+            
+            - 🎙️ **Transcrição de Voz em Tempo Real**: Ditado nativo da Apple (Speech Framework) com pontuação automática.
+            - ⌨️ **Atalho Global**: `Control + \` para abrir/ocultar instantaneamente.
+            - 💬 **Chat Thread Completo**: Histórico persistente e sincronizado.
+            - 💿 **Instalador DMG**: Arraste para `/Applications` e comece a usar!
+          draft: false
+          prerelease: false

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Iniciando compilação do Barão para macOS..."
+echo "🚀 Iniciando compilação do Barão macOS v1.1.0..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -15,7 +15,7 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 # 1. Compilar em Release com Swift Package Manager
-echo "📦 Compilando binário nativo (Swift SPM)..."
+echo "📦 Compilando binário nativo com Swift SPM..."
 swift build -c release --arch arm64 --arch x86_64 2>/dev/null || swift build -c release
 
 # 2. Criar estrutura do .app
@@ -31,7 +31,7 @@ chmod +x "$MACOS_DIR/Barao"
 # Copiar Info.plist
 cp "$SCRIPT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 
-# Copiar ícone e gerar .icns nativo para macOS
+# Copiar ícone e gerar .icns nativo
 if [ -f "$SCRIPT_DIR/Resources/AppIcon.png" ]; then
     cp "$SCRIPT_DIR/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
     cp "$SCRIPT_DIR/Resources/"AppIcon*.png "$RESOURCES_DIR/" 2>/dev/null || true
@@ -58,13 +58,30 @@ fi
 # PkgInfo
 echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
-# 3. Gerar arquivo ZIP para fácil distribuição
-echo "🗜️ Gerando arquivo compactado para distribuição..."
+# 3. Gerar arquivo ZIP
+echo "🗜️ Gerando arquivo compactado Barao-macOS-v1.1.0.zip..."
 cd "$SCRIPT_DIR/dist"
-zip -r -q "Barao-macOS.zip" "$BUNDLE_NAME"
+zip -r -q "Barao-macOS-v1.1.0.zip" "$BUNDLE_NAME"
+cp "Barao-macOS-v1.1.0.zip" "Barao-macOS.zip"
 
-echo "✅ App compilado com sucesso!"
-echo "📍 Localização do App: $APP_DIR"
+# 4. Gerar instalador oficial Apple .DMG
+if command -v hdiutil >/dev/null 2>&1; then
+    echo "💿 Criando instalador Apple DMG (Barao.dmg)..."
+    DMG_TMP="$SCRIPT_DIR/dist/dmg_staging"
+    rm -rf "$DMG_TMP" "$SCRIPT_DIR/dist/Barao.dmg" "$SCRIPT_DIR/dist/Barao-v1.1.0.dmg"
+    mkdir -p "$DMG_TMP"
+    cp -R "$APP_DIR" "$DMG_TMP/"
+    ln -s /Applications "$DMG_TMP/Applications"
+    
+    hdiutil create -volname "Barao AI Installer" -srcfolder "$DMG_TMP" -ov -format UDZO "$SCRIPT_DIR/dist/Barao.dmg"
+    cp "$SCRIPT_DIR/dist/Barao.dmg" "$SCRIPT_DIR/dist/Barao-v1.1.0.dmg"
+    rm -rf "$DMG_TMP"
+    echo "✅ Instalador DMG gerado com sucesso!"
+fi
+
+echo "=========================================="
+echo "🎉 Versão v1.1.0 compilada com sucesso!"
+echo "📍 Aplicativo: $APP_DIR"
+echo "💿 Instalador DMG: $SCRIPT_DIR/dist/Barao.dmg"
 echo "📦 Arquivo ZIP: $SCRIPT_DIR/dist/Barao-macOS.zip"
-echo ""
-echo "👉 Para instalar no seu Mac, basta arrastar o Barao.app para a sua pasta /Applications!"
+echo "=========================================="
