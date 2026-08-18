@@ -111,7 +111,7 @@ export async function performWebSearch(query: string, maxResults = 5): Promise<s
         status: 'ok',
         query,
         results_count: 0,
-        message: 'Nenhum resultado direto encontrado para esta busca.',
+        message: 'No direct results found for this query.',
       });
     }
 
@@ -122,7 +122,7 @@ export async function performWebSearch(query: string, maxResults = 5): Promise<s
       results,
     });
   } catch (err: any) {
-    return JSON.stringify({ error: `Falha ao pesquisar na web: ${err.message || String(err)}` });
+    return JSON.stringify({ error: `Failed to perform web search: ${err.message || String(err)}` });
   }
 }
 
@@ -142,13 +142,13 @@ export async function performBrowseUrl(targetUrl: string): Promise<string> {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
       },
       signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
-      return JSON.stringify({ error: `Página retornou HTTP ${res.status}` });
+      return JSON.stringify({ error: `Webpage returned HTTP ${res.status}` });
     }
 
     const html = await res.text();
@@ -176,7 +176,7 @@ export async function performBrowseUrl(targetUrl: string): Promise<string> {
       content: cleanText.slice(0, 3000),
     });
   } catch (err: any) {
-    return JSON.stringify({ error: `Falha ao ler página web: ${err.message || String(err)}` });
+    return JSON.stringify({ error: `Failed to read webpage: ${err.message || String(err)}` });
   }
 }
 

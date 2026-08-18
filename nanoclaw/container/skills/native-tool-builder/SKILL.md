@@ -1,55 +1,55 @@
 ---
 name: native-tool-builder
-description: Cria e expande ferramentas nativas (Native Tools) e habilidades por pastas (Skills) de alta velocidade e baixo consumo de tokens no ecossistema NanoClaw. Use quando o usuário pedir para criar novas integrações, ferramentas ou APIs.
+description: Creates and expands high-performance, token-efficient Native TypeScript Tools and folder-based Skills in the NanoClaw ecosystem. Use when requested to develop new tools, integrations, or APIs.
 domain: tool_builder
 tools: [read_file, run_command]
-keywords: [criar ferramenta, nova tool, nova ferramenta, tool builder, criar skill, nova skill, integração, criar api]
+keywords: [create tool, new tool, tool builder, create skill, new skill, integration, create api]
 ---
 
 # Native Tool & Skill Builder
 
-Esta habilidade capacita o assistente a criar, testar e registrar novas ferramentas nativas TypeScript e novas habilidades baseadas em pastas (`SKILL.md`) no ecossistema NanoClaw de forma modular e token-efficient.
+This skill empowers the assistant to construct, test, and register modular TypeScript native tools and folder-based skills (`SKILL.md`) in the NanoClaw runtime with zero token bloat.
 
 ---
 
-## 🏗️ Como as Ferramentas e Skills se Organizam
+## 🏗️ Architecture: Tools and Skills Separation
 
-O NanoClaw suporta dois níveis complementares:
+NanoClaw enforces a clean 2-tier division:
 
-1. **A Pasta da Habilidade (`container/skills/<nome-da-skill>/SKILL.md`):**
-   - Contém os metadados YAML (`domain`, `tools`, `keywords`) e o **Manual Operacional** detalhado (tabelas de busca, exemplos, fluxos).
-   - O `SkillsManager` descobre essa pasta automaticamente e a entrega à LLM apenas quando a ferramenta estiver ativa.
+1. **The Skill Folder (`container/skills/<skill-name>/SKILL.md`):**
+   - Contains YAML metadata (`domain`, `tools`, `keywords`) and the operational manual (query patterns, schemas, response standards).
+   - Automatically discovered by `SkillsManager` and loaded into the LLM context only when the corresponding domain tools are activated.
 
-2. **A Função TypeScript da Ferramenta (`container/agent-runner/src/tools/<minha-tool>.ts`):**
-   - Implementa a interface `AgentTool` com schema JSON minimalista e o código de execução assíncrono.
+2. **The Native Tool Implementation (`container/agent-runner/src/tools/<my-tool>.ts`):**
+   - Implements the `AgentTool` interface with lightweight JSON schema parameters and async execution code.
 
 ---
 
-## 🛠️ Passo a Passo para Criar uma Nova Ferramenta Nativa
+## 🛠️ Step-by-Step: Adding a New Native Tool
 
-### 1. Criar o arquivo da ferramenta em TypeScript:
-Crie `/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/tools/minha-ferramenta.ts`:
+### 1. Create the Tool in TypeScript:
+Create `/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/tools/my-tool.ts`:
 
 ```typescript
 import type { AgentTool } from './types.js';
 
-export const minhaFerramentaTool: AgentTool = {
+export const myTool: AgentTool = {
   definition: {
     type: 'function',
     function: {
-      name: 'minha_ferramenta',
-      description: 'Descrição concisa em 1 linha da funcionalidade.',
+      name: 'my_tool',
+      description: 'Concise 1-line description of the tool capability.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
-            enum: ['listar', 'consultar', 'executar'],
-            description: 'Ação a executar.',
+            enum: ['list', 'fetch', 'execute'],
+            description: 'Action to perform.',
           },
           query: {
             type: 'string',
-            description: 'Termo de busca ou parâmetro principal.',
+            description: 'Search query or primary parameter.',
           },
         },
         required: ['action'],
@@ -57,54 +57,54 @@ export const minhaFerramentaTool: AgentTool = {
     },
   },
   execute: async (args: any, cwd: string): Promise<string> => {
-    // Implemente a lógica (fetch HTTP, comandos ou manipulação)
-    return JSON.stringify({ status: 'ok', data: 'resultado da consulta' });
+    // Implement execution logic (HTTP fetch, command, or data transformation)
+    return JSON.stringify({ status: 'ok', data: 'result data' });
   },
 };
 ```
 
-### 2. Registrar no Índice de Ferramentas:
-No arquivo `/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/tools/index.ts`:
-- Importe sua tool: `import { minhaFerramentaTool } from './minha-ferramenta.js';`
-- Adicione no objeto `ALL_TOOLS`:
+### 2. Register in Tool Index:
+In `/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/tools/index.ts`:
+- Import your tool: `import { myTool } from './my-tool.js';`
+- Add to `ALL_TOOLS` object:
   ```typescript
   export const ALL_TOOLS: Record<string, AgentTool> = {
     ...
-    minha_ferramenta: minhaFerramentaTool,
+    my_tool: myTool,
   };
   ```
 
-### 3. Criar a Pasta da Skill com o Manual Operacional:
-Crie a pasta `/opt/nanoclaw-stack/nanoclaw/container/skills/minha-ferramenta/SKILL.md`:
+### 3. Create the Skill Folder with the Operational Manual:
+Create `/opt/nanoclaw-stack/nanoclaw/container/skills/my-tool/SKILL.md`:
 
 ```markdown
 ---
-name: minha-ferramenta
-description: Guia operacional completo de uso da ferramenta minha_ferramenta.
-domain: meu_dominio
-tools: [minha_ferramenta]
-keywords: [termo1, termo2, palavra-chave, acao]
+name: my-tool
+description: Complete operational guidelines for using my_tool.
+domain: custom_domain
+tools: [my_tool]
+keywords: [keyword1, keyword2, action]
 ---
 
-# Manual Operacional da Minha Ferramenta
+# Operational Manual for My Tool
 
-Instruções detalhadas para a IA:
-- Como compor os parâmetros
-- Tabelas de filtros recomendados
-- Regras de formatação de resposta
+Detailed instructions for the AI:
+- Parameter composition patterns
+- Best practices and examples
+- Output formatting requirements
 ```
 
 ---
 
-## 🧪 Como Validar e Ativar
+## 🧪 Validation & Deployment
 
-1. **Rodar os Testes de Validação:**
+1. **Run Unit Tests:**
    ```bash
    cd /opt/nanoclaw-stack/nanoclaw/container/agent-runner
    bun test
    ```
-2. **Reiniciar o Serviço:**
+2. **Restart Runtime Service:**
    ```bash
    systemctl restart nanoclaw
    ```
-   A nova ferramenta é descoberta automaticamente pelo `SkillsManager`, registrada no `ToolRouter` e ativada sob demanda com zero inchaço de tokens.
+   The new tool is discovered automatically by `SkillsManager`, routed by `ToolRouter`, and executed on demand with zero overhead.

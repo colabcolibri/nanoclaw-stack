@@ -1,6 +1,6 @@
 ---
 name: web-research
-description: Pesquisa avançada na web, busca em tempo real de notícias, tendências de mercado, leitura de links e artigos na internet com custo zero de API.
+description: Real-time web search for current information, breaking news, market trends, and clean webpage extraction with zero API cost.
 domain: web_research
 tools:
   - web_search
@@ -8,27 +8,27 @@ tools:
 keywords:
   - web
   - internet
+  - search
+  - news
   - google
-  - pesquisa
-  - noticias
-  - tendencias
-  - artigos
-  - sites
+  - research
+  - articles
+  - websites
 ---
 
 # Web Research & Live Intelligence Skill
 
-Esta habilidade capacita o assistente a buscar informações em tempo real na internet, pesquisar notícias, acompanhar lançamentos e ler páginas web.
+This skill equips the assistant with real-time web search and clean webpage extraction capabilities.
 
-## 🛠️ Ferramentas Disponíveis:
+## 🛠️ Available Tools:
 
 1. **`web_search(query: "...", max_results: 10)`**:
-   - Executa buscas em tempo real na internet.
-   - Retorna os títulos das páginas, URLs oficiais e resumos (*snippets*).
-   - **Eficiência**: Solicite `max_results: 5` a `10` para obter múltiplos resultados de alta qualidade de uma só vez em vez de fazer buscas repetidas.
-   - Evite variações redundantes da mesma consulta se os primeiros resultados já responderem ao que foi pedido.
+   - Performs a real-time web search.
+   - Returns page titles, authoritative URLs, and dense snippets.
+   - **Efficiency Guide**: Request `max_results: 5` to `10` to gather broad multi-source evidence in a single query rather than running repeated search rounds.
+   - Avoid executing slight query variations if initial results already contain the necessary facts.
 
 2. **`browse_url(url: "https://...")`**:
-   - Lê e extrai o conteúdo em texto limpo de qualquer página da web.
-   - Remove anúncios, scripts e poluição visual automaticamente.
-   - Use para aprofundar em artigos ou links específicos retornados pela busca.
+   - Fetches and parses readable text directly from target webpage URLs.
+   - Automatically strips ads, scripts, navbars, and boilerplate markup.
+   - Use to dive deep into specific articles or official documentation discovered during search.
