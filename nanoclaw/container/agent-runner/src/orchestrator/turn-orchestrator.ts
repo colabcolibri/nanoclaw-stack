@@ -85,9 +85,9 @@ export class TurnOrchestrator {
     const scratchpad = new ExecutionScratchpad(options.prompt, options.history);
     let finalContent = '';
     let toolsRunCount = 0;
-    const maxIterations = Math.min(Math.max(Number(options.maxIterations) || 8, 1), 8);
+    const maxIterations = Math.max(1, Number(options.maxIterations) || Number(process.env.NANOCLAW_MAX_TOOL_RUNS) || 8);
 
-    // Stage 1: Action & Tool Execution Loop using Scratchpad State (Cap: max 8 runs)
+    // Stage 1: Action & Tool Execution Loop using Scratchpad State
     for (let iter = 0; iter < maxIterations; iter++) {
       onActivity?.();
 
@@ -112,13 +112,12 @@ export class TurnOrchestrator {
         continue;
       }
 
-      // Model decided all needed tools have run (or emitted DONE)
+      // Model completed its tool calls (or emitted DONE)
       finalContent = ResponseParser.cleanHumanText(response.content);
       break;
     }
 
-    // Stage 2: Mandatory Synthesis Pass whenever findings exist
-    // Forces the model to synthesize raw findings into an executive human response
+    // Stage 2: Synthesis Pass with findings gathered in Stage 1
     if (scratchpad.hasFindings()) {
       const synthesisDirective = PromptLoader.load('stage2.synthesis.md') ||
         '## Synthesis Directive\nSynthesize the verified execution findings and deliver a complete, elegant, and conclusive response to the user.\nApply persona directives, core business memory, executive structuring, clickable Markdown reference links, and clean formatting.';
@@ -149,17 +148,17 @@ export class TurnOrchestrator {
         onActivity?.();
         const synthResponse = await complete(synthesisMessages, false);
         const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
-        if (synthContent && synthContent.trim().length > 10) {
+        if (synthContent && synthContent.trim().length > 0) {
           finalContent = synthContent;
         }
       } catch (err) {
-        console.error('[TurnOrchestrator] Error during persona synthesis pass:', err);
+        console.error('[TurnOrchestrator] Error during executive synthesis pass:', err);
       }
     }
 
-    // Fallback synthesis if empty
-    if (!finalContent || !finalContent.trim()) {
-      finalContent = 'Tudo pronto! As consultas e operações solicitadas foram concluídas.';
+    // Fallback if model returned empty content
+    if (!finalContent || !finalContent.trim() || finalContent === 'DONE') {
+      finalContent = 'The requested actions and queries have completed successfully.';
     }
 
     const cleanText = finalContent
