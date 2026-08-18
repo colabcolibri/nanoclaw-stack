@@ -5,17 +5,17 @@ export const WEB_SEARCH_TOOL: ToolDefinition = {
   function: {
     name: 'web_search',
     description:
-      'Performs a real-time web search for current information, news, market trends, products, or technical questions. Returns titles, snippets, and source URLs with zero API cost.',
+      'Performs a real-time web search. Returns up to max_results (1 to 10) sources with titles, snippets, and URLs. Use max_results=5 to 10 to gather broad context in a single query rather than doing multiple repeated searches.',
     parameters: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'The search query (e.g. "tendencias inteligencia artificial 2026", "noticias tecnologia hoje").',
+          description: 'The search query.',
         },
         max_results: {
           type: 'number',
-          description: 'Maximum number of results to return (default: 5, max: 10).',
+          description: 'Maximum number of results to return (1 to 10, default: 5). Request 5-10 for comprehensive research in one go.',
         },
       },
       required: ['query'],
