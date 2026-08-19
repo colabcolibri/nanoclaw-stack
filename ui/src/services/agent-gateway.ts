@@ -271,9 +271,10 @@ export class UnifiedAgentGateway {
     inDb.close();
 
     outDb.run(
-      `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO messages_out (id, in_reply_to, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         assistantMsgId,
+        userMsgId,
         responseTimestamp,
         "chat",
         input.channel,

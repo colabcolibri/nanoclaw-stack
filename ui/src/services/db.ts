@@ -380,11 +380,14 @@ export class DatabaseService {
             const inTime = inMsg ? new Date(inMsg.timestamp).getTime() : outTime - 30000;
 
             const matchedRuns = allSubRuns.filter((run) => {
-              if (r.in_reply_to && run.messageId && run.messageId === r.in_reply_to) {
-                return true;
+              if (r.in_reply_to && run.messageId) {
+                return run.messageId === r.in_reply_to;
               }
-              const runTime = new Date(run.timestamp).getTime();
-              return runTime >= inTime - 1000 && runTime <= outTime + 1500;
+              if (inMsg) {
+                const runTime = new Date(run.timestamp).getTime();
+                return runTime >= inTime && runTime <= outTime + 500;
+              }
+              return false;
             });
 
             const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
