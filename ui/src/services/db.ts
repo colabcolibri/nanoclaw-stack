@@ -380,11 +380,14 @@ export class DatabaseService {
             const inTime = inMsg ? new Date(inMsg.timestamp).getTime() : outTime - 30000;
 
             const matchedRuns = allSubRuns.filter((run) => {
-              if (r.in_reply_to && run.messageId && run.messageId === r.in_reply_to) {
-                return true;
+              if (r.in_reply_to && run.messageId) {
+                return run.messageId === r.in_reply_to;
               }
-              const runTime = new Date(run.timestamp).getTime();
-              return runTime >= inTime - 1000 && runTime <= outTime + 1500;
+              if (inMsg) {
+                const runTime = new Date(run.timestamp).getTime();
+                return runTime >= inTime && runTime <= outTime + 500;
+              }
+              return false;
             });
 
             const model = matchedRuns.find((run) => run.model)?.model || defaultModel;
@@ -464,9 +467,9 @@ export class DatabaseService {
     const runs: IntermediateRunItem[] = [];
     const ledgerRecords = this.getRealTokenRecords(limit);
     const defaultModel = this.getDefaultModel();
-
     for (const rec of ledgerRecords) {
       const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
+      const isMemo = (rec.preview && (rec.preview.startsWith("Memo:") || rec.preview.startsWith("memo:"))) || false;
       let toolName = "";
       if (rec.preview && rec.preview.startsWith("Tool: ")) {
         toolName = rec.preview.replace("Tool: ", "").trim();
@@ -481,9 +484,9 @@ export class DatabaseService {
 
       runs.push({
         id: rec.id,
-        messageId: rec.id,
+        messageId: rec.messageId || rec.id,
         sessionId: rec.sessionId,
-        type: isTool ? "tool_execution" : "model_turn",
+        type: isTool ? "tool_execution" : isMemo ? "memo_generation" : "model_turn",
         timestamp: rec.timestamp,
         model: rec.model || defaultModel,
         charCount: rec.totalTokens * 4,
@@ -497,9 +500,9 @@ export class DatabaseService {
         costUsd: rec.costUsd || (costInUsd + costOutUsd),
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
-        toolName: toolName || (isTool ? "Ferramenta" : undefined),
+        toolName: toolName || (isTool ? "Ferramenta" : isMemo ? "Memória Semântica" : undefined),
         rawContent: rec.preview || "",
-        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : "Resposta do modelo"),
+        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : isMemo ? "Extração de Memo Semântico" : "Resposta do modelo"),
       });
     }
 

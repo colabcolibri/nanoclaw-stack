@@ -113,11 +113,15 @@ export class UnifiedAgentGateway {
       // Record token consumption into TokenLedger
       try {
         const { TokenLedger } = await import(
-          path.join(CONFIG.NANOCLAW_PATH, "container", "agent-runner", "src", "services", "token-ledger.ts")
+          path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'token-ledger.ts')
         );
+        const isMemoCall = messages.some((m) => m.role === 'system' && (m.content?.includes('memo') || m.content?.includes('Summary') || m.content?.includes('summarize')));
+        const previewPrefix = isMemoCall ? 'Memo: ' : '';
+        const previewText = msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '';
+
         TokenLedger.record(groupDir, modelName, usage, {
           toolCallsCount: msg.tool_calls?.length || 0,
-          preview: msg.content || (msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : ""),
+          preview: previewText,
           messageId: userMsgId,
         });
       } catch {}
@@ -267,9 +271,10 @@ export class UnifiedAgentGateway {
     inDb.close();
 
     outDb.run(
-      `INSERT INTO messages_out (id, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO messages_out (id, in_reply_to, timestamp, kind, channel_type, thread_id, content) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         assistantMsgId,
+        userMsgId,
         responseTimestamp,
         "chat",
         input.channel,

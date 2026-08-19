@@ -475,9 +475,22 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant={step.type === 'tool_execution' ? 'warning' : 'secondary'} className="text-[10px]">
-                              Passo #{idx + 1} • {step.type === 'tool_execution' ? 'TOOL RUN' : 'SÍNTESE'}
-                            </Badge>
+                            {step.type === 'memo_generation' ? (
+                              <Badge variant="outline" className="text-[10px] bg-purple-500/15 border-purple-500/30 text-purple-600 dark:text-purple-300 font-bold gap-1">
+                                <Sparkles className="w-3 h-3 text-purple-500" />
+                                Passo #{idx + 1} • MEMO SEMÂNTICO
+                              </Badge>
+                            ) : step.type === 'tool_execution' ? (
+                              <Badge variant="warning" className="text-[10px] gap-1">
+                                <Wrench className="w-3 h-3" />
+                                Passo #{idx + 1} • TOOL RUN ({step.toolName || 'Ferramenta'})
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] gap-1 bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-sky-300">
+                                <MessageSquare className="w-3 h-3 text-sky-500" />
+                                Passo #{idx + 1} • {idx === 1 && selectedMessage.subRuns && selectedMessage.subRuns.some(s => s.type === 'tool_execution') ? 'STAGE 1: ANÁLISE' : 'SÍNTESE FINAL'}
+                              </Badge>
+                            )}
                             {step.model && (
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-main)] font-semibold flex items-center gap-1">
                                 <Cpu className="w-2.5 h-2.5 opacity-70 text-[var(--accent)]" />
