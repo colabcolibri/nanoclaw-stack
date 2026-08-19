@@ -465,8 +465,8 @@ export class DatabaseService {
     const ledgerRecords = this.getRealTokenRecords(limit);
     const defaultModel = this.getDefaultModel();
 
-    for (const rec of ledgerRecords) {
       const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
+      const isMemo = (rec.preview && (rec.preview.startsWith("Memo:") || rec.preview.startsWith("memo:"))) || false;
       let toolName = "";
       if (rec.preview && rec.preview.startsWith("Tool: ")) {
         toolName = rec.preview.replace("Tool: ", "").trim();
@@ -483,7 +483,7 @@ export class DatabaseService {
         id: rec.id,
         messageId: rec.id,
         sessionId: rec.sessionId,
-        type: isTool ? "tool_execution" : "model_turn",
+        type: isTool ? "tool_execution" : isMemo ? "memo_generation" : "model_turn",
         timestamp: rec.timestamp,
         model: rec.model || defaultModel,
         charCount: rec.totalTokens * 4,
@@ -497,9 +497,9 @@ export class DatabaseService {
         costUsd: rec.costUsd || (costInUsd + costOutUsd),
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
-        toolName: toolName || (isTool ? "Ferramenta" : undefined),
+        toolName: toolName || (isTool ? "Ferramenta" : isMemo ? "Memória Semântica" : undefined),
         rawContent: rec.preview || "",
-        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : "Resposta do modelo"),
+        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : isMemo ? "Extração de Memo Semântico" : "Resposta do modelo"),
       });
     }
 
