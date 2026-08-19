@@ -150,28 +150,36 @@ export class MacChannelService {
       soulContent = fs.readFileSync(soulFile, 'utf-8').trim();
     }
 
-    // Connectors: primary Groq with deep fallback to DeepSeek, using NanoClaw centralized env
+    // Connectors: use NANOCLAW_AGENT_PROVIDER from environment (defaults to DeepSeek, exactly like Telegram)
     const envMap = GroupManager.readNanoClawEnv();
-    const groqKey = envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY;
-    const deepseekKey = envMap['DEEPSEEK_API_KEY'] || process.env.DEEPSEEK_API_KEY;
-    const configuredModel = (envMap['DEEPSEEK_MODEL'] || process.env.DEEPSEEK_MODEL || '').replace(/^deepseek\//, '');
+    const provider = (envMap['NANOCLAW_AGENT_PROVIDER'] || process.env.NANOCLAW_AGENT_PROVIDER || 'deepseek').toLowerCase();
 
-    let baseURL = 'https://api.groq.com/openai/v1';
-    let apiKey = groqKey;
-    let modelName = 'llama-3.3-70b-versatile';
+    let rawBase = envMap['DEEPSEEK_BASE_URL'] || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+    let apiKey = envMap['DEEPSEEK_API_KEY'] || process.env.DEEPSEEK_API_KEY || '';
+    let modelName = (envMap['DEEPSEEK_MODEL'] || process.env.DEEPSEEK_MODEL || 'deepseek-chat').replace(/^deepseek\//, '');
 
-    if (!apiKey && deepseekKey) {
-      const rawBase = envMap['DEEPSEEK_BASE_URL'] || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-      baseURL = rawBase.replace(/\/+$/, '').endsWith('/v1') ? rawBase : `${rawBase.replace(/\/+$/, '')}/v1`;
-      apiKey = deepseekKey;
-      modelName = configuredModel || 'deepseek-chat';
+    if (provider === 'groq' && (envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY)) {
+      rawBase = envMap['GROQ_BASE_URL'] || 'https://api.groq.com/openai/v1';
+      apiKey = envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY || '';
+      modelName = envMap['GROQ_MODEL'] || 'llama-3.3-70b-versatile';
+    } else if (!apiKey && (envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY)) {
+      rawBase = envMap['GROQ_BASE_URL'] || 'https://api.groq.com/openai/v1';
+      apiKey = envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY || '';
+      modelName = envMap['GROQ_MODEL'] || 'llama-3.3-70b-versatile';
     }
 
     if (!apiKey) {
       inDb.close();
       outDb.close();
-      throw new Error('Nenhuma chave de provedor LLM configurada no servidor (GROQ ou DEEPSEEK).');
+      throw new Error('Nenhuma chave de provedor LLM configurada no servidor (DEEPSEEK_API_KEY ou GROQ_API_KEY no .env).');
     }
+
+    const cleanBase = rawBase.replace(/\/+$/, '');
+    const completionEndpoint = cleanBase.endsWith('/chat/completions')
+      ? cleanBase
+      : cleanBase.endsWith('/v1')
+      ? `${cleanBase}/chat/completions`
+      : `${cleanBase}/chat/completions`;
 
     // Import tools, memory manager and turn orchestrator directly (DRY & SRP)
     const { AGENT_TOOLS } = await import(
@@ -206,7 +214,7 @@ export class MacChannelService {
         payload.tool_choice = 'auto';
       }
 
-      const res = await fetch(`${baseURL}/chat/completions`, {
+      const res = await fetch(completionEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
