@@ -464,7 +464,7 @@ export class DatabaseService {
     const runs: IntermediateRunItem[] = [];
     const ledgerRecords = this.getRealTokenRecords(limit);
     const defaultModel = this.getDefaultModel();
-
+    for (const rec of ledgerRecords) {
       const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
       const isMemo = (rec.preview && (rec.preview.startsWith("Memo:") || rec.preview.startsWith("memo:"))) || false;
       let toolName = "";
