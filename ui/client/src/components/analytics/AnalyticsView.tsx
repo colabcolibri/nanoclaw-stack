@@ -483,12 +483,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             ) : step.type === 'tool_execution' ? (
                               <Badge variant="warning" className="text-[10px] gap-1">
                                 <Wrench className="w-3 h-3" />
-                                Passo #{idx + 1} • TOOL RUN
+                                Passo #{idx + 1} • TOOL RUN ({step.toolName || 'Ferramenta'})
                               </Badge>
                             ) : (
                               <Badge variant="secondary" className="text-[10px] gap-1 bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-sky-300">
                                 <MessageSquare className="w-3 h-3 text-sky-500" />
-                                Passo #{idx + 1} • RESPOSTA / SÍNTESE
+                                Passo #{idx + 1} • {idx === 1 && selectedMessage.subRuns && selectedMessage.subRuns.some(s => s.type === 'tool_execution') ? 'STAGE 1: ANÁLISE' : 'SÍNTESE FINAL'}
                               </Badge>
                             )}
                             {step.model && (
