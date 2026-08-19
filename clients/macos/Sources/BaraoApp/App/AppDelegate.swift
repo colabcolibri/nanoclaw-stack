@@ -23,18 +23,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     
     public func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        let normalWindows = NSApp.windows.filter { !($0 is NSStatusBarWindow) }
+        let normalWindows = NSApp.windows.filter { !String(describing: type(of: $0)).contains("NSStatusBarWindow") }
         if let window = normalWindows.first(where: { $0.canBecomeKey }) {
-            window.makeKeyAndOrderFront(nil)
+            window.makeKeyAndOrderFront(nil as Any?)
             window.center()
         } else if let window = normalWindows.first {
-            window.makeKeyAndOrderFront(nil)
+            window.makeKeyAndOrderFront(nil as Any?)
         }
     }
     
     public func toggleMainWindow() {
         if NSApp.isActive, let window = NSApp.keyWindow, window.isVisible {
-            window.orderOut(nil)
+            window.orderOut(nil as Any?)
         } else {
             showMainWindow()
         }

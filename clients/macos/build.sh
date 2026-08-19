@@ -25,7 +25,14 @@ mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
 # Copiar executável
-cp "$BUILD_DIR/Barao" "$MACOS_DIR/Barao"
+if [ -f "$BUILD_DIR/Barao" ]; then
+    cp "$BUILD_DIR/Barao" "$MACOS_DIR/Barao"
+elif [ -f "$SCRIPT_DIR/.build/apple/Products/Release/Barao" ]; then
+    cp "$SCRIPT_DIR/.build/apple/Products/Release/Barao" "$MACOS_DIR/Barao"
+else
+    echo "❌ Executável Barao não encontrado no build!"
+    exit 1
+fi
 chmod +x "$MACOS_DIR/Barao"
 
 # Copiar Info.plist
