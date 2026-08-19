@@ -145,45 +145,26 @@ export class MacChannelService {
     // Load group configuration, soul directives and skills
     const groupDir = path.join(CONFIG.GROUPS_PATH, groupFolder);
     const soulFile = path.join(groupDir, 'instructions.prepend.md');
-    let soulContent = 'Você é o Barão, um assistente de IA prestativo e inteligente.';
+    let soulContent = 'Você é o Barão, um assistente de IA prestativo, perspicaz e altamente resolutivo.';
     if (fs.existsSync(soulFile)) {
       soulContent = fs.readFileSync(soulFile, 'utf-8').trim();
     }
 
-    // Load available skill instructions and references
-    const skillsDir = path.join(CONFIG.NANOCLAW_PATH, 'container', 'skills');
-    const skillParts: string[] = [];
-    if (fs.existsSync(skillsDir)) {
-      for (const skillName of fs.readdirSync(skillsDir)) {
-        const skillDoc = path.join(skillsDir, skillName, 'SKILL.md');
-        if (fs.existsSync(skillDoc)) {
-          const doc = fs.readFileSync(skillDoc, 'utf-8');
-          skillParts.push(`### Skill: ${skillName}\n${doc}`);
-        }
-      }
-    }
-
-    const systemParts = [
-      soulContent,
-      `## Personalização Local:\nVocê está interagindo diretamente com o Sérgio Luciano através do seu aplicativo oficial nativo no macOS. Seja objetivo, resolutivo e mantenha um tom de parceria executiva inteligente.`,
-    ];
-
-    if (skillParts.length > 0) {
-      systemParts.push(`## Habilidades Disponíveis:\n${skillParts.join('\n\n')}`);
-    }
-
-    // Connectors: primary Groq with deep fallback to DeepSeek
-    const groqKey = process.env.GROQ_API_KEY;
-    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+    // Connectors: primary Groq with deep fallback to DeepSeek, using NanoClaw centralized env
+    const envMap = GroupManager.readNanoClawEnv();
+    const groqKey = envMap['GROQ_API_KEY'] || process.env.GROQ_API_KEY;
+    const deepseekKey = envMap['DEEPSEEK_API_KEY'] || process.env.DEEPSEEK_API_KEY;
+    const configuredModel = (envMap['DEEPSEEK_MODEL'] || process.env.DEEPSEEK_MODEL || '').replace(/^deepseek\//, '');
 
     let baseURL = 'https://api.groq.com/openai/v1';
     let apiKey = groqKey;
     let modelName = 'llama-3.3-70b-versatile';
 
     if (!apiKey && deepseekKey) {
-      baseURL = 'https://api.deepseek.com/v1';
+      const rawBase = envMap['DEEPSEEK_BASE_URL'] || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+      baseURL = rawBase.replace(/\/+$/, '').endsWith('/v1') ? rawBase : `${rawBase.replace(/\/+$/, '')}/v1`;
       apiKey = deepseekKey;
-      modelName = 'deepseek-chat';
+      modelName = configuredModel || 'deepseek-chat';
     }
 
     if (!apiKey) {
@@ -192,26 +173,24 @@ export class MacChannelService {
       throw new Error('Nenhuma chave de provedor LLM configurada no servidor (GROQ ou DEEPSEEK).');
     }
 
-    // Import tools and turn orchestrator directly
+    // Import tools, memory manager and turn orchestrator directly (DRY & SRP)
     const { AGENT_TOOLS } = await import(
       path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'tools', 'index.ts')
     );
     const { TurnOrchestrator } = await import(
       path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'orchestrator', 'turn-orchestrator.ts')
     );
-
     const { MemoryManager } = await import(
       path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'memory.ts')
     );
     const coreMemory = MemoryManager.loadCoreMemory(groupDir);
 
-    const finalSystem = [
-      ...systemParts,
-      coreMemory,
-      `Você possui ferramentas nativas conectadas para Notion, Google Calendar, Gmail, Yampi Store e Memória. Sempre execute a ferramenta apropriada quando solicitado.`,
+    const technicalDirectives = [
+      `## Personalização Local:\nVocê está interagindo diretamente com o Sérgio Luciano através do seu aplicativo oficial nativo no macOS. Seja objetivo, resolutivo e mantenha um tom de parceria executiva inteligente.`,
+      `Você possui ferramentas nativas conectadas para Notion, Google Calendar, Gmail, Yampi Store, Pesquisa Web e Memória. Sempre execute a ferramenta apropriada quando solicitado.`,
     ].join('\n\n');
 
-    // Completion function contract
+    // Completion function contract identical to Telegram / agent-runner
     const completeFn = async (messages: any[], tools?: any[]) => {
       const payload: any = {
         model: modelName,
@@ -243,19 +222,35 @@ export class MacChannelService {
 
       const data = (await res.json()) as any;
       const msg = data.choices?.[0]?.message || {};
+      const usage = data.usage || {};
+
+      // Record token consumption into TokenLedger
+      try {
+        const { TokenLedger } = await import(
+          path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'token-ledger.ts')
+        );
+        TokenLedger.record(groupDir, modelName, usage, {
+          toolCallsCount: msg.tool_calls?.length || 0,
+          preview: msg.content || (msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : ''),
+          messageId: userMsgId,
+        });
+      } catch {}
+
       return {
         content: msg.content,
         tool_calls: msg.tool_calls,
       };
     };
 
-    // Execute conversational turn with full tool orchestration and schema awareness
+    // Execute conversational turn through the EXACT same TurnOrchestrator pipeline as Telegram
     const turnResult = await TurnOrchestrator.runTurn(completeFn, {
       prompt,
       cwd: groupDir,
       chatJid: 'mac:sergio',
       history,
-      systemInstructions: finalSystem,
+      systemInstructions: technicalDirectives,
+      personaInstructions: soulContent,
+      coreMemory: coreMemory,
       historyLimit: 30,
     });
 
