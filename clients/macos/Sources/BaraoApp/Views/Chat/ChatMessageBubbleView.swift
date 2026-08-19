@@ -36,12 +36,7 @@ public struct ChatMessageBubbleView: View {
                             .padding(.top, 2)
                     }
                     
-                    Text(LocalizedStringKey(message.text))
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(isUser ? .white : Color(nsColor: .textColor))
-                        .textSelection(.enabled)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                    MarkdownContentView(text: message.text, isUser: isUser)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)

@@ -28,7 +28,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Barao-v1.2.0-macOS
+          name: Barao-v1.3.0-macOS
           path: |
             dist/Barao.dmg
             dist/Barao-macOS.zip
@@ -42,7 +42,7 @@ jobs:
             dist/Barao-macOS.zip
           title: "Barão AI para macOS ${{ github.ref_name }}"
           body: |
-            ### 🚀 Barão AI para macOS v1.2.0
+            ### 🚀 Barão AI para macOS v1.3.0
             
             - 🎙️ **Transcrição de Voz em Tempo Real**: Ditado nativo da Apple (Speech Framework) com pontuação automática.
             - ⌨️ **Atalho Global**: `Control + \` para abrir/ocultar instantaneamente.
