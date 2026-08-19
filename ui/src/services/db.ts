@@ -484,7 +484,7 @@ export class DatabaseService {
 
       runs.push({
         id: rec.id,
-        messageId: rec.id,
+        messageId: rec.messageId || rec.id,
         sessionId: rec.sessionId,
         type: isTool ? "tool_execution" : isMemo ? "memo_generation" : "model_turn",
         timestamp: rec.timestamp,
