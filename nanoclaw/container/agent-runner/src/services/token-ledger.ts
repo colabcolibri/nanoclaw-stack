@@ -78,6 +78,7 @@ export interface TokenRecord {
   timestamp: string;
   model: string;
   messageId?: string;
+  purpose?: string;
   promptTokens: number;
   cacheHitTokens: number;
   cacheMissTokens: number;
@@ -98,25 +99,16 @@ export class TokenLedger {
   /**
    * Calculates exact cost using DeepSeek official Peak pricing table.
    */
-  static calculateCost(model: string, usage: DeepSeekUsage): {
-    promptTokens: number;
-    cacheHitTokens: number;
-    cacheMissTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-    rateHitPerMillion: number;
-    rateMissPerMillion: number;
-    rateOutPerMillion: number;
-    costUsd: number;
-    costBrl: number;
-  } {
-    const key = model.toLowerCase().trim();
-    const rates = MODEL_PRICING[key] || MODEL_PRICING['deepseek-v4-flash'];
+  static calculateCost(model: string, usage: DeepSeekUsage): Omit<TokenRecord, 'id' | 'timestamp' | 'model' | 'hasToolCalls' | 'toolCallsCount' | 'messageId' | 'purpose'> {
+    const norm = model.toLowerCase();
+    const rates = MODEL_PRICING[norm] || MODEL_PRICING['deepseek-chat'];
 
-    const promptTokens = Number(usage.prompt_tokens || 0);
-    const cacheHitTokens = Number(usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0);
+    const promptTokens = usage.prompt_tokens || 0;
+    const completionTokens = usage.completion_tokens || 0;
+
+    // Cache hit resolution
+    const cacheHitTokens = usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0;
     const cacheMissTokens = Math.max(0, promptTokens - cacheHitTokens);
-    const completionTokens = Number(usage.completion_tokens || 0);
     const totalTokens = promptTokens + completionTokens;
 
     const costHit = (cacheHitTokens / 1_000_000) * rates.cacheHitPerMillion;
@@ -152,6 +144,7 @@ export class TokenLedger {
           timestamp TEXT NOT NULL,
           model TEXT NOT NULL,
           message_id TEXT,
+          purpose TEXT,
           prompt_tokens INTEGER NOT NULL,
           cache_hit_tokens INTEGER NOT NULL,
           cache_miss_tokens INTEGER NOT NULL,
@@ -175,6 +168,9 @@ export class TokenLedger {
       try {
         db.run('ALTER TABLE token_ledger ADD COLUMN message_id TEXT;');
       } catch {}
+      try {
+        db.run('ALTER TABLE token_ledger ADD COLUMN purpose TEXT;');
+      } catch {}
 
       return db;
     } catch {
@@ -194,6 +190,7 @@ export class TokenLedger {
       latencyMs?: number;
       preview?: string;
       messageId?: string;
+      purpose?: string;
     } = {}
   ): TokenRecord {
     const costData = this.calculateCost(model, usage);
@@ -202,6 +199,7 @@ export class TokenLedger {
       timestamp: new Date().toISOString(),
       model,
       messageId: meta.messageId,
+      purpose: meta.purpose,
       ...costData,
       hasToolCalls: (meta.toolCallsCount || 0) > 0,
       toolCallsCount: meta.toolCallsCount || 0,
@@ -218,51 +216,53 @@ export class TokenLedger {
         ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'logs')] : []),
       ];
       for (const logDir of candidates) {
-        try {
-          if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-          const ledgerFile = path.join(logDir, 'token_ledger.jsonl');
-          fs.appendFileSync(ledgerFile, JSON.stringify(record) + '\n', 'utf-8');
-
-          // 2. Write to SQLite database
-          const dbPath = path.join(logDir, 'token_usage.db');
-          const db = this.initSqlite(dbPath);
-          if (db) {
-            db.query(`
-              INSERT OR REPLACE INTO token_ledger (
-                id, timestamp, model, message_id, prompt_tokens, cache_hit_tokens, cache_miss_tokens,
-                completion_tokens, total_tokens, rate_hit_per_million, rate_miss_per_million,
-                rate_out_per_million, cost_usd, cost_brl, has_tool_calls, tool_calls_count,
-                latency_ms, preview
-              ) VALUES (
-                $id, $timestamp, $model, $message_id, $prompt_tokens, $cache_hit_tokens, $cache_miss_tokens,
-                $completion_tokens, $total_tokens, $rate_hit_per_million, $rate_miss_per_million,
-                $rate_out_per_million, $cost_usd, $cost_brl, $has_tool_calls, $tool_calls_count,
-                $latency_ms, $preview
-              )
-            `).run({
-              $id: record.id,
-              $timestamp: record.timestamp,
-              $model: record.model,
-              $message_id: record.messageId ?? null,
-              $prompt_tokens: record.promptTokens,
-              $cache_hit_tokens: record.cacheHitTokens,
-              $cache_miss_tokens: record.cacheMissTokens,
-              $completion_tokens: record.completionTokens,
-              $total_tokens: record.totalTokens,
-              $rate_hit_per_million: record.rateHitPerMillion,
-              $rate_miss_per_million: record.rateMissPerMillion,
-              $rate_out_per_million: record.rateOutPerMillion,
-              $cost_usd: record.costUsd,
-              $cost_brl: record.costBrl,
-              $has_tool_calls: record.hasToolCalls ? 1 : 0,
-              $tool_calls_count: record.toolCallsCount,
-              $latency_ms: record.latencyMs ?? null,
-              $preview: record.preview ?? null,
-            });
-            db.close();
-          }
+        if (fs.existsSync(logDir)) {
+          const jsonlPath = path.join(logDir, 'token_ledger.jsonl');
+          fs.appendFileSync(jsonlPath, JSON.stringify(record) + '\n');
           break;
-        } catch {}
+        }
+      }
+    } catch {}
+
+    // 2. Write to SQLite
+    try {
+      const dbDir = path.join(cwd, 'logs');
+      if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+      const dbPath = path.join(dbDir, 'token_ledger.db');
+      const db = this.initSqlite(dbPath);
+      if (db) {
+        db.run(
+          `
+          INSERT INTO token_ledger (
+            id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
+            cache_miss_tokens, completion_tokens, total_tokens,
+            rate_hit_per_million, rate_miss_per_million, rate_out_per_million,
+            cost_usd, cost_brl, has_tool_calls, tool_calls_count, latency_ms, preview
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+          [
+            record.id,
+            record.timestamp,
+            record.model,
+            record.messageId || null,
+            record.purpose || null,
+            record.promptTokens,
+            record.cacheHitTokens,
+            record.cacheMissTokens,
+            record.completionTokens,
+            record.totalTokens,
+            record.rateHitPerMillion,
+            record.rateMissPerMillion,
+            record.rateOutPerMillion,
+            record.costUsd,
+            record.costBrl,
+            record.hasToolCalls ? 1 : 0,
+            record.toolCallsCount,
+            record.latencyMs || null,
+            record.preview || null,
+          ]
+        );
+        db.close();
       }
     } catch {}
 

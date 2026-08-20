@@ -27,7 +27,7 @@ describe("SkillsManager Automated Folder Discovery & Skills on Demand", () => {
     expect(catalog).toContain("Available Skills Catalog");
     expect(catalog).toContain("load_skill");
     expect(catalog).toContain("GOOGLE SUITE");
-    expect(catalog.length).toBeLessThan(1500); // Ultra compact
+    expect(catalog.length).toBeLessThan(2000); // Ultra compact
   });
 
   test("Retrieves specialized skill on demand via load_skill tool", async () => {

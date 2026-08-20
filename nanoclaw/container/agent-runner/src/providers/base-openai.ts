@@ -125,7 +125,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       try {
         const url = `${baseURL}/chat/completions`;
 
-        const completeFn = async (currentMessages: any[], enableTools: boolean | any[]) => {
+        const completeFn = async (currentMessages: any[], enableTools: boolean | any[], options?: any) => {
           if (aborted) throw new Error('Query aborted');
 
           const payload: any = {
@@ -228,11 +228,24 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
 
           // Record token consumption
           try {
+            const purpose = options?.purpose || (msg.tool_calls?.length ? 'stage1_action' : 'stage2_synthesis');
+            let previewPrefix = '';
+            if (purpose === 'semantic_memo') {
+              previewPrefix = 'Memo: ';
+            } else if (purpose === 'stage1_action') {
+              previewPrefix = msg.tool_calls?.length ? `Tool [${msg.tool_calls.map((tc: any) => tc.function?.name).join(', ')}]: ` : 'Ação: ';
+            } else if (purpose === 'stage2_synthesis') {
+              previewPrefix = 'Síntese: ';
+            } else if (purpose === 'fast_path_direct') {
+              previewPrefix = 'Conversa: ';
+            }
+
             TokenLedger.record(input.cwd, model, usage, {
               toolCallsCount: msg.tool_calls?.length || 0,
               latencyMs,
-              preview: msg.content || (msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : ''),
+              preview: msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '',
               messageId: input.messageId,
+              purpose,
             });
           } catch {}
 

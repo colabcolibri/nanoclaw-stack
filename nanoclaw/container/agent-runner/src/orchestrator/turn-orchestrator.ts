@@ -89,7 +89,7 @@ export class TurnOrchestrator {
       ];
 
       onActivity?.();
-      const response = await complete(messages, false);
+      const response = await complete(messages, false, { purpose: 'fast_path_direct' });
       let finalContent = ResponseParser.cleanHumanText(response.content);
 
       if (!finalContent || !finalContent.trim()) {
@@ -110,6 +110,7 @@ export class TurnOrchestrator {
             { role: 'user', content: usr },
           ],
           false,
+          { purpose: 'semantic_memo' },
         );
         return resp.content || '';
       });
@@ -166,7 +167,11 @@ export class TurnOrchestrator {
         .filter(Boolean);
 
       const currentMessages = scratchpad.toStage1Messages(actionSystemPrompt);
-      const response = await complete(currentMessages, currentToolDefinitions);
+      const response = await complete(currentMessages, currentToolDefinitions, {
+        purpose: 'stage1_action',
+        stage: 1,
+        iteration: iter,
+      });
       const toolCalls = ResponseParser.extractToolCalls(response);
 
       if (toolCalls.length > 0) {
@@ -240,7 +245,10 @@ export class TurnOrchestrator {
 
       try {
         onActivity?.();
-        const synthResponse = await complete(synthesisMessages, false);
+        const synthResponse = await complete(synthesisMessages, false, {
+          purpose: 'stage2_synthesis',
+          stage: 2,
+        });
         const synthContent = ResponseParser.cleanHumanText(synthResponse.content);
         if (synthContent && synthContent.trim().length > 0) {
           finalContent = synthContent;
@@ -273,6 +281,7 @@ export class TurnOrchestrator {
           { role: 'user', content: usr },
         ],
         false,
+        { purpose: 'semantic_memo' },
       );
       return resp.content || '';
     });

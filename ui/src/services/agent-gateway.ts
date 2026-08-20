@@ -77,7 +77,7 @@ export class UnifiedAgentGateway {
       ? `${cleanBase}/chat/completions`
       : `${cleanBase}/chat/completions`;
 
-    const completeFn = async (messages: any[], tools?: any[]) => {
+    const completeFn = async (messages: any[], tools?: any[], options?: any) => {
       const payload: any = {
         model: modelName,
         messages: messages.map((m) => {
@@ -146,14 +146,25 @@ export class UnifiedAgentGateway {
         const { TokenLedger } = await import(
           path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'token-ledger.ts')
         );
-        const isMemoCall = messages.some((m) => m.role === 'system' && (m.content?.includes('memo') || m.content?.includes('Summary') || m.content?.includes('summarize')));
-        const previewPrefix = isMemoCall ? 'Memo: ' : '';
+        const purpose = options?.purpose || (msg.tool_calls?.length ? 'stage1_action' : 'stage2_synthesis');
+        let previewPrefix = '';
+        if (purpose === 'semantic_memo') {
+          previewPrefix = 'Memo: ';
+        } else if (purpose === 'stage1_action') {
+          previewPrefix = msg.tool_calls?.length ? `Tool [${msg.tool_calls.map((t: any) => t.function?.name).join(', ')}]: ` : 'Ação: ';
+        } else if (purpose === 'stage2_synthesis') {
+          previewPrefix = 'Síntese: ';
+        } else if (purpose === 'fast_path_direct') {
+          previewPrefix = 'Conversa: ';
+        }
+
         const previewText = msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '';
 
         TokenLedger.record(groupDir, modelName, usage, {
           toolCallsCount: msg.tool_calls?.length || 0,
           preview: previewText,
           messageId: userMsgId,
+          purpose,
         });
       } catch {}
 

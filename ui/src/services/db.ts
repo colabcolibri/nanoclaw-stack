@@ -468,11 +468,36 @@ export class DatabaseService {
     const ledgerRecords = this.getRealTokenRecords(limit);
     const defaultModel = this.getDefaultModel();
     for (const rec of ledgerRecords) {
-      const isTool = rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0);
-      const isMemo = (rec.preview && (rec.preview.startsWith("Memo:") || rec.preview.startsWith("memo:"))) || false;
+      const purpose = rec.purpose || (rec.hasToolCalls ? 'stage1_action' : (rec.preview && (rec.preview.startsWith('Memo:') || rec.preview.startsWith('memo:'))) ? 'semantic_memo' : 'stage2_synthesis');
+      const isTool = purpose === 'stage1_action' && (rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0));
+      const isMemo = purpose === 'semantic_memo';
+      const isSynth = purpose === 'stage2_synthesis';
+      const isFast = purpose === 'fast_path_direct';
+
       let toolName = "";
       if (rec.preview && rec.preview.startsWith("Tool: ")) {
         toolName = rec.preview.replace("Tool: ", "").trim();
+      } else if (rec.preview && rec.preview.startsWith("Tool [")) {
+        const endIdx = rec.preview.indexOf("]:");
+        if (endIdx !== -1) {
+          toolName = rec.preview.slice(6, endIdx).trim();
+        }
+      }
+
+      let typeLabel = "model_turn";
+      let displayName = "Resposta do modelo";
+      if (isTool) {
+        typeLabel = "tool_execution";
+        displayName = toolName ? `Ferramenta: ${toolName}` : "Etapa 1: Ação & Ferramentas";
+      } else if (isMemo) {
+        typeLabel = "memo_generation";
+        displayName = "Memória Semântica";
+      } else if (isSynth) {
+        typeLabel = "persona_synthesis";
+        displayName = "Etapa 2: Síntese Persona (Barão)";
+      } else if (isFast) {
+        typeLabel = "fast_path";
+        displayName = "Conversação Direta (Fast-Path)";
       }
 
       const promptTokens = rec.promptTokens || 0;
@@ -486,7 +511,7 @@ export class DatabaseService {
         id: rec.id,
         messageId: rec.messageId || rec.id,
         sessionId: rec.sessionId,
-        type: isTool ? "tool_execution" : isMemo ? "memo_generation" : "model_turn",
+        type: isTool ? "tool_execution" : isMemo ? "memo_generation" : isSynth ? "persona_synthesis" : "model_turn",
         timestamp: rec.timestamp,
         model: rec.model || defaultModel,
         charCount: rec.totalTokens * 4,
@@ -500,9 +525,9 @@ export class DatabaseService {
         costUsd: rec.costUsd || (costInUsd + costOutUsd),
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
-        toolName: toolName || (isTool ? "Ferramenta" : isMemo ? "Memória Semântica" : undefined),
+        toolName: toolName || (isTool ? "Ferramenta" : isMemo ? "Memória Semântica" : isSynth ? "Síntese Persona" : undefined),
         rawContent: rec.preview || "",
-        preview: rec.preview || (isTool ? `Execução de ${rec.toolCallsCount} ferramenta(s)` : isMemo ? "Extração de Memo Semântico" : "Resposta do modelo"),
+        preview: rec.preview || displayName,
       });
     }
 
