@@ -1,4 +1,3 @@
-import { ALL_TOOLS, AGENT_TOOLS } from './index.js';
 import type { ToolDefinition, AgentTool } from './types.js';
 
 export interface ToolDomain {
@@ -12,6 +11,7 @@ export interface ToolDomain {
 
 export class ToolRouter {
   private static domains: Map<string, ToolDomain> = new Map();
+  private static registry: Record<string, AgentTool> = {};
 
   static {
     // 1. Google Productivity & Communication Domain
@@ -106,36 +106,56 @@ export class ToolRouter {
       ],
     });
 
-    // 3. Notion & Autonomous Scheduling Domain
+    // 3. Notion Management Domain
     this.registerDomain({
       id: 'notion_management',
-      name: 'Gestão de Tarefas & Agendamentos',
-      description: 'Gestão de páginas e bancos no Notion e agendamento de tarefas autônomas periódicas.',
-      toolNames: ['notion', 'schedule_followup'],
+      name: 'Gestão de Conteúdo e Páginas no Notion',
+      description: 'Gestão de páginas, anotações, atas de reunião e bancos de dados no Notion.',
+      toolNames: ['notion'],
       keywords: [
         'notion',
-        'tarefa',
-        'tarefas',
-        'task',
-        'tasks',
         'quadro',
         'database',
         'pagina',
         'página',
-        'lembrete',
-        'lembretes',
-        'agendar lembrete',
+        'bloco',
+        'documento notion',
+      ],
+      patterns: [
+        /\b(?:notion|quadro|database)\b/i,
+      ],
+    });
+
+    // 4. Autonomous Scheduling & Cron Domain
+    this.registerDomain({
+      id: 'automation_scheduling',
+      name: 'Agendamento Autônomo & Rotinas Recorrentes (Cron)',
+      description: 'Agendamento de rotinas periódicas cron, lembretes futuros e continuidade autônoma.',
+      toolNames: ['schedule_followup'],
+      keywords: [
+        'cron',
+        'agendar',
+        'agendamento',
+        'rotina',
+        'recorrente',
+        'periodicidade',
+        'periodico',
+        'periódico',
         'followup',
         'follow-up',
+        'lembrete',
+        'lembretes',
         'lembrar',
         'aviso',
         'alarme',
-        'cron',
-        'recorrente',
+        'a cada',
+        'cada duas horas',
+        'em 15 minutos',
       ],
       patterns: [
-        /\b(?:notion|tarefas?|tasks?|quadro)\b/i,
+        /\b(?:cron|rotina|recorrente|periodic(?:o|a|idade))\b/i,
         /\b(?:lembr(?:ar|e)|agendar|follow-?up)\b/i,
+        /\ba\s+cada\s+\d+\s+(?:minutos?|horas?|dias?)\b/i,
       ],
     });
 
@@ -166,12 +186,12 @@ export class ToolRouter {
       ],
     });
 
-    // 5. Web Search & Real-Time Intelligence Domain
+    // 6. Web Search & Real-Time Intelligence Domain
     this.registerDomain({
       id: 'web_research',
       name: 'Pesquisa Web & Inteligência em Tempo Real',
       description: 'Busca na internet em tempo real, notícias, tendências, leitura de artigos e sites.',
-      toolNames: ['web_search', 'browse_url'],
+      toolNames: ['web_search', 'web_research', 'browse_url'],
       keywords: [
         'pesquisar',
         'pesquise',
@@ -211,6 +231,15 @@ export class ToolRouter {
         /\bhttps?:\/\/[^\s]+/i,
       ],
     });
+
+    // 7. Runtime Meta Domain (Dynamic Skills & Message Retrieval)
+    this.registerDomain({
+      id: 'runtime_meta',
+      name: 'Controle de Runtime & Skills Dinâmicas',
+      description: 'Ferramentas de sistema para carregamento de manuais de skills e recuperação de contexto original.',
+      toolNames: ['load_skill', 'retrieve_message_context'],
+      keywords: ['skill', 'manual', 'contexto'],
+    });
   }
 
   /**
@@ -242,6 +271,62 @@ export class ToolRouter {
       keywords: Array.from(kwSet),
       patterns,
     });
+  }
+
+  /**
+   * Strict registry validator & synchronizer:
+   * 1. Asserts every registered tool has a valid, non-empty domain.
+   * 2. Asserts every domain exists in the catalog.
+   * 3. Dynamically populates domain.toolNames directly from the tool registry.
+   * Throws immediately if any orphaned or misconfigured tool is detected.
+   */
+  static syncRegistry(tools: Record<string, AgentTool>): void {
+    for (const [toolName, tool] of Object.entries(tools)) {
+      if (!tool.domain || typeof tool.domain !== 'string' || !tool.domain.trim()) {
+        throw new Error(
+          `[Strict Tool Registry] Tool "${toolName}" has no assigned domain! Every tool must belong to a group.`
+        );
+      }
+      if (!this.domains.has(tool.domain)) {
+        throw new Error(
+          `[Strict Tool Registry] Tool "${toolName}" belongs to unknown domain "${tool.domain}". Register the domain first!`
+        );
+      }
+    }
+
+    this.registry = { ...tools };
+
+    // Automatically synchronize toolNames for every domain from tools
+    for (const [domId, domain] of this.domains.entries()) {
+      const matchingTools = Object.entries(tools)
+        .filter(([_, t]) => t.domain === domId)
+        .map(([name]) => name);
+
+      const combined = new Set([...domain.toolNames, ...matchingTools]);
+      domain.toolNames = Array.from(combined);
+    }
+  }
+
+  /**
+   * Generates a concise index of available tool capability groups for the system prompt (~60 tokens).
+   * Excludes internal runtime_meta from user-facing group prompt.
+   */
+  static getGroupSummaryPrompt(): string {
+    const lines: string[] = ['## 🛠️ Tool Capability Groups (Available for Dynamic Chaining):'];
+    for (const [id, dom] of this.domains.entries()) {
+      if (id === 'runtime_meta') continue;
+      if (dom.toolNames.length === 0) continue;
+      lines.push(`- **${dom.name}** (\`${id}\`): ${dom.description} [Tools: ${dom.toolNames.map((t) => `\`${t}\``).join(', ')}]`);
+    }
+    lines.push('\n*(If you need tools from another group during execution, call `load_skill` or invoke the tool to dynamically chain it into your active set.)*');
+    return lines.join('\n');
+  }
+
+  /**
+   * Retrieves a domain by its ID.
+   */
+  static getDomain(domainId: string): ToolDomain | undefined {
+    return this.domains.get(domainId);
   }
 
   /**
@@ -332,8 +417,11 @@ export class ToolRouter {
       fallbackToAll?: boolean;
     } = {}
   ): ToolDefinition[] {
+    const allRegistered = Object.values(this.registry);
+    const allDefs = allRegistered.map((t) => t.definition);
+
     if (options.forceAll) {
-      return AGENT_TOOLS;
+      return allDefs;
     }
 
     // 1. Pure conversational queries don't need any tool schemas injected
@@ -365,7 +453,7 @@ export class ToolRouter {
 
       const tools: ToolDefinition[] = [];
       for (const name of selectedToolNames) {
-        const tool = ALL_TOOLS[name];
+        const tool = this.registry[name];
         if (tool) tools.push(tool.definition);
       }
 
@@ -374,7 +462,7 @@ export class ToolRouter {
 
     // 3. Fallback: If no specific domain matched, defensively provide all tools
     if (options.fallbackToAll !== false) {
-      return AGENT_TOOLS;
+      return allDefs;
     }
 
     return [];

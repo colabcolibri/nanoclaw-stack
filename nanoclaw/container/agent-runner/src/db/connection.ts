@@ -201,7 +201,8 @@ export function initTestSessionDb(): { inbound: Database; outbound: Database } {
       channel_type   TEXT,
       thread_id      TEXT,
       content        TEXT NOT NULL,
-      on_wake        INTEGER NOT NULL DEFAULT 0
+      on_wake        INTEGER NOT NULL DEFAULT 0,
+      memo           TEXT
     );
     CREATE TABLE delivered (
       message_out_id      TEXT PRIMARY KEY,
@@ -233,7 +234,8 @@ export function initTestSessionDb(): { inbound: Database; outbound: Database } {
       platform_id    TEXT,
       channel_type   TEXT,
       thread_id      TEXT,
-      content        TEXT NOT NULL
+      content        TEXT NOT NULL,
+      memo           TEXT
     );
     CREATE TABLE processing_ack (
       message_id     TEXT PRIMARY KEY,

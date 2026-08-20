@@ -2,6 +2,7 @@ import type { AgentTool } from './types.js';
 import { MemoryManager } from '../services/memory.js';
 
 export const memoryTool: AgentTool = {
+  domain: 'core_system',
   definition: {
     type: 'function',
     function: {

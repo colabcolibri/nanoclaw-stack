@@ -22,8 +22,8 @@ export class ExecutionScratchpad {
   constructor(userPrompt: string, recentHistory: any[] = []) {
     this.userGoal = userPrompt.trim();
 
-    // 1. Pull dense message memos with their real IDs (max 6 recent turns)
-    const recentMemos = MemoService.getRecentMemos(6);
+    // 1. Pull dense message memos with their real IDs (max 10 recent turns)
+    const recentMemos = MemoService.getRecentMemos(10);
     if (recentMemos.length > 0) {
       for (const m of recentMemos) {
         if (m.memo && m.memo !== this.userGoal) {

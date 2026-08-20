@@ -30,6 +30,7 @@ function getYampiCreds(cwd: string): YampiCreds | null {
 }
 
 export const yampiTool: AgentTool = {
+  domain: 'ecommerce_logistics',
   definition: {
     type: 'function',
     function: {

@@ -128,6 +128,7 @@ function formatEmailBody(raw: string): string {
 }
 
 export const googleGmailTool: AgentTool = {
+  domain: 'google_suite',
   definition: {
     type: 'function',
     function: {

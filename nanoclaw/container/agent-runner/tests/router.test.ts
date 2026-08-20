@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ToolRouter, AGENT_TOOLS } from "../src/tools/index.js";
+import { ToolRouter, AGENT_TOOLS, ALL_TOOLS } from "../src/tools/index.js";
 
 describe("ToolRouter Domain Segmentation & Routing", () => {
   test("Accurately matches Google Suite for email queries", () => {
@@ -28,10 +28,16 @@ describe("ToolRouter Domain Segmentation & Routing", () => {
     expect(names).not.toContain("google_gmail");
   });
 
-  test("Accurately matches Notion & Task Management", () => {
-    const tools = ToolRouter.selectTools("quais são as tarefas pendentes no Notion?");
+  test("Accurately matches Notion Management", () => {
+    const tools = ToolRouter.selectTools("quais são os documentos no Notion?");
     const names = tools.map((t) => t.function.name);
     expect(names).toContain("notion");
+    expect(names).not.toContain("yampi_store");
+  });
+
+  test("Accurately matches Autonomous Scheduling & Cron", () => {
+    const tools = ToolRouter.selectTools("agende uma rotina de cron a cada 2 horas");
+    const names = tools.map((t) => t.function.name);
     expect(names).toContain("schedule_followup");
     expect(names).not.toContain("yampi_store");
   });
@@ -66,5 +72,42 @@ describe("ToolRouter Domain Segmentation & Routing", () => {
 
     const matched = ToolRouter.matchDomains("atualize o lead no hubspot");
     expect(matched).toContain("crm_hubspot");
+  });
+
+  test("Strict Invariant: Every tool in ALL_TOOLS belongs to a registered domain", () => {
+    const domains = ToolRouter.getDomains();
+    const domainIds = new Set(domains.map((d) => d.id));
+
+    for (const [name, tool] of Object.entries(ALL_TOOLS)) {
+      expect(tool.domain).toBeDefined();
+      expect(typeof tool.domain).toBe("string");
+      expect(tool.domain.length).toBeGreaterThan(0);
+      expect(domainIds.has(tool.domain)).toBe(true);
+    }
+  });
+
+  test("Strict Invariant: Throws immediately if an orphaned tool has no domain", () => {
+    const brokenTools: any = {
+      orphan_tool: {
+        definition: {
+          type: "function",
+          function: { name: "orphan_tool", description: "test", parameters: { type: "object", properties: {} } },
+        },
+        execute: async () => "ok",
+      },
+    };
+
+    expect(() => ToolRouter.syncRegistry(brokenTools)).toThrow(/has no assigned domain/);
+  });
+
+  test("Strict Invariant: Dynamic capability summary prompt generates all non-empty groups", () => {
+    const prompt = ToolRouter.getGroupSummaryPrompt();
+    expect(prompt).toContain("Google Suite");
+    expect(prompt).toContain("google_gmail");
+    expect(prompt).toContain("E-Commerce, Preços e Logística");
+    expect(prompt).toContain("yampi_store");
+    expect(prompt).toContain("Agendamento Autônomo");
+    expect(prompt).toContain("schedule_followup");
+    expect(prompt).not.toContain("runtime_meta");
   });
 });

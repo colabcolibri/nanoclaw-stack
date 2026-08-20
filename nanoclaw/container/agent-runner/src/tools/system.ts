@@ -7,6 +7,7 @@ import type { AgentTool } from './types.js';
 const execAsync = promisify(exec);
 
 export const runCommandTool: AgentTool = {
+  domain: 'core_system',
   definition: {
     type: 'function',
     function: {
@@ -28,6 +29,7 @@ export const runCommandTool: AgentTool = {
 };
 
 export const readFileTool: AgentTool = {
+  domain: 'core_system',
   definition: {
     type: 'function',
     function: {

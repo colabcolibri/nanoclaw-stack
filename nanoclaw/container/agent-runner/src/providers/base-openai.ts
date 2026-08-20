@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { AGENT_TOOLS } from '../tools/index.js';
+import { AGENT_TOOLS, ALL_TOOLS } from '../tools/index.js';
 import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
 import { TokenLedger } from '../services/token-ledger.js';

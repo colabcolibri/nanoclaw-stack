@@ -4,6 +4,7 @@ import { Database } from 'bun:sqlite';
 import type { AgentTool } from './types.js';
 
 export const tokenUsageTool: AgentTool = {
+  domain: 'core_system',
   definition: {
     type: 'function',
     function: {

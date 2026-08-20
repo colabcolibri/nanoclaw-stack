@@ -40,6 +40,7 @@ async function getNotionToken(cwd: string): Promise<{ apiKey: string; defaultDat
 }
 
 export const notionTool: AgentTool = {
+  domain: 'notion_management',
   definition: {
     type: 'function',
     function: {

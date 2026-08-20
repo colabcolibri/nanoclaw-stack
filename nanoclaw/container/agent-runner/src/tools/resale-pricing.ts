@@ -2,6 +2,7 @@ import type { AgentTool } from './types.js';
 import { ResalePricingEngine } from '../services/pricing.js';
 
 export const resalePricingTool: AgentTool = {
+  domain: 'ecommerce_logistics',
   definition: {
     type: 'function',
     function: {

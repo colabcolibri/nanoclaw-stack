@@ -94,6 +94,7 @@ const REGION_RATES: Record<string, { pacBase: number; sedexBase: number; pacDays
 };
 
 export const correiosShippingTool: AgentTool = {
+  domain: 'ecommerce_logistics',
   definition: {
     type: 'function',
     function: {

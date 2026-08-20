@@ -35,6 +35,7 @@ function findInboundDbPath(cwd: string): string | null {
 }
 
 export const schedulerTool: AgentTool = {
+  domain: 'automation_scheduling',
   definition: {
     type: 'function',
     function: {

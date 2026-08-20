@@ -1,4 +1,5 @@
 import type { AgentTool, ToolDefinition } from './types.js';
+import { ToolRouter } from './router.js';
 import { runCommandTool, readFileTool } from './system.js';
 import { googleCalendarTool } from './google-calendar.js';
 import { googleGmailTool } from './google-gmail.js';
@@ -27,19 +28,25 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   token_usage: tokenUsageTool,
   web_search: webSearchTool,
   web_research: {
+    domain: 'web_research',
     definition: WEB_RESEARCH_TOOL,
     execute: async (args: any) => webSearchTool.execute(args),
   },
   browse_url: browseUrlTool,
   retrieve_message_context: {
+    domain: 'runtime_meta',
     definition: RETRIEVE_MESSAGE_CONTEXT_TOOL,
     execute: async (args: any) => handleRetrieveMessageContext(args),
   },
   load_skill: {
+    domain: 'runtime_meta',
     definition: LOAD_SKILL_TOOL,
     execute: async (args: any, cwd: string) => handleLoadSkill(args, cwd),
   },
 };
+
+// Strict Invariant: Sync and assert all tools belong to a registered domain
+ToolRouter.syncRegistry(ALL_TOOLS);
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);
 

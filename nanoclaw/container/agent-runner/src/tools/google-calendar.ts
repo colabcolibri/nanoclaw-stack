@@ -2,6 +2,7 @@ import type { AgentTool } from './types.js';
 import { getGoogleToken } from './google-auth.js';
 
 export const googleCalendarTool: AgentTool = {
+  domain: 'google_suite',
   definition: {
     type: 'function',
     function: {

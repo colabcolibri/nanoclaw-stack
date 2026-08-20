@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { executeTool, ToolRouter } from '../tools/index.js';
+import { executeTool, ToolRouter, ALL_TOOLS } from '../tools/index.js';
 import { SkillsManager } from '../services/skills-manager.js';
 import { ResponseParser } from './parser.js';
 import { IntermediateNotifier } from './notifier.js';
@@ -84,7 +84,7 @@ export class TurnOrchestrator {
 
       const messages: any[] = [
         { role: 'system', content: personaPrompt },
-        ...options.history.slice(-6),
+        ...options.history.slice(-10),
         { role: 'user', content: options.prompt },
       ];
 
@@ -93,7 +93,7 @@ export class TurnOrchestrator {
       let finalContent = ResponseParser.cleanHumanText(response.content);
 
       if (!finalContent || !finalContent.trim()) {
-        finalContent = 'Entendido. Como posso te ajudar hoje?';
+        finalContent = 'Entendido, sô. Como posso te ajudar hoje?';
       }
 
       const cleanText = finalContent
@@ -114,7 +114,7 @@ export class TurnOrchestrator {
         return resp.content || '';
       });
 
-      const historyLimit = options.historyLimit || 8;
+      const historyLimit = options.historyLimit || 10;
       const updatedHistory = [
         ...options.history,
         { role: 'user', content: options.prompt },
@@ -129,9 +129,13 @@ export class TurnOrchestrator {
       };
     }
 
-    // 3. Tool-Assisted Execution Path with Execution Memory (Scratchpad)
-    const activeToolNames = routedTools.map((t) => t.function?.name).filter(Boolean);
-    const skillCatalog = SkillsManager.getSkillInstructionsForTools(activeToolNames, options.cwd);
+    // 3. Tool-Assisted Execution Path with Dynamic Tool Chaining & Execution Memory
+    const dynamicToolNames = new Set<string>(routedTools.map((t) => t.function?.name).filter(Boolean));
+    dynamicToolNames.add('load_skill');
+    dynamicToolNames.add('retrieve_message_context');
+
+    const toolGroupsSummary = ToolRouter.getGroupSummaryPrompt();
+    const skillCatalog = SkillsManager.getSkillInstructionsForTools(Array.from(dynamicToolNames), options.cwd);
 
     const baseActionPrompt = PromptLoader.load('stage1.action.md') ||
       'You are an autonomous technical execution engine running on NanoClaw.\nExecute tools directly with exact parameters to gather real data with minimal overhead.\nWhen all necessary information has been gathered from the tools, reply ONLY with "DONE".';
@@ -141,6 +145,7 @@ export class TurnOrchestrator {
       options.personaInstructions || '',
       options.coreMemory ? `## Context & Permanent Memory\n${options.coreMemory}` : '',
       baseActionPrompt,
+      toolGroupsSummary,
       options.systemInstructions || '',
       skillCatalog || '',
     ]
@@ -152,12 +157,16 @@ export class TurnOrchestrator {
     let toolsRunCount = 0;
     const maxIterations = Math.max(1, Number(options.maxIterations) || Number(process.env.NANOCLAW_MAX_TOOL_RUNS) || 8);
 
-    // Stage 1: Action & Tool Execution Loop using Scratchpad State
+    // Stage 1: Action & Tool Execution Loop using Scratchpad State and Dynamic Tool Chaining
     for (let iter = 0; iter < maxIterations; iter++) {
       onActivity?.();
 
+      const currentToolDefinitions = Array.from(dynamicToolNames)
+        .map((n) => ALL_TOOLS[n]?.definition)
+        .filter(Boolean);
+
       const currentMessages = scratchpad.toStage1Messages(actionSystemPrompt);
-      const response = await complete(currentMessages, routedTools);
+      const response = await complete(currentMessages, currentToolDefinitions);
       const toolCalls = ResponseParser.extractToolCalls(response);
 
       if (toolCalls.length > 0) {
@@ -172,6 +181,23 @@ export class TurnOrchestrator {
           toolsRunCount++;
           const resultText = await executeTool(call.name, call.args, options.cwd);
           scratchpad.recordFinding(call.name, call.args, resultText);
+
+          // Dynamic Tool Chaining: If a skill is loaded or domain tool invoked, dynamically unlock domain tools for next iterations
+          if (call.name === 'load_skill' && call.args?.name) {
+            const skill = SkillsManager.getSkillByName(call.args.name, options.cwd);
+            if (skill?.tools) {
+              skill.tools.forEach((t) => dynamicToolNames.add(t));
+            }
+            if (skill?.domain) {
+              const dom = ToolRouter.getDomain(skill.domain);
+              if (dom) {
+                dom.toolNames.forEach((t) => dynamicToolNames.add(t));
+              }
+            }
+          }
+          if (ALL_TOOLS[call.name]) {
+            dynamicToolNames.add(call.name);
+          }
         }
 
         continue;
@@ -205,7 +231,7 @@ export class TurnOrchestrator {
 
       const synthesisMessages: any[] = [
         { role: 'system', content: personaPrompt },
-        ...options.history.slice(-4),
+        ...options.history.slice(-10),
         {
           role: 'user',
           content: synthesisPromptText,
@@ -224,9 +250,13 @@ export class TurnOrchestrator {
       }
     }
 
-    // Fallback if model returned empty content
+    // Fallback if model returned empty content after tools
     if (!finalContent || !finalContent.trim() || finalContent === 'DONE') {
-      finalContent = 'The requested actions and queries have completed successfully.';
+      if (scratchpad.hasFindings()) {
+        finalContent = `Feito, sô. As ações foram executadas com sucesso.\n\n${scratchpad.toSynthesisReport()}`;
+      } else {
+        finalContent = 'Tudo certo, sô. Processamento concluído.';
+      }
     }
 
     const cleanText = finalContent
@@ -247,7 +277,7 @@ export class TurnOrchestrator {
       return resp.content || '';
     });
 
-    const historyLimit = options.historyLimit || 8;
+    const historyLimit = options.historyLimit || 10;
     const updatedHistory = [
       ...options.history,
       { role: 'user', content: options.prompt },
