@@ -55,7 +55,7 @@ describe("Agent Runner Smoke & Regression Tests", () => {
     expect(passedSystem).toContain("conversational memo generator");
     expect(passedUser).toContain("Text to summarize:");
     expect(memo).toBe("Resumo executivo denso em menos de 280 caracteres.");
-    expect(memo.length).toBeLessThanOrEqual(300);
+    expect(memo.length).toBeLessThanOrEqual(450);
   });
 
   test("TokenLedger rates and peak calculations are deterministic", () => {

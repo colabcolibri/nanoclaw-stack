@@ -12,14 +12,14 @@ export interface MessageMemoEntry {
 
 /**
  * MemoService (SRP):
- * Manages conversational memos (up to 300 chars) stored in messages_in and messages_out.
+ * Manages conversational memos (up to 450 chars) stored in messages_in and messages_out.
  * Feeds lean contextual indices to the agent and provides on-demand retrieval of full message text.
  */
 export class MemoService {
-  static readonly MAX_MEMO_CHARS = 300;
+  static readonly MAX_MEMO_CHARS = 450;
 
   /**
-   * Generates a clean excerpt or fallback memo of up to 300 characters.
+   * Generates a clean excerpt or fallback memo of up to 450 characters.
    */
   static extractMemo(content: string): string {
     if (!content || !content.trim()) return '(vazio)';
@@ -46,9 +46,9 @@ export class MemoService {
   }
 
   /**
-   * Generates an intelligent, semantic summary for any text longer than 300 characters
+   * Generates an intelligent, semantic summary for any text longer than 450 characters
    * using a direct English summarization prompt.
-   * If text is already <= 300 characters, returns the clean text directly without calling the LLM.
+   * If text is already <= 450 characters, returns the clean text directly without calling the LLM.
    */
   static async generateSemanticMemo(
     content: string,
@@ -74,12 +74,12 @@ export class MemoService {
       return cleaned;
     }
 
-    // If an LLM completion function is provided, generate a dense 1-2 sentence semantic summary
+    // If an LLM completion function is provided, generate a dense semantic summary
     if (completeFn) {
       try {
         const summarizePrompt = PromptLoader.load('memo.summarize', {
           fallback:
-            'You are an ultra-concise conversational memo generator.\nSummarize the core intent, essential facts, actions, and decisions into 1 or 2 dense, direct sentences.\nSTRICT REQUIREMENT: Maximum 280 characters. Output ONLY the summary text.',
+            'You are an ultra-concise conversational memo generator.\nSummarize the core intent, essential facts, actions, and decisions into 1 to 3 dense, direct sentences.\nSTRICT REQUIREMENT: Maximum 450 characters. Output ONLY the summary text.',
         });
 
         const rawSummary = await completeFn(summarizePrompt, `Text to summarize:\n${cleaned}`);
