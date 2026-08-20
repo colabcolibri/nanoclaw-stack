@@ -12,6 +12,8 @@ public struct ChatInputBarView: View {
     public let onStopRecording: () -> Void
     public let onCancelRecording: () -> Void
     
+    @State private var inputHeight: CGFloat = 24
+    
     public init(
         text: Binding<String>,
         isSending: Bool,
@@ -40,7 +42,7 @@ public struct ChatInputBarView: View {
         VStack(spacing: 0) {
             Divider()
             
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .bottom, spacing: 10) {
                 if isRecording {
                     // Raw Audio Recording HUD
                     HStack(spacing: 12) {
@@ -80,34 +82,54 @@ public struct ChatInputBarView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 } else {
-                    // Standard Text Input with Live Dictation
-                    HStack(spacing: 6) {
+                    // Multiline Text Input with Live Dictation & Auto-Sizing (up to 5 lines)
+                    HStack(alignment: .center, spacing: 6) {
                         if isDictating {
                             Circle()
                                 .fill(Color.red)
                                 .frame(width: 8, height: 8)
                         }
                         
-                        TextField(isDictating ? "Ouvindo sua voz em tempo real..." : "Envie uma mensagem ao Barão... (Return para enviar)", text: $text, axis: .vertical)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .lineLimit(1...5)
-                            .onSubmit {
-                                if !NSEvent.modifierFlags.contains(.shift) {
+                        ZStack(alignment: .topLeading) {
+                            if text.isEmpty {
+                                Text(isDictating ? "Ouvindo sua voz em tempo real..." : "Envie uma mensagem ao Barão... (Shift+Enter para nova linha)")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(nsColor: .placeholderTextColor))
+                                    .padding(.top, 2)
+                                    .allowsHitTesting(false)
+                            }
+                            
+                            ChatInputTextView(
+                                text: $text,
+                                isDictating: isDictating,
+                                minHeight: 22,
+                                maxHeight: 110,
+                                dynamicHeight: $inputHeight,
+                                onCommit: {
                                     if isDictating {
                                         onToggleDictation()
                                     }
                                     onSend()
                                 }
-                            }
+                            )
+                            .frame(height: inputHeight)
+                        }
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
                     
                     // Live Speech Dictation Button
                     Button(action: onToggleDictation) {
                         Image(systemName: isDictating ? "mic.fill" : "mic")
                             .font(.system(size: 15))
                             .foregroundColor(isDictating ? .white : .secondary)
-                            .frame(width: 30, height: 30)
+                            .frame(width: 32, height: 32)
                             .background(isDictating ? Color.red : Color(nsColor: .controlBackgroundColor))
                             .clipShape(Circle())
                             .shadow(color: isDictating ? Color.red.opacity(0.4) : Color.clear, radius: 4)
@@ -115,6 +137,7 @@ public struct ChatInputBarView: View {
                     .buttonStyle(.plain)
                     .disabled(isSending)
                     .help(isDictating ? "Parar transcrição de voz" : "Falar por voz (Transcrição em tempo real)")
+                    .padding(.bottom, 1)
                     
                     // Send Button
                     Button(action: {
@@ -124,12 +147,13 @@ public struct ChatInputBarView: View {
                         onSend()
                     }) {
                         Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 26))
+                            .font(.system(size: 28))
                             .foregroundColor(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? .secondary.opacity(0.4) : .accentColor)
                     }
                     .buttonStyle(.plain)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                    .keyboardShortcut(.return, modifiers: [])
+                    .help("Enviar mensagem (Enter)")
+                    .padding(.bottom, 2)
                 }
             }
             .padding(.horizontal, 14)
@@ -138,4 +162,5 @@ public struct ChatInputBarView: View {
         }
     }
 }
+
 
