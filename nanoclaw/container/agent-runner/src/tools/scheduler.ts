@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite';
 import path from 'path';
 import fs from 'fs';
+import { CronExpressionParser } from 'cron-parser';
 import type { AgentTool } from './types.js';
 import { getSessionRouting } from '../db/session-routing.js';
 
@@ -159,12 +160,18 @@ export const schedulerTool: AgentTool = {
           cron: cronExpr,
         });
 
+        let nextRunIso: string | null = null;
+        try {
+          nextRunIso = CronExpressionParser.parse(cronExpr).next().toISOString();
+        } catch {}
+
         inDb.query(
-          `INSERT INTO messages_in (id, kind, timestamp, status, recurrence, trigger, platform_id, channel_type, thread_id, content)
-           VALUES (?, 'chat', ?, 'pending', ?, 1, ?, ?, ?, ?)`
+          `INSERT INTO messages_in (id, kind, timestamp, status, process_after, recurrence, trigger, platform_id, channel_type, thread_id, content)
+           VALUES (?, 'chat', ?, 'pending', ?, ?, 1, ?, ?, ?, ?)`
         ).run(
           routineId,
           new Date().toISOString(),
+          nextRunIso,
           cronExpr,
           platformId,
           channelType,
@@ -174,9 +181,10 @@ export const schedulerTool: AgentTool = {
 
         return JSON.stringify({
           status: 'ok',
-          message: `Rotina recorrente agendada com sucesso com expressão cron "${cronExpr}".`,
+          message: `Rotina recorrente agendada com sucesso com expressão cron "${cronExpr}". Próxima execução: ${nextRunIso || 'agendada'}.`,
           routineId,
           cron: cronExpr,
+          nextRun: nextRunIso,
         });
       }
 
@@ -238,6 +246,11 @@ export const schedulerTool: AgentTool = {
           }
         }
 
+        let nextRunIso: string | null = null;
+        try {
+          nextRunIso = CronExpressionParser.parse(newCron).next().toISOString();
+        } catch {}
+
         const cleanPromptText = newPrompt.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
         const contentJson = JSON.stringify({
           _type: 'chat:Message',
@@ -247,13 +260,14 @@ export const schedulerTool: AgentTool = {
           cron: newCron,
         });
 
-        inDb.query("UPDATE messages_in SET recurrence = ?, content = ?, status = 'pending' WHERE id = ?").run(newCron, contentJson, taskId);
+        inDb.query("UPDATE messages_in SET recurrence = ?, process_after = ?, content = ?, status = 'pending' WHERE id = ?").run(newCron, nextRunIso, contentJson, taskId);
 
         return JSON.stringify({
           status: 'ok',
-          message: `Rotina ${taskId} atualizada com sucesso. Nova expressão cron: "${newCron}".`,
+          message: `Rotina ${taskId} atualizada com sucesso. Nova expressão cron: "${newCron}". Próxima execução: ${nextRunIso || 'agendada'}.`,
           taskId,
           cron: newCron,
+          nextRun: nextRunIso,
           prompt: cleanPromptText,
         });
       }
