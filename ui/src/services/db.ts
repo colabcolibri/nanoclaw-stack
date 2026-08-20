@@ -542,9 +542,11 @@ export class DatabaseService {
                   text = parsed.text || "";
                 } catch {}
 
+                const cleanPrompt = text.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
+
                 tasks.push({
                   id: r.id,
-                  kind: r.kind,
+                  kind: isRecurring ? 'Rotina Periódica (Cron)' : (r.kind || 'Tarefa Agendada'),
                   status: r.status,
                   createdAt: r.timestamp,
                   processAfter: r.process_after,
@@ -553,6 +555,7 @@ export class DatabaseService {
                   channelType: r.channel_type || "telegram",
                   platformId: r.platform_id,
                   prompt: text,
+                  cleanPrompt: cleanPrompt || text,
                   dbPath,
                 });
               }
@@ -564,6 +567,66 @@ export class DatabaseService {
     } catch {}
 
     return tasks;
+  }
+
+  static updateScheduledTask(taskId: string, data: { cron?: string; prompt?: string }) {
+    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
+    if (!fs.existsSync(sessionsRoot)) return false;
+
+    try {
+      const { CronExpressionParser } = require('cron-parser');
+      const groups = fs.readdirSync(sessionsRoot);
+      for (const g of groups) {
+        const gPath = path.join(sessionsRoot, g);
+        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        for (const s of sessions) {
+          const dbPath = path.join(gPath, s, "inbound.db");
+          if (fs.existsSync(dbPath)) {
+            try {
+              const inDb = new Database(dbPath);
+              const existing = inDb.query("SELECT id, recurrence, content FROM messages_in WHERE id = ?").get(taskId) as any;
+              if (existing) {
+                const newCron = data.cron?.trim() || existing.recurrence || '0 * * * *';
+                let newPrompt = data.prompt?.trim();
+                if (!newPrompt) {
+                  try {
+                    const parsed = JSON.parse(existing.content);
+                    newPrompt = parsed.text || '';
+                  } catch {
+                    newPrompt = existing.content;
+                  }
+                }
+
+                let nextRunIso: string | null = null;
+                try {
+                  nextRunIso = CronExpressionParser.parse(newCron).next().toISOString();
+                } catch {}
+
+                const cleanPrompt = newPrompt.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
+                const contentJson = JSON.stringify({
+                  _type: 'chat:Message',
+                  id: taskId,
+                  text: `🔄 [Rotina Periódica Agendada (${newCron})]: ${cleanPrompt}`,
+                  isRecurringRoutine: true,
+                  cron: newCron,
+                });
+
+                inDb.query(
+                  "UPDATE messages_in SET recurrence = ?, process_after = ?, content = ?, status = 'pending' WHERE id = ?"
+                ).run(newCron, nextRunIso, contentJson, taskId);
+
+                inDb.close();
+                return true;
+              }
+              inDb.close();
+            } catch {}
+          }
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   static cancelScheduledTask(taskId: string) {

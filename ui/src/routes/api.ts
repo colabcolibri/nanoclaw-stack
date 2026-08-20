@@ -466,6 +466,18 @@ export class ApiRouter {
       return jsonResponse({ success: ok });
     }
 
+    if (url.pathname === "/api/scheduler/update" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { taskId?: string; cron?: string; prompt?: string };
+      if (!body.taskId) {
+        return jsonResponse({ success: false, error: "taskId é obrigatório." }, 400);
+      }
+      const ok = DatabaseService.updateScheduledTask(body.taskId, {
+        cron: body.cron,
+        prompt: body.prompt,
+      });
+      return jsonResponse({ success: ok });
+    }
+
     // Chat & Stats
     if (url.pathname === "/api/chat" && method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "100", 10);

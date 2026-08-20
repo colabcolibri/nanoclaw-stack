@@ -102,6 +102,7 @@ export interface ScheduledTask {
   channelType: string
   platformId?: string
   prompt: string
+  cleanPrompt?: string
   dbPath?: string
 }
 
@@ -196,6 +197,20 @@ export class ApiClient {
 
   static async getSchedules(): Promise<{ tasks: ScheduledTask[] }> {
     return this.fetchJson('/api/scheduler/tasks')
+  }
+
+  static async cancelSchedule(taskId: string): Promise<{ success: boolean }> {
+    return this.fetchJson('/api/scheduler/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ taskId }),
+    })
+  }
+
+  static async updateSchedule(taskId: string, data: { cron?: string; prompt?: string }): Promise<{ success: boolean }> {
+    return this.fetchJson('/api/scheduler/update', {
+      method: 'POST',
+      body: JSON.stringify({ taskId, ...data }),
+    })
   }
 
   static async getSecurity(): Promise<{ users: any[]; pendingApprovals: any[] }> {
