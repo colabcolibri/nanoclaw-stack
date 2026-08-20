@@ -289,7 +289,7 @@ public struct TableBlockView: View {
     public var body: some View {
         ScrollView(.horizontal, showsIndicators: true) {
             if #available(macOS 13.0, *) {
-                Grid(alignment: .leading, horizontalSpacing: 1, verticalSpacing: 1) {
+                Grid(alignment: .topLeading, horizontalSpacing: 1, verticalSpacing: 1) {
                     if !headers.isEmpty {
                         GridRow {
                             ForEach(0..<headers.count, id: \.self) { idx in
@@ -358,9 +358,11 @@ public struct TableBlockView: View {
         renderInlineMarkdown(content)
             .font(.system(size: 13, weight: isHeader ? .bold : .regular))
             .foregroundColor(isUser ? .white : Color(nsColor: .textColor))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .frame(minWidth: 100, alignment: .leading)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(minWidth: 110, maxWidth: 280, alignment: .topLeading)
             .textSelection(.enabled)
     }
     
