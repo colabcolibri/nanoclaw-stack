@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 /// A native macOS NSTextView wrapper that supports:
-/// 1. Enter to submit, Shift+Enter / Option+Enter for new line.
-/// 2. Dynamic height expansion from 1 up to 5 lines.
+/// 1. Enter to submit, Shift+Enter / Option+Enter / Ctrl+Enter for paragraph/newline.
+/// 2. Dynamic height expansion from 1 up to 5 lines, accounting for trailing newlines.
 public struct ChatInputTextView: NSViewRepresentable {
     @Binding public var text: String
     public var isDictating: Bool
@@ -47,7 +47,7 @@ public struct ChatInputTextView: NSViewRepresentable {
         
         let textContainer = NSTextContainer(containerSize: NSSize(width: contentSize.width, height: CGFloat.greatestFiniteMagnitude))
         textContainer.widthTracksTextView = true
-        textContainer.lineFragmentPadding = 0
+        textContainer.lineFragmentPadding = 2
         layoutManager.addTextContainer(textContainer)
         
         let textView = ChatNSTextView(frame: NSRect(origin: .zero, size: contentSize), textContainer: textContainer)
@@ -60,6 +60,8 @@ public struct ChatInputTextView: NSViewRepresentable {
         textView.isRichText = false
         textView.importsGraphics = false
         textView.allowsUndo = true
+        textView.isEditable = true
+        textView.isSelectable = true
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
@@ -112,19 +114,33 @@ public struct ChatInputTextView: NSViewRepresentable {
                   let textContainer = textView.textContainer else { return }
             
             layoutManager.ensureLayout(for: textContainer)
-            let usedRect = layoutManager.usedRect(for: textContainer)
+            var textHeight = layoutManager.usedRect(for: textContainer).height
             
             let font = textView.font ?? NSFont.systemFont(ofSize: 14)
-            let lineHeight = font.ascender - font.descender + font.leading
+            let lineHeight = max(18.0, ceil(font.ascender - font.descender + font.leading))
+            
+            // Check for trailing newlines because layoutManager doesn't generate rects for empty lines
+            let string = textView.string
+            if string.hasSuffix("\n") {
+                var trailingCount = 0
+                for char in string.reversed() {
+                    if char == "\n" {
+                        trailingCount += 1
+                    } else {
+                        break
+                    }
+                }
+                textHeight += CGFloat(trailingCount) * lineHeight
+            }
             
             let singleLineHeight = max(parent.minHeight, ceil(lineHeight + textView.textContainerInset.height * 2))
             let fiveLinesHeight = singleLineHeight + ceil(lineHeight * 4)
             let calculatedMaxHeight = min(parent.maxHeight, fiveLinesHeight)
             
-            let textHeight = ceil(usedRect.height + textView.textContainerInset.height * 2)
-            let newHeight = max(singleLineHeight, min(textHeight, calculatedMaxHeight))
+            let totalHeight = ceil(textHeight + textView.textContainerInset.height * 2)
+            let newHeight = max(singleLineHeight, min(totalHeight, calculatedMaxHeight))
             
-            if abs(parent.dynamicHeight - newHeight) > 1.0 {
+            if abs(parent.dynamicHeight - newHeight) > 0.5 {
                 DispatchQueue.main.async {
                     self.parent.dynamicHeight = newHeight
                 }
@@ -137,18 +153,21 @@ final class ChatNSTextView: NSTextView {
     var onCommit: (() -> Void)?
     
     override func keyDown(with event: NSEvent) {
-        // Return key code is 36, Keypad Enter is 76
+        // Return key (36) or Keypad Enter (76)
         if event.keyCode == 36 || event.keyCode == 76 {
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             let cleanFlags = flags.subtracting([.capsLock, .numericPad, .function])
             
-            // Shift + Enter or Option + Enter or Control + Enter -> Insert newline
+            // Shift + Return, Option + Return, Control + Return -> Insert newline / paragraph
             if cleanFlags.contains(.shift) || cleanFlags.contains(.option) || cleanFlags.contains(.control) {
-                super.insertNewline(nil)
+                if shouldChangeText(in: selectedRange(), replacementString: "\n") {
+                    insertText("\n", replacementRange: selectedRange())
+                    didChangeText()
+                }
                 return
             }
             
-            // Plain Enter / Return or Cmd + Enter -> Send message
+            // Plain Return / Enter or Cmd + Return -> Submit
             if cleanFlags.isEmpty || cleanFlags == .command {
                 onCommit?()
                 return
