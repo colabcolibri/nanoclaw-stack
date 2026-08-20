@@ -9,6 +9,7 @@ import { SoulView } from '@/components/soul/SoulView'
 import { AnalyticsView } from '@/components/analytics/AnalyticsView'
 import { ConfigView } from '@/components/config/ConfigView'
 import { SchedulesView } from '@/components/schedules/SchedulesView'
+import { RunsView } from '@/components/runs/RunsView'
 import { SecurityView } from '@/components/security/SecurityView'
 import { LogsView } from '@/components/logs/LogsView'
 import { SkillsView } from '@/components/skills/SkillsView'
@@ -24,6 +25,7 @@ const VALID_VIEWS: ViewType[] = [
   'skills',
   'mcps',
   'schedules',
+  'runs',
   'security',
   'logs',
   'config',
@@ -218,6 +220,7 @@ function AppContent() {
             {activeView === 'skills' && <SkillsView />}
             {activeView === 'mcps' && <McpsView />}
             {activeView === 'schedules' && <SchedulesView />}
+            {activeView === 'runs' && <RunsView />}
             {activeView === 'security' && <SecurityView />}
             {activeView === 'logs' && <LogsView />}
             {activeView === 'config' && <ConfigView />}

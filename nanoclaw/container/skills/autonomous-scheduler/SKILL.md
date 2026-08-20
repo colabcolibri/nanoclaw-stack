@@ -50,12 +50,13 @@ Para tarefas pontuais que devem executar após um intervalo de tempo:
   - `run_at` (opcional): Data/hora exata em ISO string (ex: `"2026-08-20T18:00:00Z"`).
   - `prompt`: Instrução do que deve ser verificado ou continuado.
 
-### C. Listar Rotinas e Tarefas Agendadas
-Quando o usuário perguntar o status, quais cron jobs existem ou se uma rotina está ativa:
+### C. Listar Rotinas e Tarefas Agendadas (Ativas)
+Quando o usuário perguntar o status, quais rotinas ou cron jobs estão ativos na agenda:
 - **Ferramenta:** `schedule_followup`
 - **Parâmetros:**
   - `action`: `"list_scheduled_tasks"`
-- Use o retorno para informar os IDs, status e horários reais.
+- **Interpretação Estrita:** Esta ação retorna apenas as rotinas **ativas e pendentes** de execução (`status: 'pending'`).
+- **Como Responder:** Informe com clareza quantas rotinas estão ativas, seus IDs, periodicidade (ex: a cada 3 horas) e horário do próximo disparo (`process_after`). Não confunda execuções passadas com rotinas ativas.
 
 ### D. Alterar / Atualizar Rotina Recorrente (Cron)
 Quando o usuário pedir para mudar a frequência, horário ou o que a rotina faz:
@@ -74,6 +75,9 @@ Quando o usuário pedir para mudar a frequência, horário ou o que a rotina faz
 
 ---
 
-## 3. Diretriz de Validação e Ground Truth
-1. **Sempre execute a ferramenta antes de responder:** Nunca confirme ao usuário que uma rotina ou cron foi criado sem antes receber o retorno `{ "status": "ok", "routineId": "..." }` da ferramenta `schedule_followup`.
-2. **Reporte o ID e a Periodicidade:** Ao confirmar a criação, informe ao usuário a periodicidade configurada e o identificador da rotina para facilitar cancelamentos ou ajustes futuros.
+## 3. Diretrizes de Validação e Ground Truth
+1. **Sempre execute a ferramenta antes de responder:** Nunca afirme ao usuário que uma rotina foi criada, alterada ou cancelada sem antes receber a confirmação `{ "status": "ok" }` da ferramenta `schedule_followup`.
+2. **Diferencie Rotinas Ativas de Histórico de Execuções:**
+   - **Agendamentos / Rotinas Ativas:** São as tarefas pendentes na fila para serem executadas no futuro.
+   - **Execuções / Runs:** São os disparos que já ocorreram e foram concluídos no passado. Apenas as tarefas `pending` continuam no ciclo do cron.
+3. **Reporte o ID e a Periodicidade:** Ao confirmar a criação ou alteração, informe ao usuário a periodicidade configurada e o identificador da rotina para facilitar o rastreamento.

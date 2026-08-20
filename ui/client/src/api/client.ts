@@ -117,6 +117,33 @@ export interface CronExecutionLog {
   resultText?: string
 }
 
+export interface IntermediateRunItem {
+  id: string
+  messageId?: string
+  sessionId?: string
+  type: string
+  purpose?: string
+  timestamp: string
+  model?: string
+  tokens?: number
+  totalTokens?: number
+  charCount?: number
+  promptTokens?: number
+  completionTokens?: number
+  cacheHitTokens?: number
+  cacheMissTokens?: number
+  costInUsd?: number
+  costOutUsd?: number
+  costUsd?: number
+  costBrl?: number
+  latencyMs?: number
+  toolName?: string
+  rawContent?: string
+  preview?: string
+  hasToolCalls?: boolean
+  toolCallsCount?: number
+}
+
 export class ApiClient {
   private static async fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(url, {
@@ -131,16 +158,15 @@ export class ApiClient {
       throw new Error('UNAUTHORIZED')
     }
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}))
-      throw new Error(errData.error || `HTTP error ${res.status}`)
+      const err = await res.json().catch(() => ({ error: 'Request failed' }))
+      throw new Error(err.error || `HTTP ${res.status}`)
     }
     return res.json()
   }
 
   static async checkAuth(): Promise<{ authenticated: boolean; user?: any }> {
     try {
-      const data = await this.fetchJson<{ authenticated: boolean; user?: any }>('/api/auth/me')
-      return data
+      return await this.fetchJson('/api/auth/me')
     } catch {
       return { authenticated: false }
     }
@@ -153,19 +179,23 @@ export class ApiClient {
     })
   }
 
-  static async verifyOtp(email: string, code: string): Promise<{ success: boolean; user?: any }> {
+  static async requestOtp(email: string): Promise<{ success: boolean; message?: string }> {
+    return this.sendOtp(email)
+  }
+
+  static async verifyOtp(email: string, code: string): Promise<{ success: boolean; user?: any; error?: string }> {
     return this.fetchJson('/api/auth/verify-code', {
       method: 'POST',
       body: JSON.stringify({ email, code }),
     })
   }
 
-  static async logout(): Promise<void> {
-    await this.fetchJson('/api/auth/logout', { method: 'POST' })
+  static async logout(): Promise<{ success: boolean }> {
+    return this.fetchJson('/api/auth/logout', { method: 'POST' })
   }
 
   static async getStats(): Promise<SystemStats> {
-    return this.fetchJson<SystemStats>('/api/stats')
+    return this.fetchJson('/api/stats')
   }
 
   static async getChatMessages(limit = 150): Promise<{ messages: ChatMessage[] }> {
@@ -176,7 +206,7 @@ export class ApiClient {
     return this.fetchJson(`/api/usage?limit=${limit}`)
   }
 
-  static async getRuns(limit = 100): Promise<{ runs: any[] }> {
+  static async getRuns(limit = 150): Promise<{ runs: IntermediateRunItem[] }> {
     return this.fetchJson(`/api/runs?limit=${limit}`)
   }
 

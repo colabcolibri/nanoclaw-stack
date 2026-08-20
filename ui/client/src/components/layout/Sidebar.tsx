@@ -7,6 +7,7 @@ import {
   Sparkles,
   Link2,
   Clock,
+  Activity,
   ShieldAlert,
   Terminal,
   Sliders,
@@ -21,6 +22,7 @@ export type ViewType =
   | 'skills'
   | 'mcps'
   | 'schedules'
+  | 'runs'
   | 'security'
   | 'logs'
   | 'config'
@@ -46,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'skills', label: t('nav.skills'), icon: <Sparkles className="w-4 h-4" /> },
     { id: 'mcps', label: t('nav.mcps'), icon: <Link2 className="w-4 h-4" /> },
     { id: 'schedules', label: t('nav.schedules'), icon: <Clock className="w-4 h-4" /> },
+    { id: 'runs', label: t('nav.runs'), icon: <Activity className="w-4 h-4" /> },
     { id: 'security', label: t('nav.security'), icon: <ShieldAlert className="w-4 h-4" /> },
     { id: 'logs', label: t('nav.logs'), icon: <Terminal className="w-4 h-4" /> },
     { id: 'config', label: t('nav.config'), icon: <Sliders className="w-4 h-4" /> },
