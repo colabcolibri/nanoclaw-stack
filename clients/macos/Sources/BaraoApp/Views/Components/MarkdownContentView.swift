@@ -21,5 +21,15 @@ public struct MarkdownContentView: View {
             .text {
                 ForegroundColor(.white)
             }
+            .code {
+                FontFamilyVariant(.monospaced)
+                FontSize(.em(0.85))
+                ForegroundColor(.white)
+                BackgroundColor(Color.white.opacity(0.2))
+            }
+            .link {
+                ForegroundColor(.white)
+                UnderlineStyle(.single)
+            }
     }
 }
