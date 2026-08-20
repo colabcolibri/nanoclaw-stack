@@ -47,9 +47,9 @@ export const schedulerTool: AgentTool = {
         properties: {
           action: {
             type: 'string',
-            enum: ['schedule_delayed_task', 'schedule_recurring_routine', 'list_scheduled_tasks', 'cancel_task'],
+            enum: ['schedule_delayed_task', 'schedule_recurring_routine', 'list_scheduled_tasks', 'update_recurring_routine', 'cancel_task'],
             description:
-              'Action to perform: "schedule_delayed_task" (execute follow-up in X minutes), "schedule_recurring_routine" (periodic cron routine), "list_scheduled_tasks" (list active schedules), "cancel_task" (cancel by ID).',
+              'Action to perform: "schedule_delayed_task" (execute follow-up in X minutes), "schedule_recurring_routine" (periodic cron routine), "list_scheduled_tasks" (list active schedules), "update_recurring_routine" (update frequency or prompt of existing cron), "cancel_task" (cancel by ID).',
           },
           delay_minutes: {
             type: 'number',
@@ -210,7 +210,55 @@ export const schedulerTool: AgentTool = {
         });
       }
 
-      // 4. CANCEL TASK
+      // 4. UPDATE RECURRING ROUTINE
+      if (action === 'update_recurring_routine' || action === 'update_task') {
+        let taskId = args.task_id;
+        if (!taskId) {
+          const latestRow = inDb.query("SELECT id FROM messages_in WHERE recurrence IS NOT NULL AND status != 'cancelled' ORDER BY timestamp DESC LIMIT 1").get() as any;
+          if (latestRow) {
+            taskId = latestRow.id;
+          } else {
+            return JSON.stringify({ status: 'error', error: 'Nenhuma rotina ativa encontrada para atualizar. Especifique o task_id.' });
+          }
+        }
+
+        const existing = inDb.query("SELECT id, recurrence, content FROM messages_in WHERE id = ?").get(taskId) as any;
+        if (!existing) {
+          return JSON.stringify({ status: 'error', error: `Tarefa ${taskId} não encontrada.` });
+        }
+
+        const newCron = args.cron || existing.recurrence;
+        let newPrompt = args.prompt;
+        if (!newPrompt) {
+          try {
+            const parsed = JSON.parse(existing.content);
+            newPrompt = parsed.text || '';
+          } catch {
+            newPrompt = existing.content;
+          }
+        }
+
+        const cleanPromptText = newPrompt.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
+        const contentJson = JSON.stringify({
+          _type: 'chat:Message',
+          id: taskId,
+          text: `🔄 [Rotina Periódica Agendada (${newCron})]: ${cleanPromptText}`,
+          isRecurringRoutine: true,
+          cron: newCron,
+        });
+
+        inDb.query("UPDATE messages_in SET recurrence = ?, content = ?, status = 'pending' WHERE id = ?").run(newCron, contentJson, taskId);
+
+        return JSON.stringify({
+          status: 'ok',
+          message: `Rotina ${taskId} atualizada com sucesso. Nova expressão cron: "${newCron}".`,
+          taskId,
+          cron: newCron,
+          prompt: cleanPromptText,
+        });
+      }
+
+      // 5. CANCEL TASK
       if (action === 'cancel_task') {
         if (!args.task_id) {
           return JSON.stringify({ status: 'error', error: 'Parâmetro "task_id" é obrigatório.' });

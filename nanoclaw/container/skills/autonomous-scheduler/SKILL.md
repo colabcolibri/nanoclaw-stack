@@ -57,7 +57,16 @@ Quando o usuário perguntar o status, quais cron jobs existem ou se uma rotina e
   - `action`: `"list_scheduled_tasks"`
 - Use o retorno para informar os IDs, status e horários reais.
 
-### D. Cancelar Agendamento
+### D. Alterar / Atualizar Rotina Recorrente (Cron)
+Quando o usuário pedir para mudar a frequência, horário ou o que a rotina faz:
+- **Ferramenta:** `schedule_followup`
+- **Parâmetros:**
+  - `action`: `"update_recurring_routine"`
+  - `task_id` (opcional): ID da rotina. Se omitido, a rotina ativa mais recente será atualizada.
+  - `cron` (opcional): Nova expressão cron (ex: `"0 */1 * * *"` para mudar para a cada 1 hora).
+  - `prompt` (opcional): Nova instrução de execução para a tarefa.
+
+### E. Cancelar Agendamento
 - **Ferramenta:** `schedule_followup`
 - **Parâmetros:**
   - `action`: `"cancel_task"`
