@@ -103,6 +103,37 @@ export class UnifiedAgentGateway {
 
       if (!res.ok) {
         const errText = await res.text();
+        try {
+          const errJson = JSON.parse(errText);
+          const failedGen = errJson.error?.failed_generation;
+          if (failedGen) {
+            const parsedGen = JSON.parse(failedGen);
+            const { ALL_TOOLS } = await import(
+              path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'tools', 'index.ts')
+            );
+            if (parsedGen && typeof parsedGen === 'object' && parsedGen.name) {
+              const normalized = String(parsedGen.name).toLowerCase().replace(/-/g, '_');
+              const targetName = normalized === 'web_research' ? 'web_search' : normalized;
+              const targetTool = ALL_TOOLS[parsedGen.name] || ALL_TOOLS[normalized] || ALL_TOOLS[targetName];
+              if (targetTool) {
+                return {
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: `call_${Date.now()}`,
+                      type: 'function',
+                      function: {
+                        name: targetTool.definition.function.name,
+                        arguments: typeof parsedGen.arguments === 'string' ? parsedGen.arguments : JSON.stringify(parsedGen.arguments || {}),
+                      },
+                    },
+                  ],
+                };
+              }
+            }
+          }
+        } catch {}
+
         throw new Error(`LLM API Error (${res.status}): ${errText}`);
       }
 
