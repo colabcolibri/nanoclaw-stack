@@ -13,11 +13,15 @@ let package = Package(
             targets: ["BaraoApp"]
         )
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/gonzalonunez/markdown-ui", from: "2.1.0")
+    ],
     targets: [
         .executableTarget(
             name: "BaraoApp",
-            dependencies: [],
+            dependencies: [
+                .product(name: "MarkdownUI", package: "markdown-ui")
+            ],
             path: "Sources/BaraoApp"
         )
     ]
