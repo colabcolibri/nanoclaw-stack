@@ -478,6 +478,13 @@ export class ApiRouter {
       return jsonResponse({ success: ok });
     }
 
+    if (url.pathname === "/api/scheduler/logs" && method === "GET") {
+      const folder = url.searchParams.get("folder") || "barao";
+      const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+      const logs = DatabaseService.getCronExecutionLogs(folder, limit);
+      return jsonResponse({ logs, total: logs.length });
+    }
+
     // Chat & Stats
     if (url.pathname === "/api/chat" && method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "100", 10);

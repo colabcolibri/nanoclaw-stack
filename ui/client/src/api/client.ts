@@ -106,6 +106,17 @@ export interface ScheduledTask {
   dbPath?: string
 }
 
+export interface CronExecutionLog {
+  id: string
+  timestamp: string
+  status: string
+  cron?: string
+  channelType: string
+  prompt: string
+  cleanPrompt: string
+  resultText?: string
+}
+
 export class ApiClient {
   private static async fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(url, {
@@ -211,6 +222,10 @@ export class ApiClient {
       method: 'POST',
       body: JSON.stringify({ taskId, ...data }),
     })
+  }
+
+  static async getCronLogs(): Promise<{ logs: CronExecutionLog[] }> {
+    return this.fetchJson('/api/scheduler/logs')
   }
 
   static async getSecurity(): Promise<{ users: any[]; pendingApprovals: any[] }> {

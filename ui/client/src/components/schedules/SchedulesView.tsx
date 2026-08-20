@@ -18,9 +18,12 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  History,
+  Activity,
+  Send,
+  MessageSquare,
 } from 'lucide-react'
-import { ApiClient, type ScheduledTask } from '@/api/client'
-import { parseMarkdown } from '@/lib/markdown'
+import { ApiClient, type ScheduledTask, type CronExecutionLog } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -28,13 +31,17 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const SchedulesView: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
   const [tasks, setTasks] = useState<ScheduledTask[]>([])
+  const [cronLogs, setCronLogs] = useState<CronExecutionLog[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
 
   // Modals & Drawers State
   const [viewingTask, setViewingTask] = useState<ScheduledTask | null>(null)
+  const [viewingLog, setViewingLog] = useState<CronExecutionLog | null>(null)
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null)
   const [editCron, setEditCron] = useState<string>('')
   const [editPrompt, setEditPrompt] = useState<string>('')
@@ -45,19 +52,25 @@ export const SchedulesView: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
-    loadSchedules()
+    loadAll()
   }, [])
 
-  const loadSchedules = async () => {
+  const loadAll = async () => {
     setIsLoading(true)
     try {
-      const data = await ApiClient.getSchedules()
-      setTasks(data.tasks || [])
+      const [tasksRes, logsRes] = await Promise.all([
+        ApiClient.getSchedules().catch(() => ({ tasks: [] })),
+        ApiClient.getCronLogs().catch(() => ({ logs: [] })),
+      ])
+      setTasks(tasksRes.tasks || [])
+      setCronLogs(logsRes.logs || [])
     } catch {
     } finally {
       setIsLoading(false)
     }
   }
+
+  const loadSchedules = loadAll
 
   const showNotify = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message })
@@ -136,12 +149,12 @@ export const SchedulesView: React.FC = () => {
       <PageHeader
         icon={<Clock className="w-5 h-5" />}
         title="Rotinas Autônomas & Agendamentos"
-        subtitle="Gerenciamento de rotinas recorrentes (cron), watchdogs de monitoramento e tarefas autônomas."
+        subtitle="Gerenciamento de rotinas recorrentes (cron), watchdogs de monitoramento e histórico de execuções passadas."
         actions={
           <Button
             variant="outline"
             size="sm"
-            onClick={loadSchedules}
+            onClick={loadAll}
             disabled={isLoading}
             className="h-9 gap-1.5 text-xs font-semibold"
           >
@@ -166,179 +179,326 @@ export const SchedulesView: React.FC = () => {
         </div>
       )}
 
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
-        <CardContent className="p-6 space-y-6">
-          {/* Informational Banner */}
-          <div className="p-4 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] text-xs text-[var(--text-main)] space-y-2">
-            <div className="font-bold text-[var(--accent)] flex items-center gap-2">
-              <Lightbulb className="w-4 h-4" />
-              <span>Como funcionam as rotinas autônomas no NanoClaw:</span>
+      {/* TABS SWITCHER */}
+      <div className="flex items-center gap-2 border-b border-[var(--border-main)] pb-3">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'active'
+              ? 'bg-[var(--accent)] text-white shadow-xs'
+              : 'bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+          }`}
+        >
+          <Repeat className="w-3.5 h-3.5" />
+          <span>Rotinas Ativas</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+            activeTab === 'active' ? 'bg-white/20 text-white' : 'bg-[var(--bg-input)] text-[var(--text-dim)]'
+          }`}>
+            {tasks.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'history'
+              ? 'bg-[var(--accent)] text-white shadow-xs'
+              : 'bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>Histórico de Execuções (Logs)</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+            activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-[var(--bg-input)] text-[var(--text-dim)]'
+          }`}>
+            {cronLogs.length}
+          </span>
+        </button>
+      </div>
+
+      {/* TAB 1: ACTIVE SCHEDULES */}
+      {activeTab === 'active' && (
+        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
+          <CardContent className="p-6 space-y-6">
+            {/* Informational Banner */}
+            <div className="p-4 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] text-xs text-[var(--text-main)] space-y-2">
+              <div className="font-bold text-[var(--accent)] flex items-center gap-2">
+                <Lightbulb className="w-4 h-4" />
+                <span>Como funcionam as rotinas ativas:</span>
+              </div>
+              <p>
+                • <strong>Disparos Recorrentes:</strong> Esta aba exibe exclusivamente os agendamentos que estão <strong>ativos e pendentes</strong> para o próximo ciclo de execução.
+              </p>
+              <p>
+                • <strong>Edição & Exclusão:</strong> Você pode alterar a instrução, mudar a frequência cron ou deletar agendamentos antigos a qualquer momento.
+              </p>
             </div>
-            <p>
-              • <strong>Execução Recorrente (Cron):</strong> O sistema acorda o agente de acordo com a periodicidade configurada para inspecionar e-mails, processos e tarefas.
-            </p>
-            <p>
-              • <strong>Edição & Controle Visual:</strong> Você pode ajustar o texto de instrução (prompt) e a periodicidade das rotinas ativas ou excluí-las com 1 clique.
-            </p>
-          </div>
 
-          {/* Schedules List */}
-          <div className="space-y-4">
-            {tasks.length === 0 ? (
-              <EmptyState
-                icon={<Clock className="w-8 h-8 text-[var(--text-dim)]" />}
-                title="Sem rotinas ativas"
-                description="Nenhum agendamento de cron ou watchdog pendente no momento."
-              />
-            ) : (
-              tasks.map((task) => {
-                const isExpanded = expandedTaskId === task.id
-                const displayPrompt = task.cleanPrompt || task.prompt || ''
+            {/* Schedules List */}
+            <div className="space-y-4">
+              {tasks.length === 0 ? (
+                <EmptyState
+                  icon={<Clock className="w-8 h-8 text-[var(--text-dim)]" />}
+                  title="Sem rotinas ativas"
+                  description="Nenhum agendamento de cron ou watchdog pendente no momento."
+                />
+              ) : (
+                tasks.map((task) => {
+                  const isExpanded = expandedTaskId === task.id
+                  const displayPrompt = task.cleanPrompt || task.prompt || ''
 
-                return (
-                  <div
-                    key={task.id}
-                    className="p-5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] hover:border-[var(--border-accent)] transition-all flex flex-col gap-4 shadow-2xs"
-                  >
-                    {/* Header Row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-main)] pb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 shadow-xs">
-                          {task.isRecurring ? <Repeat className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <strong className="text-sm text-[var(--text-main)] font-bold">
-                              {task.isRecurring ? 'Rotina Recorrente (Cron)' : task.kind || 'Tarefa Agendada'}
-                            </strong>
-                            <Badge variant="success" className="text-[10px] font-mono">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>{task.status?.toUpperCase() || 'PENDING'}</span>
-                            </Badge>
-                            {task.channelType && (
-                              <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                                <span>{task.channelType}</span>
+                  return (
+                    <div
+                      key={task.id}
+                      className="p-5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] hover:border-[var(--border-accent)] transition-all flex flex-col gap-4 shadow-2xs"
+                    >
+                      {/* Header Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-main)] pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 shadow-xs">
+                            {task.isRecurring ? <Repeat className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <strong className="text-sm text-[var(--text-main)] font-bold">
+                                {task.isRecurring ? 'Rotina Recorrente (Cron)' : task.kind || 'Tarefa Agendada'}
+                              </strong>
+                              <Badge variant="success" className="text-[10px] font-mono">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>{task.status?.toUpperCase() || 'PENDING'}</span>
                               </Badge>
-                            )}
+                              {task.channelType && (
+                                <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                                  <span>{task.channelType}</span>
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-dim)] font-mono">
+                              <span>ID: {task.id}</span>
+                              <button
+                                onClick={() => handleCopy(task.id, task.id)}
+                                className="p-1 hover:text-[var(--text-main)] cursor-pointer"
+                                title="Copiar ID"
+                              >
+                                {copiedId === task.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-dim)] font-mono">
-                            <span>ID: {task.id}</span>
-                            <button
-                              onClick={() => handleCopy(task.id, task.id)}
-                              className="p-1 hover:text-[var(--text-main)] cursor-pointer"
-                              title="Copiar ID"
-                            >
-                              {copiedId === task.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                            </button>
-                          </div>
                         </div>
-                      </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setViewingTask(task)}
-                          className="h-8 gap-1.5 text-xs font-semibold"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Ver Completo</span>
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(task)}
-                          className="h-8 gap-1.5 text-xs font-semibold text-sky-500 border-sky-500/30 hover:bg-sky-500/10"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Editar</span>
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeletingTask(task)}
-                          className="h-8 gap-1.5 text-xs font-semibold text-red-500 border-red-500/30 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Excluir</span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Metadata Badges & Timing */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                      {task.recurrence && (
-                        <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
-                          <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
-                            Periodicidade (Cron)
-                          </span>
-                          <span className="font-bold text-[var(--accent)] font-mono block mt-0.5">
-                            {task.recurrence}
-                          </span>
-                          <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block">
-                            {humanizeCron(task.recurrence)}
-                          </span>
-                        </div>
-                      )}
-
-                      {task.processAfter && (
-                        <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
-                          <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
-                            Próxima Execução (Next Run)
-                          </span>
-                          <span className="font-bold text-[var(--text-main)] font-mono block mt-0.5">
-                            {new Date(task.processAfter).toLocaleTimeString('pt-BR')} ({new Date(task.processAfter).toLocaleDateString('pt-BR')})
-                          </span>
-                          <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block font-mono text-[10px]">
-                            {task.processAfter}
-                          </span>
-                        </div>
-                      )}
-
-                      {task.createdAt && (
-                        <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
-                          <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
-                            Criado em
-                          </span>
-                          <span className="font-semibold text-[var(--text-muted)] font-mono block mt-0.5">
-                            {new Date(task.createdAt).toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Prompt Box */}
-                    <div className="p-3.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)] text-xs">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
-                          Instrução da Tarefa (Prompt)
-                        </span>
-                        {displayPrompt.length > 200 && (
-                          <button
-                            onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                            className="text-[11px] font-semibold text-[var(--accent)] flex items-center gap-1 cursor-pointer hover:underline"
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingTask(task)}
+                            className="h-8 gap-1.5 text-xs font-semibold"
                           >
-                            <span>{isExpanded ? 'Recolher' : 'Expandir Texto'}</span>
-                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                          </button>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver Completo</span>
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal(task)}
+                            className="h-8 gap-1.5 text-xs font-semibold text-sky-500 border-sky-500/30 hover:bg-sky-500/10"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Editar</span>
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeletingTask(task)}
+                            className="h-8 gap-1.5 text-xs font-semibold text-red-500 border-red-500/30 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Excluir</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Metadata Badges & Timing */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                        {task.recurrence && (
+                          <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
+                            <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
+                              Periodicidade (Cron)
+                            </span>
+                            <span className="font-bold text-[var(--accent)] font-mono block mt-0.5">
+                              {task.recurrence}
+                            </span>
+                            <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block">
+                              {humanizeCron(task.recurrence)}
+                            </span>
+                          </div>
+                        )}
+
+                        {task.processAfter && (
+                          <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
+                            <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
+                              Próxima Execução (Next Run)
+                            </span>
+                            <span className="font-bold text-[var(--text-main)] font-mono block mt-0.5">
+                              {new Date(task.processAfter).toLocaleTimeString('pt-BR')} ({new Date(task.processAfter).toLocaleDateString('pt-BR')})
+                            </span>
+                            <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block font-mono text-[10px]">
+                              {task.processAfter}
+                            </span>
+                          </div>
+                        )}
+
+                        {task.createdAt && (
+                          <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)]">
+                            <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase block font-mono">
+                              Criado em
+                            </span>
+                            <span className="font-semibold text-[var(--text-muted)] font-mono block mt-0.5">
+                              {new Date(task.createdAt).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <p className={`text-[var(--text-main)] leading-relaxed ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-3'}`}>
-                        {displayPrompt}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* VIEW MODAL / DRAWER */}
+                      {/* Prompt Box */}
+                      <div className="p-3.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)] text-xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+                            Instrução da Tarefa (Prompt)
+                          </span>
+                          {displayPrompt.length > 200 && (
+                            <button
+                              onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                              className="text-[11px] font-semibold text-[var(--accent)] flex items-center gap-1 cursor-pointer hover:underline"
+                            >
+                              <span>{isExpanded ? 'Recolher' : 'Expandir Texto'}</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+                          )}
+                        </div>
+                        <p className={`text-[var(--text-main)] leading-relaxed ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-3'}`}>
+                          {displayPrompt}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* TAB 2: CRON EXECUTION HISTORY (LOGS) */}
+      {activeTab === 'history' && (
+        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
+          <CardContent className="p-6 space-y-6">
+            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-[var(--text-main)] space-y-1">
+              <div className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                <History className="w-4 h-4" />
+                <span>Histórico de Execuções e Auditoria</span>
+              </div>
+              <p className="text-[var(--text-muted)]">
+                Registro detalhado de cada disparo automático do cron que já foi executado, incluindo a instrução processada e o relatório/resposta gerado pelo assistente.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {cronLogs.length === 0 ? (
+                <EmptyState
+                  icon={<History className="w-8 h-8 text-[var(--text-dim)]" />}
+                  title="Nenhum log de execução registrado"
+                  description="Assim que as rotinas periódicas rodarem, seus históricos e relatórios aparecerão aqui."
+                />
+              ) : (
+                cronLogs.map((log) => {
+                  const isExpanded = expandedLogId === log.id
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] hover:border-[var(--border-accent)] transition-all flex flex-col gap-3 shadow-2xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-main)] pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0">
+                            <Activity className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <strong className="text-xs text-[var(--text-main)] font-bold font-mono">{log.id}</strong>
+                              <Badge variant="success" className="text-[10px] font-mono">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>EXECUTADO</span>
+                              </Badge>
+                              {log.cron && (
+                                <Badge variant="outline" className="text-[10px] font-mono">
+                                  <span>{log.cron}</span>
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-[var(--text-dim)] font-mono block mt-0.5">
+                              Disparado em: {new Date(log.timestamp).toLocaleString('pt-BR')} ({new Date(log.timestamp).toLocaleTimeString('pt-BR')})
+                            </span>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingLog(log)}
+                          className="h-8 gap-1.5 text-xs font-semibold shrink-0"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Ver Detalhes do Disparo</span>
+                        </Button>
+                      </div>
+
+                      {/* Prompt */}
+                      <div className="p-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)] text-xs">
+                        <span className="text-[10px] font-bold uppercase text-[var(--text-dim)] font-mono block mb-1">
+                          Instrução Executada:
+                        </span>
+                        <p className="text-[var(--text-main)] font-mono text-[11px] line-clamp-2 leading-relaxed">
+                          {log.cleanPrompt}
+                        </p>
+                      </div>
+
+                      {/* Result / Output */}
+                      {log.resultText && (
+                        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-xs">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
+                              <Send className="w-3 h-3" />
+                              <span>Resultado / Mensagem Entregue ({log.channelType}):</span>
+                            </span>
+                            {log.resultText.length > 200 && (
+                              <button
+                                onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                                className="text-[10px] font-semibold text-[var(--accent)] flex items-center gap-1 cursor-pointer hover:underline"
+                              >
+                                <span>{isExpanded ? 'Recolher' : 'Expandir Resultado'}</span>
+                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </button>
+                            )}
+                          </div>
+                          <div className={`text-[var(--text-main)] leading-relaxed whitespace-pre-wrap text-[11px] ${isExpanded ? '' : 'line-clamp-3'}`}>
+                            {log.resultText}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* VIEW SCHEDULE MODAL */}
       {viewingTask && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs cursor-pointer animate-in fade-in"
@@ -403,6 +563,90 @@ export const SchedulesView: React.FC = () => {
               </Button>
 
               <Button variant="default" size="sm" onClick={() => setViewingTask(null)} className="text-xs font-bold">
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW EXECUTION LOG MODAL */}
+      {viewingLog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs cursor-pointer animate-in fade-in"
+          onClick={() => setViewingLog(null)}
+        >
+          <div
+            className="w-full max-w-2xl bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] cursor-default animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-main)]">Detalhes da Execução do Cron</h3>
+                  <p className="text-xs font-mono text-[var(--text-dim)]">ID: {viewingLog.id}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewingLog(null)}
+                className="w-8 h-8 p-0 text-[var(--text-dim)] hover:text-[var(--text-main)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-[var(--text-main)] leading-relaxed">
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[var(--border-main)]">
+                <div>
+                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block">Data & Hora do Disparo</span>
+                  <span className="font-bold font-mono text-[var(--text-main)]">{new Date(viewingLog.timestamp).toLocaleString('pt-BR')}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block">Canal de Destino</span>
+                  <span className="font-bold font-mono text-[var(--accent)]">{viewingLog.channelType}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block mb-1">Instrução Disparada:</span>
+                <div className="p-3.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border-main)] whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--text-main)]">
+                  {viewingLog.cleanPrompt}
+                </div>
+              </div>
+
+              {viewingLog.resultText && (
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase font-mono block mb-1 flex items-center gap-1">
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Resultado Entregue / Mensagem de Auditoria:</span>
+                  </span>
+                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 whitespace-pre-wrap text-xs leading-relaxed text-[var(--text-main)]">
+                    {viewingLog.resultText}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex justify-between items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(viewingLog.resultText || viewingLog.cleanPrompt, 'log-copy')}
+                className="gap-1.5 text-xs font-semibold"
+              >
+                {copiedId === 'log-copy' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedId === 'log-copy' ? 'Copiado!' : 'Copiar Resultado'}</span>
+              </Button>
+
+              <Button variant="default" size="sm" onClick={() => setViewingLog(null)} className="text-xs font-bold">
                 Fechar
               </Button>
             </div>

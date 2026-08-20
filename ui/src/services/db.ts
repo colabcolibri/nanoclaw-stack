@@ -679,4 +679,86 @@ export class DatabaseService {
       return false;
     }
   }
+
+  static getCronExecutionLogs(folder = "barao", limit = 50) {
+    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
+    const logs: any[] = [];
+    if (!fs.existsSync(sessionsRoot)) return logs;
+
+    try {
+      const groups = fs.readdirSync(sessionsRoot);
+      for (const g of groups) {
+        const gPath = path.join(sessionsRoot, g);
+        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        for (const s of sessions) {
+          const dbPath = path.join(gPath, s, "inbound.db");
+          const outDbPath = path.join(gPath, s, "outbound.db");
+          if (fs.existsSync(dbPath)) {
+            try {
+              const inDb = new Database(dbPath);
+              let outDb: Database | null = null;
+              if (fs.existsSync(outDbPath)) {
+                try {
+                  outDb = new Database(outDbPath);
+                } catch {}
+              }
+
+              const rows = inDb
+                .query(
+                  `SELECT id, kind, timestamp, status, process_after, recurrence, channel_type, platform_id, content 
+                   FROM messages_in 
+                   WHERE status = 'completed' AND (recurrence IS NOT NULL OR content LIKE '%Rotina Periódica%' OR content LIKE '%isRecurringRoutine%' OR id LIKE '%routine%')
+                   ORDER BY timestamp DESC LIMIT ${limit}`
+                )
+                .all() as any[];
+
+              for (const r of rows) {
+                let text = "";
+                let cron = r.recurrence || null;
+                try {
+                  const parsed = JSON.parse(r.content);
+                  text = parsed.text || "";
+                  if (!cron && parsed.cron) cron = parsed.cron;
+                } catch {}
+
+                let resultText = "";
+                if (outDb) {
+                  try {
+                    const outRow = outDb.query("SELECT content FROM messages_out WHERE in_reply_to = ? ORDER BY timestamp DESC LIMIT 1").get(r.id) as any;
+                    if (outRow && outRow.content) {
+                      try {
+                        const parsedOut = JSON.parse(outRow.content);
+                        resultText = parsedOut.text || outRow.content;
+                      } catch {
+                        resultText = outRow.content;
+                      }
+                    }
+                  } catch {}
+                }
+
+                const cleanPrompt = text.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
+
+                logs.push({
+                  id: r.id,
+                  timestamp: r.timestamp,
+                  status: r.status || "completed",
+                  cron,
+                  channelType: r.channel_type || "telegram",
+                  prompt: text,
+                  cleanPrompt: cleanPrompt || text,
+                  resultText: resultText ? resultText.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').trim() : undefined,
+                });
+              }
+
+              if (outDb) outDb.close();
+              inDb.close();
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return logs.slice(0, limit);
+  }
 }

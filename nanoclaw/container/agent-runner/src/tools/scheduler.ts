@@ -192,7 +192,7 @@ export const schedulerTool: AgentTool = {
       if (action === 'list_scheduled_tasks') {
         const rows = inDb.query(
           `SELECT id, timestamp, status, process_after, recurrence, content FROM messages_in 
-           WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status != 'done'
+           WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status = 'pending'
            ORDER BY timestamp DESC LIMIT 20`
         ).all() as any[];
 
