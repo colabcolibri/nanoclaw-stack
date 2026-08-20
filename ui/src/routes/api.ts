@@ -46,7 +46,10 @@ export class ApiRouter {
 
       const result = await AuthService.requestOtp(email);
       if (!result.success) return jsonResponse({ error: result.error || "Falha ao enviar código." }, 400);
-      return jsonResponse({ success: true, message: "Código enviado com sucesso." });
+      return jsonResponse({
+        success: true,
+        message: result.message || "Caso este seja o e-mail cadastrado, você receberá um código de verificação em instantes.",
+      });
     }
 
     if (url.pathname === "/api/auth/verify-code" && method === "POST") {

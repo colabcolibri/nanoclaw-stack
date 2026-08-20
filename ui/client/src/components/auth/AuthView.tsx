@@ -71,7 +71,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
-                  E-mail Autorizado
+                  E-mail de Acesso
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-[var(--text-dim)] absolute left-3 top-3" />
@@ -79,7 +79,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                     type="email"
                     required
                     className="w-full pl-9 pr-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    placeholder="admin@dominio.com"
+                    placeholder="seu.email@dominio.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -97,6 +97,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="p-3 mb-3 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs leading-relaxed text-center">
+                Caso este seja o e-mail cadastrado, você receberá um código de verificação em instantes.
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
                   Código de 6 Dígitos
@@ -113,8 +117,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setOtp(e.target.value)}
                   />
                 </div>
-                <p className="text-[11px] text-[var(--text-dim)] mt-1 text-center font-mono">
-                  Enviado para {email}
+                <p className="text-[11px] text-[var(--text-dim)] mt-1.5 text-center font-mono">
+                  Identificação: {email}
                 </p>
               </div>
 

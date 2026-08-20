@@ -15,10 +15,14 @@ export class AuthService {
     return CONFIG.ALLOWED_EMAILS.includes(norm);
   }
 
-  static async requestOtp(email: string): Promise<{ success: boolean; error?: string }> {
+  static async requestOtp(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
     const norm = email.toLowerCase().trim();
     if (!this.isAllowed(norm)) {
-      return { success: false, error: "Este e-mail não possui autorização de acesso." };
+      // Timing/enumeration safe: always return success to user and advance to OTP step
+      return {
+        success: true,
+        message: "Caso este seja o e-mail cadastrado, você receberá um código de verificação em instantes.",
+      };
     }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -28,7 +32,15 @@ export class AuthService {
       attempts: 0,
     });
 
-    return await EmailService.sendOtp(norm, code);
+    const sendRes = await EmailService.sendOtp(norm, code);
+    if (!sendRes.success) {
+      return sendRes;
+    }
+
+    return {
+      success: true,
+      message: "Caso este seja o e-mail cadastrado, você receberá um código de verificação em instantes.",
+    };
   }
 
   static verifyOtp(email: string, code: string): { valid: boolean; reason?: string } {
