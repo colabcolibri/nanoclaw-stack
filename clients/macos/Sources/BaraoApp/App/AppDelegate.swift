@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import AppIntents
 
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     public static var shared: AppDelegate?
@@ -13,6 +14,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Bring window forward on launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.showMainWindow()
+        }
+        
+        // Register AppShortcuts with macOS Siri / Shortcuts system daemon
+        if #available(macOS 13.0, *) {
+            BaraoShortcutsProvider.updateAppShortcutParameters()
         }
         
         // Register local shortcut

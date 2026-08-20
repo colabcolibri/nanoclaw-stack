@@ -62,10 +62,15 @@ public struct BaraoShortcutsProvider: AppShortcutsProvider {
             intent: AskBaraoIntent(),
             phrases: [
                 "Perguntar ao \(.applicationName)",
+                "Perguntar pro \(.applicationName)",
                 "Falar com o \(.applicationName)",
+                "Falar pro \(.applicationName)",
                 "Pedir ao \(.applicationName)",
+                "Pedir pro \(.applicationName)",
                 "Mensagem para o \(.applicationName)",
-                "Conversar com o \(.applicationName)"
+                "Conversar com o \(.applicationName)",
+                "Perguntar no \(.applicationName)",
+                "Falar no \(.applicationName)"
             ],
             shortTitle: "Perguntar ao Barão",
             systemImageName: "crown.fill"
