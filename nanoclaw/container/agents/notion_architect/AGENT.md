@@ -5,7 +5,7 @@ department: productivity
 role: Especialista em consultar e atualizar páginas, bancos de dados e tarefas no Notion
 description: Busca notas, atualiza status de projetos e cadastra registros no Notion.
 skills:
-  - notion
+  - notion-notes
 allow_global_skills: true
 model: deepseek-chat
 ---
