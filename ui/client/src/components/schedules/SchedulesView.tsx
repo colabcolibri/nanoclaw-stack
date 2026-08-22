@@ -133,8 +133,7 @@ export const SchedulesView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        icon={<Clock className="w-5 h-5" />}
-        title="Agendamentos & Rotinas Ativas"
+        title="Agendamentos & rotinas ativas"
         subtitle="Gerenciamento de rotinas recorrentes (cron), watchdogs periódicos e tarefas autônomas ativas."
         actions={
           <Button

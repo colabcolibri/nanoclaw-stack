@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Sparkles, RefreshCw, Search, Folder, Code2, Zap, AlignLeft, Bot, Globe, Lock, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import { ApiClient, type SkillItem, type AgentItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
+import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -137,37 +138,23 @@ export const SkillsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 w-full flex-1">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-main)] pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 flex items-center justify-center shadow-xs">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">Ferramentas & Habilidades</h1>
-            <p className="text-xs text-[var(--text-muted)]">
-              Skills globais (disponíveis a todos os agentes) e especializadas (atribuídas a um agente específico).
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Ferramentas & habilidades"
+        subtitle="Skills globais (disponíveis a todos os agentes) e especializadas (atribuídas a um agente específico)."
+        actions={
           <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="h-8 text-xs">
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
-        <input
-          type="text"
-          placeholder="Filtrar skills por nome ou descrição..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl text-xs text-[var(--text-main)] focus:outline-hidden focus:border-sky-500"
-        />
-      </div>
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Filtrar skills por nome ou descrição..."
+        className="max-w-none"
+      />
 
       {isLoading ? (
         <div className="flex flex-col gap-3">

@@ -1,41 +1,27 @@
 import React from 'react'
 
 interface PageHeaderProps {
-  icon: React.ReactNode
   title: string
   subtitle?: string
   actions?: React.ReactNode
+  icon?: React.ReactNode
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({
-  icon,
-  title,
-  subtitle,
-  actions,
-}) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions, icon }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 mb-2 border-b border-[var(--border-subtle)]">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
           {icon}
-        </div>
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-[var(--text-main)] tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text-main)] sm:text-2xl">
             {title}
           </h2>
-          {subtitle && (
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 leading-relaxed">
-              {subtitle}
-            </p>
-          )}
         </div>
+        {subtitle && (
+          <p className="max-w-2xl text-sm text-[var(--text-muted)] leading-relaxed">{subtitle}</p>
+        )}
       </div>
-
-      {actions && (
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
     </div>
   )
 }

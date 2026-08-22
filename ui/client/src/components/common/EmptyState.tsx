@@ -1,5 +1,6 @@
 import React from 'react'
-import { FolderOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
@@ -9,25 +10,23 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = <FolderOpen className="w-8 h-8 text-[var(--text-dim)]" />,
+  icon,
   title,
   description,
   action,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-[var(--border-main)] bg-[var(--bg-card-subtle)] my-4 space-y-3">
-      <div className="p-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-main)] shadow-xs">
-        {icon}
-      </div>
-      {title && (
-        <h4 className="text-sm font-bold text-[var(--text-main)]">
-          {title}
-        </h4>
-      )}
-      <p className="text-xs text-[var(--text-muted)] max-w-sm font-medium leading-relaxed">
-        {description}
-      </p>
-      {action && <div className="pt-2">{action}</div>}
-    </div>
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+        {icon && (
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)] text-[var(--text-dim)]">
+            {icon}
+          </div>
+        )}
+        {title && <h4 className="mb-1 text-sm font-semibold text-[var(--text-main)]">{title}</h4>}
+        <p className="max-w-sm text-sm text-[var(--text-muted)] leading-relaxed">{description}</p>
+        {action && <div className="mt-4">{action}</div>}
+      </CardContent>
+    </Card>
   )
 }

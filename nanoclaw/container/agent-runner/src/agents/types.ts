@@ -1,5 +1,6 @@
 import type { ToolDefinition } from '../tools/types.js';
 import type { LLMCompletionFn, LLMResponse } from '../orchestrator/types.js';
+import type { ContextPlan } from '../services/context-pack.js';
 
 export interface Department {
   id: string;
@@ -25,6 +26,7 @@ export interface FastPathDecision {
   type: 'fast_path';
   reasoning: string;
   instructionsForSender: string;
+  contextPlan?: ContextPlan;
 }
 
 export interface DepartmentDelegationDecision {
@@ -33,6 +35,7 @@ export interface DepartmentDelegationDecision {
   departmentId: string;
   agentId?: string;
   taskDescription: string;
+  contextPlan?: ContextPlan;
 }
 
 export type RoutingDecision = FastPathDecision | DepartmentDelegationDecision;
@@ -59,6 +62,7 @@ export interface HandoverPackage {
   guidanceForSender: string;
   workerSummary?: string;
   isFastPath?: boolean;
+  contextPlan?: ContextPlan;
 }
 
 export interface AgentAuditTrace {

@@ -12,8 +12,8 @@ interface ContentAreaProps {
 const widthClasses: Record<ContentWidth, string> = {
   narrow: 'max-w-3xl',
   default: 'max-w-5xl',
-  wide: 'max-w-7xl',
-  full: 'max-w-none',
+  wide: 'max-w-[var(--content-max)]',
+  full: 'max-w-[var(--content-max)]',
 }
 
 export const ContentArea: React.FC<ContentAreaProps> = ({

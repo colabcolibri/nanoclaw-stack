@@ -1,6 +1,6 @@
 {
   "title": "Parâmetros do assistente",
-  "subtitle": "Nome, localização e roteamento de modelos por papel no sistema multi-agente. Credenciais ficam em Modelos LLM.",
+  "subtitle": "Nome, localização e roteamento de modelos por papel no sistema multi-agente.",
   "assistantName": "Nome do Assistente",
   "model": "Modelo de IA (LLM Model)",
   "city": "Cidade Atual",
@@ -11,9 +11,5 @@
   "save": "Salvar parâmetros",
   "savedSuccess": "Parâmetros salvos com sucesso!",
   "saveError": "Erro ao salvar configurações.",
-  "credentialsTitle": "Credenciais dos providers em uso",
-  "credentialsHint": "Cada modelo pode usar um provider diferente. Configure as API keys em Modelos LLM.",
-  "manageKeys": "Gerenciar chaves",
-  "keyMissing": "Chave ausente",
-  "keyOk": "Chave OK"
+  "modelRequired": "Selecione os três modelos (worker, orchestrator e sender)."
 }

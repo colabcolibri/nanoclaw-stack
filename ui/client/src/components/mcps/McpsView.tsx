@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
-  Link2,
   ExternalLink,
   Copy,
   Check,
@@ -22,6 +21,9 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export const McpsView: React.FC = () => {
   // Google state
@@ -199,6 +201,20 @@ export const McpsView: React.FC = () => {
     }
   }
 
+  const mcpServerRows = useMemo(() => {
+    try {
+      const parsed = JSON.parse(customMcpsJson)
+      const servers = parsed?.mcpServers ?? parsed ?? {}
+      return Object.entries(servers as Record<string, Record<string, unknown>>).map(([name, cfg]) => ({
+        name,
+        transport: cfg.url ? 'SSE/HTTP' : 'STDIO',
+        endpoint: String(cfg.url ?? cfg.command ?? '—'),
+      }))
+    } catch {
+      return []
+    }
+  }, [customMcpsJson])
+
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       {/* Toast Banner */}
@@ -220,7 +236,6 @@ export const McpsView: React.FC = () => {
       )}
 
       <PageHeader
-        icon={<Link2 className="w-5 h-5" />}
         title="Contas, Serviços Conectados & Protocolo MCP"
         subtitle="Gerencie as conexões oficiais do seu assistente (Google, Notion, Yampi, macOS, Correios) e servidores MCP."
         actions={
@@ -236,7 +251,7 @@ export const McpsView: React.FC = () => {
         }
       />
 
-      <div className="space-y-4 w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
         {/* 1. GOOGLE WORKSPACE */}
         <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
           <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
@@ -318,14 +333,12 @@ export const McpsView: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
-                      Remetente Oficial (Alias)
-                    </label>
-                    <input
+                    <Label className="mb-1 block">Remetente oficial (alias)</Label>
+                    <Input
                       type="text"
-                      className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500"
                       value={googlePolicy.emailSender}
                       onChange={(e) => setGooglePolicy({ ...googlePolicy, emailSender: e.target.value })}
+                      className="text-xs"
                     />
                   </div>
                 </div>
@@ -742,20 +755,41 @@ export const McpsView: React.FC = () => {
         </Card>
 
         {/* 6. ADVANCED CUSTOM MCP SERVERS */}
-        <details className="group border border-[var(--border-main)] bg-[var(--bg-card)] rounded-xl overflow-hidden shadow-xs w-full">
-          <summary className="p-5 bg-[var(--bg-card-subtle)] cursor-pointer text-xs font-bold text-[var(--text-main)] flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
-            <div className="flex items-center gap-2.5">
+        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full lg:col-span-2">
+          <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
               <Wrench className="w-4 h-4 text-[var(--accent)]" />
-              <span>Servidores MCP Personalizados (Avançado / JSON)</span>
-            </div>
-            <span className="text-[11px] text-[var(--text-dim)] font-normal">
-              Clique para expandir / registrar novos servidores MCP
-            </span>
-          </summary>
-          <div className="p-5 border-t border-[var(--border-main)] space-y-4">
-            <p className="text-xs text-[var(--text-muted)]">
-              Permite registrar qualquer servidor MCP externo compatível com STDIO ou SSE.
-            </p>
+              Servidores MCP personalizados (avançado / JSON)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Registre servidores MCP externos compatíveis com STDIO ou SSE.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
+            {mcpServerRows.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Servidor</TableHead>
+                    <TableHead>Transporte</TableHead>
+                    <TableHead>Endpoint / comando</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mcpServerRows.map((row) => (
+                    <TableRow key={row.name}>
+                      <TableCell className="font-mono text-xs font-semibold">{row.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px]">{row.transport}</Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-[11px] text-[var(--text-muted)] max-w-md truncate">
+                        {row.endpoint}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
             <textarea
               className="w-full p-4 bg-[var(--terminal-bg)] text-[var(--terminal-text)] font-mono text-xs rounded-xl border border-[var(--border-main)] min-h-[160px] outline-none"
               value={customMcpsJson}
@@ -763,11 +797,11 @@ export const McpsView: React.FC = () => {
             />
             <div className="flex justify-end">
               <Button variant="default" size="sm" onClick={handleSaveCustomMcps} className="h-8 text-xs font-bold">
-                Salvar Servidores MCP
+                Salvar servidores MCP
               </Button>
             </div>
-          </div>
-        </details>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -38,7 +38,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     <div className="flex flex-col flex-1 gap-4 w-full min-h-0">
       {/* Reusable PageHeader Template */}
       <PageHeader
-        icon={<MessageSquare className="w-5 h-5" />}
         title={t('title')}
         subtitle="Histórico ordenado das interações com o Barão (mais recentes no topo)."
         actions={

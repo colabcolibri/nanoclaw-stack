@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Mail, Key, ArrowRight, Check, Zap } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 
 interface AuthViewProps {
@@ -75,10 +76,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-[var(--text-dim)] absolute left-3 top-3" />
-                  <input
+                  <Input
                     type="email"
                     required
-                    className="w-full pl-9 pr-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    className="pl-9 text-xs"
                     placeholder="seu.email@dominio.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -107,11 +108,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                 </label>
                 <div className="relative">
                   <Key className="w-4 h-4 text-[var(--text-dim)] absolute left-3 top-3" />
-                  <input
+                  <Input
                     type="text"
                     required
                     maxLength={6}
-                    className="w-full pl-9 pr-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-sm font-mono tracking-widest text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-center font-bold"
+                    className="pl-9 text-sm font-mono tracking-widest text-center font-bold"
                     placeholder="123456"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}

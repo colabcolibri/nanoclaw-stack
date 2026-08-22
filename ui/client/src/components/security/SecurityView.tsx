@@ -30,8 +30,7 @@ export const SecurityView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        icon={<ShieldCheck className="w-5 h-5" />}
-        title="Central de Segurança, Usuários & Aprovações"
+        title="Central de segurança, usuários & aprovações"
         subtitle="Gerencie quem tem acesso ao bot e aprove solicitações do agente."
         actions={
           <Button

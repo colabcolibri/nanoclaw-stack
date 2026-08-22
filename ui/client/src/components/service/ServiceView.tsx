@@ -74,8 +74,7 @@ export const ServiceView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        icon={<Cpu className="w-5 h-5" />}
-        title="Gerenciamento do Daemon & Pareamento"
+        title="Gerenciamento do daemon & pareamento"
         subtitle="Controle de processos em segundo plano, contêineres Docker e autorização de canais."
         actions={
           <Button

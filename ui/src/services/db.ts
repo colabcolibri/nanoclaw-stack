@@ -2,8 +2,15 @@ import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import glob from "fast-glob";
+import { CronExpressionParser } from "cron-parser";
 import { CONFIG } from "../config.js";
 import { CurrencyService } from "./currency.js";
+import {
+  formatPurposeLabel,
+  getPurposeMeta,
+  parseToolNameFromPreview,
+  resolvePurpose,
+} from "../../../nanoclaw/container/agent-runner/src/services/llm-call-purpose.js";
 
 export interface ChatMessageItem {
   id: string;
@@ -58,6 +65,9 @@ export interface IntermediateRunItem {
   toolResult?: any;
   rawContent: string;
   preview: string;
+  purpose?: string;
+  label?: string;
+  shortLabel?: string;
 }
 
 export interface SecurityOverview {
@@ -181,7 +191,7 @@ export class DatabaseService {
       for (const file of ledgerFiles) {
         try {
           const content = fs.readFileSync(file, "utf-8");
-          const lines = content.split("\n").filter((l) => l.trim().length > 0);
+          const lines = content.split("\n").filter((line: string) => line.trim().length > 0);
           for (const line of lines) {
             try {
               const rec = JSON.parse(line);
@@ -475,37 +485,15 @@ export class DatabaseService {
     const ledgerRecords = this.getRealTokenRecords(limit);
     const defaultModel = this.getDefaultModel();
     for (const rec of ledgerRecords) {
-      const purpose = rec.purpose || (rec.hasToolCalls ? 'stage1_action' : (rec.preview && (rec.preview.startsWith('Memo:') || rec.preview.startsWith('memo:'))) ? 'semantic_memo' : 'stage2_synthesis');
-      const isTool = purpose === 'stage1_action' && (rec.hasToolCalls || (rec.toolCallsCount && rec.toolCallsCount > 0));
-      const isMemo = purpose === 'semantic_memo';
-      const isSynth = purpose === 'stage2_synthesis';
-      const isFast = purpose === 'fast_path_direct';
-
-      let toolName = "";
-      if (rec.preview && rec.preview.startsWith("Tool: ")) {
-        toolName = rec.preview.replace("Tool: ", "").trim();
-      } else if (rec.preview && rec.preview.startsWith("Tool [")) {
-        const endIdx = rec.preview.indexOf("]:");
-        if (endIdx !== -1) {
-          toolName = rec.preview.slice(6, endIdx).trim();
-        }
-      }
-
-      let typeLabel = "model_turn";
-      let displayName = "Resposta do modelo";
-      if (isTool) {
-        typeLabel = "tool_execution";
-        displayName = toolName ? `Ferramenta: ${toolName}` : "Etapa 1: Ação & Ferramentas";
-      } else if (isMemo) {
-        typeLabel = "memo_generation";
-        displayName = "Memória Semântica";
-      } else if (isSynth) {
-        typeLabel = "persona_synthesis";
-        displayName = "Etapa 2: Síntese Persona (Barão)";
-      } else if (isFast) {
-        typeLabel = "fast_path";
-        displayName = "Conversação Direta (Fast-Path)";
-      }
+      const purpose = resolvePurpose({
+        purpose: rec.purpose,
+        preview: rec.preview,
+        hasToolCalls: rec.hasToolCalls,
+        toolCallsCount: rec.toolCallsCount,
+      });
+      const meta = getPurposeMeta(purpose);
+      const toolName = parseToolNameFromPreview(rec.preview);
+      const label = formatPurposeLabel(purpose, { toolName: toolName || undefined });
 
       const promptTokens = rec.promptTokens || 0;
       const completionTokens = rec.completionTokens || 0;
@@ -518,7 +506,10 @@ export class DatabaseService {
         id: rec.id,
         messageId: rec.messageId || rec.id,
         sessionId: rec.sessionId,
-        type: isTool ? "tool_execution" : isMemo ? "memo_generation" : isSynth ? "persona_synthesis" : "model_turn",
+        type: meta.uiType,
+        purpose,
+        label,
+        shortLabel: meta.shortLabel,
         timestamp: rec.timestamp,
         model: rec.model || defaultModel,
         charCount: rec.totalTokens * 4,
@@ -532,9 +523,9 @@ export class DatabaseService {
         costUsd: rec.costUsd || (costInUsd + costOutUsd),
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
-        toolName: toolName || (isTool ? "Ferramenta" : isMemo ? "Memória Semântica" : isSynth ? "Síntese Persona" : undefined),
+        toolName: toolName || (meta.purpose === 'stage1_action' ? 'Ferramenta' : undefined),
         rawContent: rec.preview || "",
-        preview: rec.preview || displayName,
+        preview: rec.preview || label,
       });
     }
 
@@ -550,7 +541,7 @@ export class DatabaseService {
       const groups = fs.readdirSync(sessionsRoot);
       for (const g of groups) {
         const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
         for (const s of sessions) {
           const dbPath = path.join(gPath, s, "inbound.db");
           if (fs.existsSync(dbPath)) {
@@ -606,11 +597,10 @@ export class DatabaseService {
     if (!fs.existsSync(sessionsRoot)) return false;
 
     try {
-      const { CronExpressionParser } = require('cron-parser');
       const groups = fs.readdirSync(sessionsRoot);
       for (const g of groups) {
         const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
         for (const s of sessions) {
           const dbPath = path.join(gPath, s, "inbound.db");
           if (fs.existsSync(dbPath)) {
@@ -634,7 +624,7 @@ export class DatabaseService {
                   nextRunIso = CronExpressionParser.parse(newCron).next().toISOString();
                 } catch {}
 
-                const cleanPrompt = newPrompt.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
+                const cleanPrompt = (newPrompt ?? "").replace(/^🔄\s*\[.*?\]:\s*/, "").trim();
                 const contentJson = JSON.stringify({
                   _type: 'chat:Message',
                   id: taskId,
@@ -669,7 +659,7 @@ export class DatabaseService {
       const groups = fs.readdirSync(sessionsRoot);
       for (const g of groups) {
         const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
         for (const s of sessions) {
           const dbPath = path.join(gPath, s, "inbound.db");
           if (fs.existsSync(dbPath)) {
@@ -696,7 +686,7 @@ export class DatabaseService {
       const groups = fs.readdirSync(sessionsRoot);
       for (const g of groups) {
         const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith("sess-1"));
+        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
         for (const s of sessions) {
           const dbPath = path.join(gPath, s, "inbound.db");
           const outDbPath = path.join(gPath, s, "outbound.db");

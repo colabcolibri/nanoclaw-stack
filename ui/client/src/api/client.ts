@@ -168,6 +168,8 @@ export interface IntermediateRunItem {
   preview?: string
   hasToolCalls?: boolean
   toolCallsCount?: number
+  label?: string
+  shortLabel?: string
 }
 
 export class ApiClient {

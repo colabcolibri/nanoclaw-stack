@@ -24,6 +24,28 @@ export class MemoryManager {
   }
 
   /**
+   * Índice compacto da memória — só bullets curtos, para o sender quando o orquestrador pedir.
+   */
+  static loadMemoryIndex(cwd: string, maxLines = 20, maxLineChars = 120): string {
+    const memPath = this.findMemoryPath(cwd);
+    if (!memPath) return '';
+
+    try {
+      const content = fs.readFileSync(memPath, 'utf-8');
+      const lines = content
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith('-') || line.startsWith('*'))
+        .slice(0, maxLines)
+        .map((line) => (line.length <= maxLineChars ? line : `${line.slice(0, maxLineChars - 3)}...`));
+
+      return lines.join('\n');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
    * Loads core long-term memories to be injected into system instructions.
    */
   static loadCoreMemory(cwd: string): string {

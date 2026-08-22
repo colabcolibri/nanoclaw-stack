@@ -1,32 +1,23 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Sliders,
   Save,
   CheckCircle2,
   AlertCircle,
-  Check,
-  Zap,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Layers,
-  Database,
-  Target,
   Coins,
   Cpu,
   MapPin,
   Clock,
-  KeyRound,
-  ExternalLink,
 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { ModelSelect } from '@/components/common/ModelSelect'
 import { useLlmRegistry } from '@/hooks/useLlmRegistry'
-import { findModelInProviders, providersForModels } from '@/lib/model-registry'
+import { findModelInProviders } from '@/lib/model-registry'
 
 export type { ModelItem, ModelPricing, ProviderMeta } from '@/lib/model-registry'
 
@@ -51,7 +42,6 @@ export const ConfigView: React.FC = () => {
     country: '',
     timezone: 'Europe/Brussels',
   })
-  const [keysStatus, setKeysStatus] = useState<Record<string, { hasKey: boolean; masked: string }>>({})
   const [usdToBrlRate, setUsdToBrlRate] = useState<number>(5.5)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
@@ -89,9 +79,6 @@ export const ConfigView: React.FC = () => {
           country: data.config.country || data.config.location || '',
           timezone: data.config.timezone || 'Europe/Brussels',
         })
-        if (data.config.keysStatus) {
-          setKeysStatus(data.config.keysStatus)
-        }
       }
     } catch {}
   }
@@ -126,18 +113,11 @@ export const ConfigView: React.FC = () => {
     }
   }
 
-  const usedProviderIds = useMemo(
-    () => providersForModels(providers, [config.model, config.orchestratorModel, config.senderModel]),
-    [providers, config.model, config.orchestratorModel, config.senderModel]
-  )
-
   const roleModels = [
     { key: 'worker', label: 'Worker', modelId: config.model, color: 'text-sky-500' },
     { key: 'orchestrator', label: 'Orquestrador', modelId: config.orchestratorModel, color: 'text-purple-500' },
     { key: 'sender', label: 'Sender', modelId: config.senderModel, color: 'text-emerald-500' },
   ] as const
-
-  const missingKeys = usedProviderIds.filter((pid) => !keysStatus[pid]?.hasKey)
 
   return (
     <div className="space-y-6">
@@ -154,19 +134,19 @@ export const ConfigView: React.FC = () => {
         </div>
       )}
 
-      <PageHeader icon={<Sliders className="w-5 h-5" />} title={t('title')} subtitle={t('subtitle')} />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">{t('assistantName')}</label>
-              <input
+              <Input
                 type="text"
-                className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                 value={config.name}
                 onChange={(e) => setConfig({ ...config, name: e.target.value })}
                 placeholder="Barão"
+                className="text-xs"
               />
             </div>
 
@@ -221,7 +201,7 @@ export const ConfigView: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-[var(--text-dim)] -mt-2">
-                Cada papel pode usar um modelo (e provider) diferente. O catálogo vem de Modelos LLM.
+                Cada papel pode usar um modelo (e provider) diferente.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -262,55 +242,6 @@ export const ConfigView: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Status de credenciais (somente leitura) */}
-            <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-bold text-[var(--text-main)]">{t('credentialsTitle')}</span>
-                </div>
-                <a
-                  href="#models"
-                  className="text-[10px] font-bold text-sky-500 hover:text-sky-400 flex items-center gap-1"
-                >
-                  {t('manageKeys')}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <p className="text-[10px] text-[var(--text-dim)]">{t('credentialsHint')}</p>
-              <div className="flex flex-wrap gap-2">
-                {usedProviderIds.map((pid) => {
-                  const meta = providers[pid]
-                  const keyInfo = keysStatus[pid] || { hasKey: false, masked: '' }
-                  return (
-                    <div
-                      key={pid}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)]"
-                    >
-                      <span className="text-xs font-medium text-[var(--text-main)]">{meta?.name || pid}</span>
-                      {keyInfo.hasKey ? (
-                        <Badge variant="success" className="text-[9px]">
-                          <Check className="w-2.5 h-2.5" />
-                          {t('keyOk')}
-                        </Badge>
-                      ) : (
-                        <Badge variant="warning" className="text-[9px] bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300">
-                          <AlertCircle className="w-2.5 h-2.5" />
-                          {t('keyMissing')}
-                        </Badge>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              {missingKeys.length > 0 && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                  Providers sem chave: {missingKeys.map((id) => providers[id]?.name || id).join(', ')}. Configure em
-                  Modelos LLM antes de usar esses modelos.
-                </p>
-              )}
             </div>
 
             {/* Custos por papel */}

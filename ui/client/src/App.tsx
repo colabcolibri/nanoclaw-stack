@@ -234,7 +234,7 @@ function AppContent() {
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:px-8 flex flex-col min-h-full gap-5">
+          <div className="mx-auto flex min-h-full max-w-[var(--content-max)] flex-col gap-6 p-4 sm:p-6 lg:p-8">
             {showStats && <StatsGrid stats={stats} currency={currency} />}
 
             <ContentArea width={getViewContentWidth(activeView)} className="gap-5">
@@ -247,7 +247,7 @@ function AppContent() {
                 />
               )}
 
-              {activeView === 'usage' && <AnalyticsView currency={currency} onToggleCurrency={setCurrency} />}
+              {activeView === 'usage' && <AnalyticsView currency={currency} />}
               {activeView === 'agents' && <AgentsView />}
               {activeView === 'soul' && <SoulView />}
               {activeView === 'skills' && <SkillsView />}

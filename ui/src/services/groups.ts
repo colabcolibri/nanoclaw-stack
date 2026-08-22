@@ -35,7 +35,12 @@ export interface MarkdownDocInfo {
 
 const DEFAULT_CONTAINER_DOCS: Record<string, { title: string; category: MarkdownDocInfo["category"]; fallback: string }> = {
   "instructions.prepend.md": {
-    title: "🧠 Persona & Alma do Barão (instructions.prepend.md)",
+    title: "🧠 SOUL — identidade & voz (instructions.prepend.md)",
+    category: "⭐ 1. Principais (Edição Frequente)",
+    fallback: "",
+  },
+  "instructions.context.md": {
+    title: "📋 Contexto operacional (instructions.context.md)",
     category: "⭐ 1. Principais (Edição Frequente)",
     fallback: "",
   },
@@ -266,8 +271,6 @@ export class GroupManager {
     const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
     const activeProvider = derivedProvider ?? containerCfg.provider ?? null;
 
-    const keysStatus = LlmCredentialsService.getKeysStatus();
-
     return {
       ...containerCfg,
       provider: activeProvider,
@@ -279,7 +282,6 @@ export class GroupManager {
       city: containerCfg.city || "",
       country: containerCfg.country || containerCfg.location || "",
       location: containerCfg.location || [containerCfg.city, containerCfg.country].filter(Boolean).join(", ") || "",
-      keysStatus,
       hasTelegramToken: !!envMap["TELEGRAM_BOT_TOKEN"],
     };
   }
@@ -355,6 +357,7 @@ export class GroupManager {
     const skills: Array<{
       name: string;
       description: string;
+      isGlobal: boolean;
       enabled: boolean;
       skillMdContent: string;
       skillMdChars: number;

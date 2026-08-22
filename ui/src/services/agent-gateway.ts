@@ -155,23 +155,17 @@ export class UnifiedAgentGateway {
         const { TokenLedger } = await import(
           path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'token-ledger.ts')
         );
-        const purpose = options?.purpose || (msg.tool_calls?.length ? 'stage1_action' : 'stage2_synthesis');
-        let previewPrefix = '';
-        if (purpose === 'semantic_memo') {
-          previewPrefix = 'Memo: ';
-        } else if (purpose === 'stage1_action') {
-          previewPrefix = msg.tool_calls?.length ? `Tool [${msg.tool_calls.map((t: any) => t.function?.name).join(', ')}]: ` : 'Ação: ';
-        } else if (purpose === 'stage2_synthesis') {
-          previewPrefix = 'Síntese: ';
-        } else if (purpose === 'fast_path_direct') {
-          previewPrefix = 'Conversa: ';
-        }
-
-        const previewText = msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '';
+        const { buildLedgerPreview, resolvePurpose } = await import(
+          path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'llm-call-purpose.ts')
+        );
+        const purpose = resolvePurpose({
+          purpose: options?.purpose,
+          hasToolCalls: Boolean(msg.tool_calls?.length),
+        });
 
         TokenLedger.record(groupDir, targetModel, usage, {
           toolCallsCount: msg.tool_calls?.length || 0,
-          preview: previewText,
+          preview: buildLedgerPreview(purpose, msg.content, msg.tool_calls),
           messageId: userMsgId,
           purpose,
         });

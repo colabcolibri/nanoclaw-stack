@@ -11,6 +11,7 @@ import {
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useLlmRegistry, invalidateLlmRegistryCache } from '@/hooks/useLlmRegistry'
@@ -85,7 +86,6 @@ export const ModelsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 w-full flex-1 min-w-0">
       <PageHeader
-        icon={<Database className="w-5 h-5" />}
         title="Catálogo de modelos LLM"
         subtitle="Catálogo versionado no código (nanoclaw/src/llm/catalog.ts). Aqui você só gerencia credenciais."
         actions={
@@ -136,12 +136,12 @@ export const ModelsView: React.FC = () => {
                     <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{status.masked}</p>
                   )}
                   <div className="flex gap-2">
-                    <input
+                    <Input
                       type="password"
                       placeholder="Nova API key"
                       value={newApiKeys[id] ?? ''}
                       onChange={(e) => setNewApiKeys((prev) => ({ ...prev, [id]: e.target.value }))}
-                      className={inputClass}
+                      className="font-mono text-xs"
                     />
                     <Button
                       size="sm"

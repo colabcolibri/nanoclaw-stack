@@ -2,6 +2,12 @@ import { ResponseParser } from '../orchestrator/parser.js';
 import { IntermediateNotifier } from '../orchestrator/notifier.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { ModelRegistry } from '../services/model-registry.js';
+import { PersonaLoader } from '../services/persona-loader.js';
+import {
+  ContextPack,
+  DEFAULT_FAST_CONTEXT_PLAN,
+  DEFAULT_SYNTHESIS_CONTEXT_PLAN,
+} from '../services/context-pack.js';
 import type { HandoverPackage } from './types.js';
 import type { LLMCompletionFn } from '../orchestrator/types.js';
 
@@ -18,11 +24,6 @@ export interface SenderContext {
 }
 
 export class SenderAgent {
-  /**
-   * The Sender Agent absorbs the Soul and formats the final user-facing response.
-   * It takes raw technical findings or conversation instructions from the Orchestrator
-   * and communicates with the user in the authentic persona style.
-   */
   static async deliver(
     handover: HandoverPackage,
     context: SenderContext,
@@ -30,25 +31,40 @@ export class SenderAgent {
     onActivity?: () => void
   ): Promise<{ deliveredText: string; rawContent: string }> {
     const targetDest = IntermediateNotifier.resolveDestination(context.prompt, context.chatJid);
+    const isFastPath = Boolean(handover.isFastPath);
+    const contextPlan =
+      handover.contextPlan ?? (isFastPath ? DEFAULT_FAST_CONTEXT_PLAN : DEFAULT_SYNTHESIS_CONTEXT_PLAN);
+    const soulMode = contextPlan.soulMode ?? 'compact';
+
+    const soul = PersonaLoader.resolveForSender(
+      context.cwd,
+      context.personaInstructions,
+      soulMode,
+    );
+    const memos = ContextPack.resolveMemos(contextPlan, isFastPath);
+    const memoSection = ContextPack.formatMemosSection(memos);
+    const memorySection = ContextPack.buildMemorySection(context.cwd, contextPlan);
 
     const personaPrompt = [
       context.temporalContext || '',
-      context.personaInstructions || '',
-      context.coreMemory ? `## Context & Permanent Memory\n${context.coreMemory}` : '',
-      `## DIRETRIZ DO SENDER AGENT (VOZ & IDENTIDADE)
-Você é o Agente de Entrega e Comunicação (Sender).
-Você é quem possui a Alma (Soul), o tom de voz e o relacionamento com o usuário.
-- Se foram executadas ações técnicas, apresente os resultados com clareza, objetividade e na sua voz autêntica.
-- Se for conversa direta ou solicitação de orientação, responda com cordialidade e inteligência.
-- NUNCA mencione termos internos de infraestrutura como "Orchestrator", "Worker", "Scratchpad", "JSON de handover", etc.
-- NUNCA adicione rodapés ou assinaturas automáticas no final da resposta.`,
+      soul,
+      memorySection,
+      memoSection,
+      `## Sender (voz final)
+Você fala com o usuário na persona. Não mencione Orchestrator, Worker, Scratchpad ou handover.
+Responda só o que foi pedido, com clareza e tom autêntico.`,
     ]
       .filter(Boolean)
       .join('\n\n');
 
     let userContent = '';
-    if (handover.isFastPath) {
-      userContent = context.prompt;
+    if (isFastPath) {
+      userContent = [
+        handover.guidanceForSender ? `## Orientação\n${handover.guidanceForSender}` : '',
+        `## Mensagem\n${context.prompt}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
     } else {
       userContent = `## Solicitação do Usuário
 ${handover.userGoal}
@@ -62,7 +78,6 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
 
     const messages: any[] = [
       { role: 'system', content: personaPrompt },
-      ...context.history.slice(-10),
       { role: 'user', content: userContent },
     ];
 
@@ -76,7 +91,7 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
     );
 
     const response = await complete(messages, false, {
-      purpose: 'stage2_synthesis',
+      purpose: isFastPath ? 'fast_path_direct' : 'stage2_synthesis',
       agent: 'sender',
       model: resolvedModel,
     });
@@ -87,7 +102,7 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
     AgentAuditLogger.record(context.cwd, {
       step: 'sender_synthesis',
       agent: 'sender',
-      purpose: handover.isFastPath ? 'Sender Fast-path direct voice' : 'Sender synthesis from worker findings',
+      purpose: isFastPath ? 'Sender fast-path (lean context)' : 'Sender synthesis from worker findings',
       latencyMs,
       promptPreview: userContent.slice(0, 100),
       responsePreview: finalContent.slice(0, 100),

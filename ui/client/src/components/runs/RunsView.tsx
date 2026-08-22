@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { ApiClient, type CronExecutionLog, type IntermediateRunItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
+import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -89,22 +90,20 @@ export const RunsView: React.FC = () => {
 
     // 2. Telemetry and API ledger runs
     detailedRuns.forEach((r) => {
-      // Avoid duplicating the exact message if already in cron list
       const isTool = r.hasToolCalls || (r.toolCallsCount && r.toolCallsCount > 0)
-      const isMemo = r.purpose === 'semantic_memo' || r.preview?.startsWith('Memo:')
-      const isSynth = r.purpose === 'stage2_synthesis' || r.preview?.startsWith('Síntese:')
-      const isFast = r.purpose === 'fast_path_direct'
-
-      const kind = isMemo ? 'memo' : isTool ? 'tools' : isSynth ? 'synthesis' : 'model_turn'
-      const category = isMemo
-        ? 'Memória Semântica'
-        : isTool
-        ? `Ferramenta (${r.toolCallsCount || 1})`
-        : isSynth
-        ? 'Síntese Persona (Barão)'
-        : isFast
-        ? 'Conversação Direta'
-        : 'Execução de Modelo'
+      const kind =
+        r.purpose === 'semantic_memo'
+          ? 'memo'
+          : r.purpose === 'orchestrator_triage'
+            ? 'triage'
+            : r.purpose === 'stage2_synthesis'
+              ? 'synthesis'
+              : r.purpose === 'fast_path_direct'
+                ? 'fast'
+                : isTool
+                  ? 'tools'
+                  : 'model_turn'
+      const category = r.label || r.shortLabel || 'Execução de modelo'
 
       list.push({
         id: r.id,
@@ -145,8 +144,7 @@ export const RunsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        icon={<Activity className="w-5 h-5" />}
-        title="Execuções & Histórico de Runs"
+        title="Execuções & histórico de runs"
         subtitle="Auditoria completa e telemetria de disparos de cron, execuções de ferramentas e turnos do assistente."
         actions={
           <Button
@@ -204,7 +202,7 @@ export const RunsView: React.FC = () => {
                 : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
-            Síntese Persona (Barão)
+            Síntese persona
           </button>
           <button
             onClick={() => setFilterType('memo')}
@@ -218,25 +216,12 @@ export const RunsView: React.FC = () => {
           </button>
         </div>
 
-        {/* Search Input */}
-        <div className="relative min-w-[220px]">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filtrar por texto ou ID..."
-            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text-main)] cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filtrar por texto ou ID..."
+          className="sm:max-w-xs"
+        />
       </div>
 
       {/* RUNS LIST */}

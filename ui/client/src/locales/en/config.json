@@ -1,6 +1,6 @@
 {
   "title": "Model Parameters & Connectors",
-  "subtitle": "Configure the active LLM engine, base API endpoint, assistant persona name, and credentials.",
+  "subtitle": "Assistant name, location, and per-role model routing for the multi-agent system.",
   "assistantName": "Assistant Name",
   "provider": "Execution Provider",
   "model": "LLM Model",

@@ -3,20 +3,51 @@ import { WorkerAgentRunner } from './worker-agent.js';
 import { SenderAgent } from './sender-agent.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { MemoService } from '../services/memo-service.js';
-import { ToolRouter } from '../tools/router.js';
 import { ModelRegistry } from '../services/model-registry.js';
+import { PromptLoader } from '../services/prompt-loader.js';
+import {
+  ContextPack,
+  DEFAULT_FAST_CONTEXT_PLAN,
+  DEFAULT_SYNTHESIS_CONTEXT_PLAN,
+  type ContextPlan,
+} from '../services/context-pack.js';
 import type { MultiAgentTurnOptions, HandoverPackage, RoutingDecision, SpecialistAgent } from './types.js';
 import type { LLMCompletionFn, OrchestratorResult } from '../orchestrator/types.js';
 
+function parseContextPlan(raw: unknown): ContextPlan | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const plan = raw as Record<string, unknown>;
+  const memoIds = Array.isArray(plan.memoIds)
+    ? plan.memoIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+    : undefined;
+  const includeMemoryIndex =
+    typeof plan.includeMemoryIndex === 'boolean' ? plan.includeMemoryIndex : undefined;
+  const soulMode = plan.soulMode === 'full' || plan.soulMode === 'compact' ? plan.soulMode : undefined;
+
+  if (!memoIds && includeMemoryIndex === undefined && !soulMode) return undefined;
+  return { memoIds, includeMemoryIndex, soulMode };
+}
+
+function buildSenderContext(
+  options: MultiAgentTurnOptions,
+  temporalContext: string,
+  senderModel: string,
+  prompt: string
+) {
+  return {
+    prompt,
+    chatJid: options.chatJid,
+    cwd: options.cwd,
+    history: options.history,
+    personaInstructions: options.personaInstructions,
+    coreMemory: options.coreMemory,
+    temporalContext,
+    senderModel,
+    defaultModel: options.defaultModel,
+  };
+}
+
 export class OrchestratorAgent {
-  /**
-   * Orchestrates the hierarchical multi-agent turn:
-   * 1. LLM Triage & Department Reasoning (orchestratorModel)
-   * 2. Specialist Agent Selection inside the chosen Department
-   * 3. Worker Execution with isolated agent-skills
-   * 4. Quality Gate & Handover packaging
-   * 5. Sender Agent Synthesis (Soul)
-   */
   static async runTurn(
     complete: LLMCompletionFn,
     options: MultiAgentTurnOptions,
@@ -31,40 +62,20 @@ export class OrchestratorAgent {
     );
     const senderModel = ModelRegistry.requireModelId(options.senderModel, 'senderModel', options.cwd);
 
-    // 1. LLM Triage — decide fast-path vs department delegation
     const routing = await this.resolveRouting(complete, prompt, orchestratorModel, options.cwd, onActivity);
 
     if (routing.type === 'fast_path') {
-      AgentAuditLogger.record(options.cwd, {
-        step: 'orchestrator_triage',
-        agent: 'orchestrator',
-        purpose: `LLM triage: fast-path — ${routing.reasoning}`,
-        latencyMs: 0,
-        promptPreview: prompt.slice(0, 100),
-        responsePreview: 'Direct route to Sender Agent',
-        timestamp: new Date().toISOString(),
-      });
-
       const handover: HandoverPackage = {
         userGoal: prompt,
         technicalFindings: '(No tools needed to be executed)',
         guidanceForSender: routing.instructionsForSender || 'Responda diretamente na persona.',
         isFastPath: true,
+        contextPlan: routing.contextPlan ?? DEFAULT_FAST_CONTEXT_PLAN,
       };
 
       const { deliveredText, rawContent } = await SenderAgent.deliver(
         handover,
-        {
-          prompt,
-          chatJid: options.chatJid,
-          cwd: options.cwd,
-          history: options.history,
-          personaInstructions: options.personaInstructions,
-          coreMemory: options.coreMemory,
-          temporalContext,
-          senderModel,
-          defaultModel: options.defaultModel,
-        },
+        buildSenderContext(options, temporalContext, senderModel, prompt),
         complete,
         onActivity
       );
@@ -88,7 +99,6 @@ export class OrchestratorAgent {
       return { deliveredText, updatedHistory, toolsExecutedCount: 0, memo };
     }
 
-    // 2. Department & Specialist selection from LLM routing (with heuristic fallback)
     const selectedDeptId = routing.departmentId;
     const departments = AgentRegistry.getDepartments();
     const dept = departments.find((d) => d.id === selectedDeptId) || departments[0];
@@ -115,20 +125,11 @@ export class OrchestratorAgent {
         technicalFindings: '(Nenhum agente especialista registrado no sistema)',
         guidanceForSender: 'Informe ao usuário que não há especialistas disponíveis no momento.',
         isFastPath: true,
+        contextPlan: routing.contextPlan ?? DEFAULT_FAST_CONTEXT_PLAN,
       };
       const { deliveredText, rawContent } = await SenderAgent.deliver(
         handover,
-        {
-          prompt,
-          chatJid: options.chatJid,
-          cwd: options.cwd,
-          history: options.history,
-          personaInstructions: options.personaInstructions,
-          coreMemory: options.coreMemory,
-          temporalContext,
-          senderModel,
-          defaultModel: options.defaultModel,
-        },
+        buildSenderContext(options, temporalContext, senderModel, prompt),
         complete,
         onActivity
       );
@@ -154,7 +155,6 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // 3. Worker Execution with isolated tools & skills
     const workerResult = await WorkerAgentRunner.execute(
       selectedAgent,
       routing.taskDescription || prompt,
@@ -168,13 +168,13 @@ export class OrchestratorAgent {
       }
     );
 
-    // 4. Quality Gate & Handover Packaging
     const handover: HandoverPackage = {
       userGoal: prompt,
       technicalFindings: workerResult.rawFindingsReport,
       workerSummary: workerResult.summary,
       guidanceForSender: `O especialista [${selectedAgent.name}] concluiu a busca técnica. Sintetize as informações com clareza.`,
       isFastPath: false,
+      contextPlan: routing.contextPlan ?? DEFAULT_SYNTHESIS_CONTEXT_PLAN,
     };
 
     AgentAuditLogger.record(options.cwd, {
@@ -186,20 +186,9 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // 5. Sender Agent Delivery (Soul Synthesis)
     const { deliveredText, rawContent } = await SenderAgent.deliver(
       handover,
-      {
-        prompt,
-        chatJid: options.chatJid,
-        cwd: options.cwd,
-        history: options.history,
-        personaInstructions: options.personaInstructions,
-        coreMemory: options.coreMemory,
-        temporalContext,
-        senderModel,
-        defaultModel: options.defaultModel,
-      },
+      buildSenderContext(options, temporalContext, senderModel, prompt),
       complete,
       onActivity
     );
@@ -228,10 +217,49 @@ export class OrchestratorAgent {
     };
   }
 
-  /**
-   * LLM-powered triage with heuristic fallback.
-   * Uses orchestratorModel to decide fast-path vs department delegation.
-   */
+  private static buildCompactCatalog(): string {
+    return AgentRegistry.getDepartments()
+      .map((dept) => {
+        const agents = AgentRegistry.getAgentsInDepartment(dept.id);
+        const agentIds = agents.map((a) => a.id).join(', ') || '(nenhum)';
+        const keywords = dept.keywords.slice(0, 6).join(', ');
+        return `- ${dept.id}: [${keywords}] → ${agentIds}`;
+      })
+      .join('\n');
+  }
+
+  private static parseRoutingPayload(
+    raw: string
+  ): (RoutingDecision & { taskDescription?: string }) | null {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const contextPlan = parseContextPlan(parsed.contextPlan);
+
+    if (parsed.type === 'fast_path') {
+      return {
+        type: 'fast_path',
+        reasoning: parsed.reasoning || 'Conversa direta',
+        instructionsForSender: parsed.instructionsForSender || 'Responda diretamente na persona.',
+        contextPlan,
+      };
+    }
+
+    if (parsed.type === 'department_delegation' && parsed.departmentId) {
+      return {
+        type: 'department_delegation',
+        reasoning: parsed.reasoning || 'Delegação por LLM',
+        departmentId: parsed.departmentId,
+        agentId: parsed.agentId,
+        taskDescription: parsed.taskDescription || '',
+        contextPlan,
+      };
+    }
+
+    return null;
+  }
+
   private static async resolveRouting(
     complete: LLMCompletionFn,
     prompt: string,
@@ -239,130 +267,71 @@ export class OrchestratorAgent {
     cwd: string,
     onActivity?: () => void
   ): Promise<RoutingDecision & { taskDescription?: string }> {
-    const departments = AgentRegistry.getDepartments();
-    const catalog = departments
-      .map((dept) => {
-        const agents = AgentRegistry.getAgentsInDepartment(dept.id);
-        const agentList = agents
-          .map((a) => `    - id: ${a.id}, name: ${a.name}, skills: [${a.agentSkills.join(', ')}]`)
-          .join('\n');
-        return `  - id: ${dept.id}, name: ${dept.name}, keywords: [${dept.keywords.join(', ')}]\n    agents:\n${agentList}`;
-      })
-      .join('\n');
+    const catalog = this.buildCompactCatalog();
+    const memoIndex = ContextPack.formatMemoIndex(8);
 
-    const systemPrompt = `Você é o Orquestrador de um sistema multi-agente.
-Analise a solicitação do usuário e decida o roteamento.
+    const systemPrompt =
+      PromptLoader.load('orchestrator.triage', { CATALOG: catalog }) ||
+      `Roteie a mensagem. Catálogo:\n${catalog}`;
 
-Departamentos e agentes disponíveis:
-${catalog}
-
-Responda APENAS com JSON válido (sem markdown), em um destes formatos:
-
-Para conversa pura (saudações, perguntas gerais, orientação sem ferramentas):
-{"type":"fast_path","reasoning":"...","instructionsForSender":"..."}
-
-Para tarefas que exigem ferramentas ou especialistas:
-{"type":"department_delegation","reasoning":"...","departmentId":"...","agentId":"...","taskDescription":"..."}`;
+    const userPrompt = `## Mensagem atual\n${prompt}\n\n## Índice de memos recentes\n${memoIndex}`;
 
     onActivity?.();
     const startTime = Date.now();
 
-    try {
-      const response = await complete(
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-        false,
-        { purpose: 'orchestrator_triage', agent: 'orchestrator', model: orchestratorModel }
-      );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await complete(
+          [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          false,
+          {
+            purpose: 'orchestrator_triage',
+            agent: 'orchestrator',
+            model: orchestratorModel,
+            triageAttempt: attempt + 1,
+          }
+        );
 
-      const latencyMs = Date.now() - startTime;
-      const raw = (response.content || '').trim();
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.type === 'fast_path') {
+        const latencyMs = Date.now() - startTime;
+        const raw = (response.content || '').trim();
+        const routing = this.parseRoutingPayload(raw);
+
+        if (routing) {
           AgentAuditLogger.record(cwd, {
             step: 'orchestrator_triage',
             agent: 'orchestrator',
-            purpose: `LLM triage (${orchestratorModel}): fast_path`,
+            purpose: `LLM triage (${orchestratorModel}): ${routing.type}`,
             latencyMs,
-            responsePreview: parsed.reasoning?.slice(0, 100),
+            responsePreview: routing.reasoning?.slice(0, 100),
             timestamp: new Date().toISOString(),
           });
-          return {
-            type: 'fast_path',
-            reasoning: parsed.reasoning || 'Conversa direta',
-            instructionsForSender: parsed.instructionsForSender || 'Responda diretamente na persona.',
-          };
+          if (routing.type === 'department_delegation' && !routing.taskDescription) {
+            routing.taskDescription = prompt;
+          }
+          return routing;
         }
-        if (parsed.type === 'department_delegation' && parsed.departmentId) {
-          AgentAuditLogger.record(cwd, {
-            step: 'orchestrator_triage',
-            agent: 'orchestrator',
-            purpose: `LLM triage (${orchestratorModel}): delegate to ${parsed.departmentId}/${parsed.agentId || 'auto'}`,
-            latencyMs,
-            responsePreview: parsed.reasoning?.slice(0, 100),
-            timestamp: new Date().toISOString(),
-          });
-          return {
-            type: 'department_delegation',
-            reasoning: parsed.reasoning || 'Delegação por LLM',
-            departmentId: parsed.departmentId,
-            agentId: parsed.agentId,
-            taskDescription: parsed.taskDescription || prompt,
-          };
-        }
-      }
-    } catch {
-      // Fall through to heuristic fallback
-    }
-
-    return this.heuristicRouting(prompt);
-  }
-
-  /** Keyword-based fallback when LLM triage fails or returns invalid JSON. */
-  private static heuristicRouting(prompt: string): RoutingDecision & { taskDescription?: string } {
-    const routedTools = ToolRouter.selectTools(prompt);
-    const normalizedPrompt = prompt.toLowerCase();
-
-    if (routedTools.length === 0) {
-      return {
-        type: 'fast_path',
-        reasoning: 'Heuristic: no tools detected',
-        instructionsForSender: 'Responda diretamente na persona.',
-      };
-    }
-
-    let selectedDeptId = 'productivity';
-    const departments = AgentRegistry.getDepartments();
-    for (const dept of departments) {
-      if (dept.keywords.some((kw) => normalizedPrompt.includes(kw))) {
-        selectedDeptId = dept.id;
-        break;
+      } catch {
+        // retry
       }
     }
 
-    const deptAgents = AgentRegistry.getAgentsInDepartment(selectedDeptId);
-    let selectedAgentId = deptAgents[0]?.id;
-
-    for (const ag of deptAgents) {
-      if (
-        ag.agentSkills.some((s) => normalizedPrompt.includes(s.replace(/_/g, ' '))) ||
-        ag.description.toLowerCase().split(' ').some((w) => w.length > 4 && normalizedPrompt.includes(w))
-      ) {
-        selectedAgentId = ag.id;
-        break;
-      }
-    }
+    AgentAuditLogger.record(cwd, {
+      step: 'orchestrator_triage',
+      agent: 'orchestrator',
+      purpose: `LLM triage fallback: fast_path (parse failed)`,
+      latencyMs: Date.now() - startTime,
+      responsePreview: 'Triagem inconclusiva — rota segura para sender',
+      timestamp: new Date().toISOString(),
+    });
 
     return {
-      type: 'department_delegation',
-      reasoning: 'Heuristic fallback: keyword matching',
-      departmentId: selectedDeptId,
-      agentId: selectedAgentId,
-      taskDescription: prompt,
+      type: 'fast_path',
+      reasoning: 'Triagem inconclusiva; sender responde com contexto mínimo.',
+      instructionsForSender: 'Responda com cordialidade na persona, sem inventar dados técnicos.',
+      contextPlan: DEFAULT_FAST_CONTEXT_PLAN,
     };
   }
 }

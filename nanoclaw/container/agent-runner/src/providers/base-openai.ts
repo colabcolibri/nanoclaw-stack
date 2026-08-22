@@ -5,6 +5,8 @@ import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
 import { TokenLedger } from '../services/token-ledger.js';
 import { ModelRegistry } from '../services/model-registry.js';
+import { PersonaLoader } from '../services/persona-loader.js';
+import { buildLedgerPreview, resolvePurpose } from '../services/llm-call-purpose.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type {
   AgentProvider,
@@ -84,27 +86,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       }
     }
 
-    // Extract persona instructions
-    let personaInstructions = '';
-    const candidateFiles = [
-      path.join(input.cwd, 'instructions.prepend.md'),
-      '/workspace/group/instructions.prepend.md',
-      '/opt/nanoclaw-stack/nanoclaw/groups/barao/instructions.prepend.md',
-      ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'instructions.prepend.md')] : []),
-      path.join(input.cwd, 'CLAUDE.local.md'),
-      '/workspace/group/CLAUDE.local.md',
-    ];
-    for (const f of candidateFiles) {
-      try {
-        if (fs.existsSync(f)) {
-          const content = fs.readFileSync(f, 'utf-8').trim();
-          if (content) {
-            personaInstructions = content;
-            break;
-          }
-        }
-      } catch {}
-    }
+    const personaInstructions = PersonaLoader.loadSoul(input.cwd);
 
     const technicalDirectives = input.systemContext?.instructions || '';
     const coreMemory = MemoryManager.loadCoreMemory(input.cwd) || '';
@@ -270,22 +252,15 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
 
           // Record token consumption
           try {
-            const purpose = options?.purpose || (msg.tool_calls?.length ? 'stage1_action' : 'stage2_synthesis');
-            let previewPrefix = '';
-            if (purpose === 'semantic_memo') {
-              previewPrefix = 'Memo: ';
-            } else if (purpose === 'stage1_action') {
-              previewPrefix = msg.tool_calls?.length ? `Tool [${msg.tool_calls.map((tc: any) => tc.function?.name).join(', ')}]: ` : 'Ação: ';
-            } else if (purpose === 'stage2_synthesis') {
-              previewPrefix = 'Síntese: ';
-            } else if (purpose === 'fast_path_direct') {
-              previewPrefix = 'Conversa: ';
-            }
+            const purpose = resolvePurpose({
+              purpose: options?.purpose,
+              hasToolCalls: Boolean(msg.tool_calls?.length),
+            });
 
             TokenLedger.record(input.cwd, targetModel, usage, {
               toolCallsCount: msg.tool_calls?.length || 0,
               latencyMs,
-              preview: msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '',
+              preview: buildLedgerPreview(purpose, msg.content, msg.tool_calls),
               messageId: input.messageId,
               purpose,
             });
