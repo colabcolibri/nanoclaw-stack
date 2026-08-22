@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bot,
   FileCode,
@@ -24,6 +25,13 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ModelSelect } from '@/components/common/ModelSelect'
 import { useLlmRegistry } from '@/hooks/useLlmRegistry'
 
@@ -46,6 +54,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   onAgentSaved,
   onAgentDeleted,
 }) => {
+  const { t } = useTranslation('agents')
   const { providers } = useLlmRegistry()
   const [activeTab, setActiveTab] = useState('overview')
   const [name, setName] = useState('')
@@ -143,212 +152,221 @@ model: ${model || 'deepseek-chat'}
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full max-w-3xl sm:max-w-3xl overflow-y-auto p-0">
-        <div className="flex flex-col h-full p-6">
-          <SheetHeader className="border-b border-[var(--border-main)] pb-4 mb-4 space-y-0">
+      <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-hidden p-0 sm:max-w-lg">
+        <div className="flex h-full flex-col">
+          <SheetHeader className="space-y-0 border-b border-[var(--border-main)] px-6 pb-4 pt-6">
             <div className="flex items-start gap-3 pr-8">
-              <div className="w-11 h-11 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0">
-                <Bot className="w-6 h-6" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]">
+                <Bot className="h-6 w-6" />
               </div>
-              <div className="min-w-0">
-                <SheetTitle className="flex items-center gap-2 flex-wrap text-lg">
-                  {name || agent.id}
-                  <Badge variant="default" className="font-mono text-[11px]">
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="flex flex-wrap items-center gap-2 text-base">
+                  <span className="truncate">{name || agent.id}</span>
+                  <Badge variant="success" className="text-[10px]">
+                    {t('drawerActive')}
+                  </Badge>
+                </SheetTitle>
+                <SheetDescription className="mt-1 text-xs">
+                  {role || t('drawerRoleFallback')}
+                </SheetDescription>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Badge variant="default" className="font-mono text-[10px]">
                     {department}
                   </Badge>
                   {model && (
                     <Badge variant="secondary" className="font-mono text-[10px]">
-                      <Cpu className="w-3 h-3 mr-1" />
+                      <Cpu className="mr-1 h-3 w-3" />
                       {model}
                     </Badge>
                   )}
                   {agent.isCustom && (
-                    <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 text-[10px]">
-                      Customizado
+                    <Badge variant="outline" className="border-emerald-500/30 text-[10px] text-emerald-500">
+                      {t('drawerCustom')}
                     </Badge>
                   )}
-                </SheetTitle>
-                <SheetDescription className="mt-1">{role || 'Agente especialista'}</SheetDescription>
+                </div>
               </div>
             </div>
           </SheetHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="w-full justify-start flex-wrap h-auto gap-1 p-1">
-              <TabsTrigger value="overview" className="gap-1.5">
-                <Layers className="w-3.5 h-3.5" />
-                Metadados & YAML
-              </TabsTrigger>
-              <TabsTrigger value="prompt" className="gap-1.5">
-                <FileCode className="w-3.5 h-3.5" />
-                System Prompt ({promptTokens} tokens)
-              </TabsTrigger>
-              <TabsTrigger value="skills_ref" className="gap-1.5">
-                <BookOpen className="w-3.5 h-3.5" />
-                Skills ({selectedSkills.length})
-              </TabsTrigger>
-            </TabsList>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="border-b border-[var(--border-main)] px-6">
+              <TabsList className="h-auto w-full justify-start gap-1 bg-transparent p-0">
+                <TabsTrigger value="overview" className="gap-1.5 text-xs">
+                  <Layers className="h-3.5 w-3.5" />
+                  {t('drawerOverview')}
+                </TabsTrigger>
+                <TabsTrigger value="prompt" className="gap-1.5 text-xs">
+                  <FileCode className="h-3.5 w-3.5" />
+                  {t('drawerPrompt')}
+                </TabsTrigger>
+                <TabsTrigger value="skills_ref" className="gap-1.5 text-xs">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {t('drawerSkills')} ({selectedSkills.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabsContent value="overview" className="flex-1 overflow-y-auto">
-              <div className="flex flex-col gap-5 pt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome de exibição</Label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} className="text-xs" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Departamento</Label>
-                    <select
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className="flex h-9 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-input)] px-3 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
-                    >
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.id})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cargo / especialidade (role)</Label>
-                    <Input value={role} onChange={(e) => setRole(e.target.value)} className="text-xs" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Modelo dedicado</Label>
-                    <ModelSelect
-                      providers={providers}
-                      value={model}
-                      onChange={setModel}
-                      className="w-full bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none font-mono"
-                    />
-                  </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <TabsContent value="overview" className="mt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('displayName')}</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} className="text-xs" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Descrição</Label>
+                  <Label>{t('department')}</Label>
+                  <Select value={department} onValueChange={setDepartment}>
+                    <SelectTrigger className="text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('role')}</Label>
+                  <Input value={role} onChange={(e) => setRole(e.target.value)} className="text-xs" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('dedicatedModel')}</Label>
+                  <ModelSelect
+                    providers={providers}
+                    value={model}
+                    onChange={setModel}
+                    className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-input)] px-3 py-2 font-mono text-xs text-[var(--text-main)]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('description')}</Label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    rows={2}
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+                    rows={3}
+                    className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
                   />
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-3.5">
                   <input
                     type="checkbox"
-                    id="allow_global"
                     checked={allowGlobalSkills}
                     onChange={(e) => setAllowGlobalSkills(e.target.checked)}
-                    className="rounded w-4 h-4 cursor-pointer"
+                    className="mt-0.5 h-4 w-4 rounded"
                   />
-                  <label htmlFor="allow_global" className="text-xs text-[var(--text-main)] cursor-pointer flex-1">
-                    <span className="font-semibold block">Permitir skills globais de utilidade</span>
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      Garante acesso a ferramentas essenciais do sistema: leitura de arquivos, terminal seguro, gerenciamento de memória e contexto.
-                    </span>
-                  </label>
-                </div>
+                  <span className="text-xs text-[var(--text-main)]">
+                    <span className="block font-semibold">{t('allowGlobalSkills')}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{t('allowGlobalSkillsHint')}</span>
+                  </span>
+                </label>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Skills exclusivas atribuídas</Label>
-                    <span className="text-[11px] text-[var(--accent)] font-mono font-semibold">
-                      {selectedSkills.length} selecionada(s)
+                  <div className="mb-2 flex items-center justify-between">
+                    <Label>{t('assignedSkills')}</Label>
+                    <span className="font-mono text-[11px] font-semibold text-[var(--accent)]">
+                      {t('skillsSelected', { count: selectedSkills.length })}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl">
+                  <div className="grid max-h-44 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-2">
                     {availableSkills
                       .filter((sk) => !sk.isGlobal)
                       .map((sk) => {
                         const isChecked = isSkillSelected(sk.name)
                         return (
-                          <div
+                          <button
                             key={sk.name}
+                            type="button"
                             onClick={() => handleToggleSkill(sk.name)}
-                            className={`flex items-center gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                            className={`flex items-center gap-2.5 rounded-lg border p-2 text-left text-xs transition-all ${
                               isChecked
-                                ? 'bg-[var(--accent-subtle)] border-[var(--accent-border)] text-[var(--accent)] font-medium'
-                                : 'border-transparent hover:bg-[var(--bg-card)] text-[var(--text-muted)]'
+                                ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] font-medium text-[var(--accent)]'
+                                : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-card)]'
                             }`}
                           >
-                            <div
-                              className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                isChecked ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-[var(--border-main)]'
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                                isChecked
+                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                                  : 'border-[var(--border-main)]'
                               }`}
                             >
-                              {isChecked && <Check className="w-3 h-3" />}
-                            </div>
-                            <span className="font-mono truncate">{sk.name}</span>
-                          </div>
+                              {isChecked && <Check className="h-3 w-3" />}
+                            </span>
+                            <span className="truncate font-mono">{sk.name}</span>
+                          </button>
                         )
                       })}
                   </div>
                 </div>
 
                 <div>
-                  <Label className="mb-1.5 block">Estrutura YAML de topo (AGENT.md)</Label>
-                  <pre className="p-3 bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl text-[11px] font-mono text-[var(--text-dim)] overflow-x-auto">
+                  <Label className="mb-1.5 block">{t('yamlPreview')}</Label>
+                  <pre className="overflow-x-auto rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-3 font-mono text-[11px] text-[var(--text-dim)]">
                     {yamlPreview}
                   </pre>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="prompt" className="flex-1 overflow-y-auto">
-              <div className="flex flex-col gap-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--text-muted)]">
-                    System prompt executado pelo especialista — estritamente técnico e objetivo.
-                  </span>
+              <TabsContent value="prompt" className="mt-0 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-[var(--text-muted)]">{t('promptHint')}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="font-mono text-[10px]">
-                      {promptChars} caracteres
+                      {t('chars', { count: promptChars })}
                     </Badge>
                     <Badge variant="default" className="font-mono text-[10px]">
-                      ~{promptTokens} tokens
+                      {t('tokens', { count: promptTokens })}
                     </Badge>
                   </div>
                 </div>
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
-                  rows={16}
-                  className="w-full flex-1 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-xl p-3.5 font-mono text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 leading-relaxed resize-none min-h-[280px]"
+                  rows={18}
+                  className="min-h-[320px] w-full resize-none rounded-xl border border-[var(--border-main)] bg-[var(--bg-input)] p-3.5 font-mono text-xs leading-relaxed text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
                   placeholder="Você é um agente especialista em..."
                 />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="skills_ref" className="flex-1 overflow-y-auto">
-              <div className="flex flex-col gap-4 pt-2">
+              <TabsContent value="skills_ref" className="mt-0 space-y-3">
                 {assignedSkillObjects.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-[var(--text-muted)]">
-                    Nenhuma skill atribuída. Marque skills na aba &quot;Metadados & YAML&quot;.
-                  </div>
+                  <p className="py-8 text-center text-xs text-[var(--text-muted)]">
+                    {t('noAssignedSkills')}
+                  </p>
                 ) : (
                   assignedSkillObjects.map((sk) => (
                     <div
                       key={sk.name}
-                      className="p-4 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col gap-3"
+                      className="flex flex-col gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-                          <span className="text-xs font-bold font-mono">{sk.name}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Sparkles className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                          <span className="truncate font-mono text-xs font-bold">{sk.name}</span>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] font-mono">
-                          ~{sk.totalTokens || 0} tokens
+                        <Badge variant="secondary" className="shrink-0 font-mono text-[10px]">
+                          ~{sk.totalTokens || 0} tok
                         </Badge>
                       </div>
                       <p className="text-xs text-[var(--text-muted)]">{sk.description}</p>
                       {sk.references && sk.references.length > 0 && (
                         <div className="border-t border-[var(--border-main)] pt-2.5">
-                          <div className="text-[11px] font-semibold text-[var(--text-dim)] mb-1.5 flex items-center gap-1.5">
-                            <FileText className="w-3.5 h-3.5" />
-                            Documentos de referência ({sk.references.length})
-                          </div>
+                          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-dim)]">
+                            <FileText className="h-3.5 w-3.5" />
+                            {t('refDocs', { count: sk.references.length })}
+                          </p>
                           <div className="flex flex-wrap gap-1.5">
                             {sk.references.map((rf) => (
                               <Badge key={rf.name} variant="outline" className="font-mono text-[10px]">
@@ -361,33 +379,33 @@ model: ${model || 'deepseek-chat'}
                     </div>
                   ))
                 )}
-              </div>
-            </TabsContent>
+              </TabsContent>
+            </div>
           </Tabs>
 
-          <div className="flex items-center justify-between border-t border-[var(--border-main)] pt-4 mt-4 shrink-0">
+          <div className="flex shrink-0 items-center justify-between border-t border-[var(--border-main)] px-6 py-4">
             <div>
               {agent.isCustom && (
                 <Button variant="destructive" size="sm" onClick={handleDelete} className="text-xs">
-                  <Trash2 className="w-3.5 h-3.5 mr-1" />
-                  Excluir
+                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  {t('delete')}
                 </Button>
               )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
-                Cancelar
+                {t('cancel')}
               </Button>
               <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving} className="text-xs">
                 {saveSuccess ? (
                   <>
-                    <Check className="w-3.5 h-3.5 mr-1" />
-                    Salvo!
+                    <Check className="mr-1 h-3.5 w-3.5" />
+                    {t('saved')}
                   </>
                 ) : (
                   <>
-                    <Save className="w-3.5 h-3.5 mr-1" />
-                    {isSaving ? 'Salvando...' : 'Salvar agente'}
+                    <Save className="mr-1 h-3.5 w-3.5" />
+                    {isSaving ? t('saving') : t('save')}
                   </>
                 )}
               </Button>

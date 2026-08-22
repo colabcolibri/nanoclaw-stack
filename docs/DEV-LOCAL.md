@@ -8,7 +8,7 @@ Guia rápido para rodar o stack no Mac, saber quando o Docker é obrigatório e 
 
 ```bash
 pnpm ai              # IA (motor + agente) — bot/Telegram
-pnpm dev             # painel + IA — http://localhost:5173
+pnpm dev             # painel + IA — http://localhost:3080
 pnpm build:agent     # build imagem Docker (1ª vez)
 pnpm deploy          # produção (push + servidor)
 ```
@@ -96,6 +96,7 @@ lsof -ti :3001 | xargs kill
 | :--- | :--- | :--- |
 | `ui/.env` | `NANOCLAW_PATH` | caminho do checkout `nanoclaw/` (local ou `/opt/nanoclaw-stack/nanoclaw` no servidor) |
 | `ui/.env` | `ALLOWED_EMAIL` | email autorizado no login OTP |
+| `ui/.env` | `VITE_DEV_PORT` | porta do painel em dev (padrão `3080`) |
 | `nanoclaw/.env` | chaves de provider, tokens de canal | motor e agent-runner |
 
 Arquivos locais **nunca vão pro git**: `.env`, `data/`, `groups/`, tokens OAuth.

@@ -2,7 +2,7 @@
 # Dev completo: motor + API UI + Vite (hot reload). Não builda imagem Docker.
 #
 # Uso: ./scripts/dev.sh
-# Abra: http://localhost:5173
+# Abra: http://localhost:3080  (ou VITE_DEV_PORT no ui/.env)
 
 set -euo pipefail
 
@@ -13,6 +13,15 @@ UI_ENV="$UI_DIR/.env"
 
 log() { echo "[dev] $*"; }
 die() { echo "[dev] ERRO: $*" >&2; exit 1; }
+
+if [[ -f "$UI_ENV" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$UI_ENV"
+  set +a
+fi
+
+VITE_DEV_PORT="${VITE_DEV_PORT:-3080}"
 
 free_port() {
   local port="$1"
@@ -47,7 +56,7 @@ log "Instalando deps..."
 
 free_port 3000
 free_port 3001
-free_port 5173
+free_port "$VITE_DEV_PORT"
 
 PIDS=()
 cleanup() {
@@ -60,12 +69,6 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 export NANOCLAW_PATH="$NANOCLAW_DIR"
-if [[ -f "$UI_ENV" ]]; then
-  set -a
-  # shellcheck source=/dev/null
-  source "$UI_ENV"
-  set +a
-fi
 
 log "Subindo motor..."
 (cd "$NANOCLAW_DIR" && pnpm dev) &
@@ -77,13 +80,13 @@ PIDS+=($!)
 
 sleep 1
 
-log "Subindo Vite (5173)..."
-(cd "$UI_DIR" && bun run dev:client) &
+log "Subindo Vite (porta $VITE_DEV_PORT)..."
+(cd "$UI_DIR/client" && VITE_DEV_PORT="$VITE_DEV_PORT" bun run dev) &
 PIDS+=($!)
 
 log ""
 log "=== dev rodando ==="
-log "  Painel:  http://localhost:5173"
+log "  Painel:  http://localhost:$VITE_DEV_PORT"
 log "  API:     http://localhost:3001"
 log "  Motor:   http://localhost:3000"
 log "  Ctrl+C para parar"
