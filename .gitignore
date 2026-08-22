@@ -36,6 +36,7 @@ token_ledger*.json
 token-ledger*.json
 .env
 .env*
+.compose.env
 google_tokens.json
 notion_tokens.json
 yampi_tokens.json

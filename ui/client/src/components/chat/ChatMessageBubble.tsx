@@ -1,19 +1,36 @@
 import React, { useState } from 'react'
-import { Copy, Check, Search, Bot, User, Send, Laptop, Terminal, Globe } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Copy, Check, Braces, Bot, User, Send, Laptop, Terminal, Globe } from 'lucide-react'
 import { type ChatMessage } from '@/api/client'
 import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface ChatMessageBubbleProps {
   message: ChatMessage
+  currency?: 'BRL' | 'USD'
   onInspect: (msg: ChatMessage) => void
+}
+
+function formatMessageCost(message: ChatMessage, currency: 'BRL' | 'USD'): string | null {
+  if (currency === 'BRL' && message.costBrl != null) {
+    return `R$ ${Number(message.costBrl).toFixed(3)}`
+  }
+  if (message.costUsd != null) {
+    return currency === 'BRL'
+      ? `R$ ${(message.costUsd * 5.2).toFixed(3)}`
+      : `$${message.costUsd.toFixed(4)}`
+  }
+  return null
 }
 
 export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
   message,
+  currency = 'BRL',
   onInspect,
 }) => {
+  const { t } = useTranslation('chat')
   const [copied, setCopied] = useState(false)
   const isUser = message.type === 'user'
 
@@ -30,127 +47,155 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     minute: '2-digit',
   })
 
+  const channelLabel = (() => {
+    switch (message.channel?.toLowerCase()) {
+      case 'macos':
+        return 'macOS'
+      case 'telegram':
+        return 'Telegram'
+      case 'cli':
+        return 'Terminal'
+      default:
+        return message.channel || 'Web'
+    }
+  })()
+
   const getChannelBadge = (ch: string) => {
     switch (ch?.toLowerCase()) {
       case 'macos':
         return (
-          <Badge variant="macos">
-            <Laptop className="w-3 h-3" />
-            <span>macOS</span>
+          <Badge variant="macos" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+            <Laptop className="h-3 w-3" />
+            macOS
           </Badge>
         )
       case 'telegram':
         return (
-          <Badge variant="telegram">
-            <Send className="w-3 h-3" />
-            <span>Telegram</span>
+          <Badge variant="telegram" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+            <Send className="h-3 w-3" />
+            Telegram
           </Badge>
         )
       case 'cli':
         return (
-          <Badge variant="cli">
-            <Terminal className="w-3 h-3" />
-            <span>Terminal</span>
+          <Badge variant="cli" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+            <Terminal className="h-3 w-3" />
+            Terminal
           </Badge>
         )
       default:
         return (
-          <Badge variant="web">
-            <Globe className="w-3 h-3" />
-            <span>{ch || 'Web'}</span>
+          <Badge variant="web" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+            <Globe className="h-3 w-3" />
+            {ch || 'Web'}
           </Badge>
         )
     }
   }
 
   const renderedContent = parseMarkdown(message.text || '')
+  const costLabel = formatMessageCost(message, currency)
 
   return (
-    <div
-      className={`flex flex-col gap-2 transition-all ${
+    <article
+      className={cn(
+        'flex w-full flex-col gap-2',
         isUser ? 'items-end' : 'items-start'
-      } max-w-4xl w-full mx-auto`}
+      )}
     >
-      {/* Author and Metadata Header */}
-      <div className={`flex items-center gap-2.5 px-1 text-xs font-semibold ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-        <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
-            isUser
-              ? 'bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)]'
-              : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-          }`}
-        >
-          {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-4 h-4" />}
-        </div>
-        <span className={isUser ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-main)] font-bold'}>
-          {isUser ? (message.senderName || 'Você') : 'Barão'}
-        </span>
-        <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
-          {timeStr}
-        </span>
-        <div>{getChannelBadge(message.channel)}</div>
-      </div>
-
-      {/* Message Bubble Body */}
       <div
-        className={`relative p-4 sm:p-5 rounded-2xl border text-xs sm:text-sm shadow-xs transition-colors ${
-          isUser
-            ? 'bg-[var(--bg-card)] border-[var(--border-main)] rounded-tr-sm text-[var(--text-main)] max-w-2xl'
-            : 'bg-[var(--bg-card-subtle)] border-[var(--border-main)] rounded-tl-sm text-[var(--text-main)] w-full'
-        }`}
+        className={cn(
+          'flex max-w-full items-center gap-2 px-0.5 text-xs',
+          isUser && 'flex-row-reverse'
+        )}
       >
         <div
-          className="prose-rendered leading-relaxed break-words"
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
+            isUser
+              ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+          )}
+        >
+          {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-4 w-4" />}
+        </div>
+
+        <div className={cn('min-w-0', isUser && 'text-right')}>
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-x-2 gap-y-0.5',
+              isUser && 'justify-end'
+            )}
+          >
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                isUser ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'
+              )}
+            >
+              {isUser ? message.senderName || t('you') : t('assistant')}
+            </span>
+            {getChannelBadge(message.channel)}
+            <span className="font-mono text-[11px] font-normal text-[var(--text-dim)]">
+              {channelLabel} • {timeStr}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          'rounded-xl border border-[var(--border-main)] text-sm shadow-xs transition-colors',
+          isUser
+            ? 'max-w-xl bg-[var(--bg-card)] text-[var(--text-main)]'
+            : 'w-full max-w-none bg-[var(--bg-card-subtle)] text-[var(--text-main)]'
+        )}
+      >
+        <div
+          className="prose-rendered break-words px-4 py-3.5 leading-relaxed sm:px-5 sm:py-4"
           dangerouslySetInnerHTML={{ __html: renderedContent }}
         />
 
-        {/* Message Actions / Token Footer */}
-        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[var(--border-main)] text-[11px] text-[var(--text-dim)] font-mono">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border-main)] px-3 py-2 sm:px-4">
+          <p className="font-mono text-[11px] text-[var(--text-dim)]">
             {message.tokens ? (
-              <span>~{message.tokens.toLocaleString()} tokens</span>
-            ) : null}
-            {message.costUsd ? (
-              <span className="text-[var(--accent)] font-semibold">
-                ${message.costUsd.toFixed(4)}
-              </span>
-            ) : null}
-          </div>
+              <>
+                {t('tokenLabel', { count: message.tokens.toLocaleString('pt-BR') })}
+                {costLabel ? ` • ${costLabel}` : ''}
+              </>
+            ) : (
+              costLabel || '—'
+            )}
+          </p>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-[11px] gap-1 text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              size="icon"
+              className="h-7 w-7 text-[var(--text-muted)] hover:text-[var(--text-main)]"
               onClick={handleCopy}
-              title="Copiar mensagem"
+              title={t('copy')}
+              aria-label={t('copy')}
             >
               {copied ? (
-                <>
-                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copiado</span>
-                </>
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
               ) : (
-                <>
-                  <Copy className="w-3 h-3" />
-                  <span>Copiar</span>
-                </>
+                <Copy className="h-3.5 w-3.5" />
               )}
             </Button>
-
             <Button
               variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-[11px] gap-1 text-[var(--text-muted)] hover:text-[var(--accent)]"
+              size="icon"
+              className="h-7 w-7 text-[var(--text-muted)] hover:text-[var(--accent)]"
               onClick={() => onInspect(message)}
-              title="Ver detalhes técnicos"
+              title={t('inspect')}
+              aria-label={t('inspect')}
             >
-              <Search className="w-3 h-3" />
-              <span>Inspecionar</span>
+              <Braces className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </div>
-    </div>
+    </article>
   )
 }

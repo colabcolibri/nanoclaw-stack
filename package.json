@@ -1,0 +1,10 @@
+{
+  "name": "nanoclaw-stack",
+  "private": true,
+  "scripts": {
+    "ai": "bash scripts/ai.sh",
+    "dev": "bash scripts/dev.sh",
+    "deploy": "bash scripts/deploy.sh",
+    "build:agent": "bash scripts/build-agent.sh"
+  }
+}

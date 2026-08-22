@@ -37,7 +37,7 @@ const VALID_VIEWS: ViewType[] = [
   'service',
 ]
 
-const STATS_VIEWS: ViewType[] = ['chat', 'usage']
+const STATS_VIEWS: ViewType[] = ['usage']
 
 function getInitialView(): ViewType {
   const hash = window.location.hash.replace('#', '') as ViewType
@@ -184,7 +184,7 @@ function AppContent() {
   }
 
   const showStats = STATS_VIEWS.includes(activeView)
-  const showCurrency = STATS_VIEWS.includes(activeView)
+  const showCurrency = activeView === 'chat' || activeView === 'usage'
 
   if (isAuthenticated === null) {
     return (
@@ -240,6 +240,8 @@ function AppContent() {
               {activeView === 'chat' && (
                 <ChatView
                   messages={messages}
+                  stats={stats}
+                  currency={currency}
                   isLoading={isLoadingMessages}
                   onRefresh={handleRefreshChat}
                   onInspectMessage={handleInspectMessage}

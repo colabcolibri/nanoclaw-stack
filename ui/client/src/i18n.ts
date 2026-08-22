@@ -12,6 +12,8 @@ import analyticsPt from './locales/pt/analytics.json'
 import analyticsEn from './locales/en/analytics.json'
 import configPt from './locales/pt/config.json'
 import configEn from './locales/en/config.json'
+import agentsPt from './locales/pt/agents.json'
+import agentsEn from './locales/en/agents.json'
 
 const resources = {
   pt: {
@@ -20,6 +22,7 @@ const resources = {
     soul: soulPt,
     analytics: analyticsPt,
     config: configPt,
+    agents: agentsPt,
   },
   en: {
     common: commonEn,
@@ -27,6 +30,7 @@ const resources = {
     soul: soulEn,
     analytics: analyticsEn,
     config: configEn,
+    agents: agentsEn,
   },
 }
 
@@ -37,7 +41,7 @@ i18n
     resources,
     fallbackLng: 'pt',
     defaultNS: 'common',
-    ns: ['common', 'chat', 'soul', 'analytics', 'config'],
+    ns: ['common', 'chat', 'soul', 'analytics', 'config', 'agents'],
     interpolation: {
       escapeValue: false,
     },

@@ -4,6 +4,23 @@ Guia rápido para rodar o stack no Mac, saber quando o Docker é obrigatório e 
 
 ---
 
+## comandos (raiz do repo)
+
+```bash
+pnpm ai              # IA (motor + agente) — bot/Telegram
+pnpm dev             # painel + IA — http://localhost:5173
+pnpm build:agent     # build imagem Docker (1ª vez)
+pnpm deploy          # produção (push + servidor)
+```
+
+Atalhos equivalentes: `./ai`, `./dev`
+
+**Build da imagem Docker** (uma vez, ou quando `bun.lock` do agente mudar): `pnpm build:agent`
+
+Pré-requisitos: Docker Desktop ligado, `ui/.env` e `nanoclaw/.env` (ver abaixo).
+
+---
+
 ## o que roda onde
 
 | componente | pasta | porta | precisa de docker? |

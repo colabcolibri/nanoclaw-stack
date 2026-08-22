@@ -1,0 +1,22 @@
+# Imagem do agent-runner para dev local.
+#
+# O agent-runner NÃO é um serviço 24/7. O motor (host) faz `docker run` por mensagem,
+# com mounts de sessão/grupo diferentes a cada vez — por isso não cabe em um service fixo.
+#
+# Uso (na pasta nanoclaw/):
+#   ./scripts/compose-build-agent.sh
+#   # ou, com imagem já configurada em .compose.env:
+#   docker compose build agent-runner-image
+#
+# Depois suba o stack com ../../scripts/dev.sh (motor + UI no host).
+
+name: nanoclaw
+
+services:
+  agent-runner-image:
+    build:
+      context: .
+      dockerfile: container/Dockerfile
+    image: ${NANOCLAW_AGENT_IMAGE:?run ./scripts/compose-build-agent.sh first}
+    entrypoint: ["true"]
+    profiles: ["build"]

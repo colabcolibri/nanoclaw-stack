@@ -108,7 +108,7 @@ User Message (Text or Voice)
 
 ## 🚀 Quick Start
 
-> **Dev local:** [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) · **Deploy produção:** [docs/DEPLOY.md](docs/DEPLOY.md)
+> **Dev:** `pnpm ai` · `pnpm dev` · **Deploy:** `pnpm deploy` — [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md)
 
 ### 1. Launch Edge Routing & Microservices
 ```bash

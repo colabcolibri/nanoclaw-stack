@@ -1,8 +1,16 @@
 import React from 'react'
-import { X, Search, Check, Copy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Braces, Check, Copy } from 'lucide-react'
 import { type ChatMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 
 interface InspectorSheetProps {
   isOpen: boolean
@@ -15,9 +23,8 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
   onClose,
   message,
 }) => {
-  const [copied, setCopied] = React.useState<boolean>(false)
-
-  if (!isOpen) return null
+  const { t } = useTranslation('chat')
+  const [copied, setCopied] = React.useState(false)
 
   const handleCopyRaw = async () => {
     if (!message) return
@@ -29,117 +36,119 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
-      onClick={onClose}
-    >
-      {/* Drawer Panel */}
-      <div
-        className="relative w-full max-w-md bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 cursor-default"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--border-main)] pb-4 mb-5">
-          <h3 className="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
-            <Search className="w-4 h-4 text-[var(--accent)]" />
-            <span>Detalhes Técnicos da Mensagem</span>
-          </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="w-8 h-8 p-0 text-[var(--text-muted)] hover:text-[var(--text-main)]"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full max-w-md overflow-y-auto sm:max-w-lg">
+        <SheetHeader className="border-b border-[var(--border-main)] pb-4">
+          <SheetTitle className="flex items-center gap-2 text-base">
+            <Braces className="h-4 w-4 text-[var(--accent)]" />
+            {t('inspectorTitle')}
+          </SheetTitle>
+          <SheetDescription className="text-xs">
+            {t('inspectorSubtitle')}
+          </SheetDescription>
+        </SheetHeader>
 
         {message ? (
-          <div className="space-y-4 text-xs font-mono">
-            <div>
-              <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
-                ID da Mensagem
-              </span>
-              <span className="text-[var(--text-main)] font-semibold select-all">
-                {message.id}
-              </span>
-            </div>
+          <div className="mt-5 space-y-5 text-xs">
+            <Field label={t('messageId')} mono>
+              {message.id}
+            </Field>
 
-            <div>
-              <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
-                Canal
-              </span>
-              <Badge variant="secondary">{message.channel}</Badge>
-            </div>
+            {message.model && (
+              <Field label={t('messageModel')} mono>
+                {message.model}
+              </Field>
+            )}
 
-            <div>
-              <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
-                Remetente
-              </span>
-              <span className="text-[var(--text-main)]">{message.senderName}</span>
-            </div>
+            <Field label={t('messageChannel')}>
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {message.channel}
+              </Badge>
+            </Field>
 
-            <div>
-              <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
-                Data & Hora
-              </span>
-              <span className="text-[var(--text-main)]">
-                {new Date(message.timestamp).toLocaleString('pt-BR')}
-              </span>
-            </div>
+            <Field label={t('messageSender')}>{message.senderName}</Field>
+
+            <Field label={t('messageTimestamp')}>
+              {new Date(message.timestamp).toLocaleString('pt-BR')}
+            </Field>
 
             {message.memo && (
               <div>
-                <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px] mb-1">
-                  Memo de Contexto (≤ 300 chars)
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+                  Memo
                 </span>
-                <div className="p-3 rounded-lg bg-[var(--accent-subtle)]/15 border border-[var(--accent)]/30 text-[var(--text-main)] font-sans text-xs leading-relaxed">
+                <p className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-subtle)] p-3 text-xs leading-relaxed text-[var(--text-main)]">
                   {message.memo}
-                </div>
+                </p>
               </div>
             )}
 
             <div>
-              <span className="text-[var(--text-dim)] block uppercase font-bold text-[10px]">
-                Métricas de Consumo
+              <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+                {t('tokens')}
               </span>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <div className="p-2 rounded-lg bg-[var(--bg-card-subtle)] border border-[var(--border-main)] text-[var(--text-main)]">
-                  <span className="text-[10px] text-[var(--text-dim)] block">Caracteres</span>
-                  <span className="font-bold">{message.charCount || message.text?.length || 0}</span>
-                </div>
-                <div className="p-2 rounded-lg bg-[var(--bg-card-subtle)] border border-[var(--border-main)] text-[var(--text-main)]">
-                  <span className="text-[10px] text-[var(--text-dim)] block">Tokens</span>
-                  <span className="font-bold">{message.tokens || 0}</span>
-                </div>
+              <div className="grid grid-cols-2 gap-2">
+                <MetricCard label={t('metricChars')} value={message.charCount || message.text?.length || 0} />
+                <MetricCard label={t('metricTokens')} value={message.tokens || 0} />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[var(--text-dim)] uppercase font-bold text-[10px]">
-                  Raw Payload JSON
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+                  {t('messageRaw')}
                 </span>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={handleCopyRaw}
-                  className="h-6 px-2 text-[10px] gap-1 text-[var(--accent)]"
+                  className="h-7 gap-1 px-2 text-[10px]"
                 >
-                  {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                  <span>{copied ? 'Copiado' : 'Copiar'}</span>
+                  {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                  {copied ? t('copied') : t('copy')}
                 </Button>
               </div>
-              <pre className="p-3 bg-[var(--terminal-bg)] text-[var(--terminal-text)] border border-[var(--border-main)] rounded-xl text-[11px] overflow-x-auto max-h-60">
+              <pre className="max-h-72 overflow-auto rounded-lg border border-[var(--border-main)] bg-[var(--terminal-bg)] p-3 font-mono text-[11px] leading-relaxed text-[var(--terminal-text)]">
                 {JSON.stringify(message, null, 2)}
               </pre>
             </div>
           </div>
         ) : (
-          <div className="text-[var(--text-dim)] text-xs">
-            Nenhuma mensagem selecionada.
-          </div>
+          <p className="mt-6 text-sm text-[var(--text-muted)]">{t('inspectorEmpty')}</p>
         )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function Field({
+  label,
+  children,
+  mono,
+}: {
+  label: string
+  children: React.ReactNode
+  mono?: boolean
+}) {
+  return (
+    <div>
+      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+        {label}
+      </span>
+      <div className={mono ? 'select-all font-mono text-[var(--text-main)]' : 'text-[var(--text-main)]'}>
+        {children}
       </div>
+    </div>
+  )
+}
+
+function MetricCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-2.5">
+      <span className="block text-[10px] text-[var(--text-dim)]">{label}</span>
+      <span className="font-mono text-sm font-semibold text-[var(--text-main)]">
+        {value.toLocaleString('pt-BR')}
+      </span>
     </div>
   )
 }
