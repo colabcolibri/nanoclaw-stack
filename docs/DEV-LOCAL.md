@@ -17,7 +17,9 @@ Atalhos equivalentes: `./ai`, `./dev`
 
 **Build da imagem Docker** (uma vez, ou quando `bun.lock` do agente mudar): `pnpm build:agent`
 
-Pré-requisitos: Docker Desktop ligado, `ui/.env` e `nanoclaw/.env` (ver abaixo).
+Pré-requisitos: Docker Desktop ligado, **Node 22** (motor), `ui/.env` e `nanoclaw/.env` (ver abaixo).
+
+O motor usa `better-sqlite3`, que não compila no Node 26. Os scripts `pnpm dev` / `pnpm ai` já preferem `node@22` do Homebrew se instalado (`brew install node@22`).
 
 ---
 

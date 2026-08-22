@@ -14,6 +14,10 @@ UI_ENV="$UI_DIR/.env"
 log() { echo "[dev] $*"; }
 die() { echo "[dev] ERRO: $*" >&2; exit 1; }
 
+# shellcheck source=/dev/null
+source "$ROOT/scripts/use-node22.sh"
+log "Node: $(node -v)"
+
 if [[ -f "$UI_ENV" ]]; then
   set -a
   # shellcheck source=/dev/null

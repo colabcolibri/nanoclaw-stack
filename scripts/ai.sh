@@ -12,6 +12,10 @@ NANOCLAW_DIR="${NANOCLAW_PATH:-$ROOT/nanoclaw}"
 log() { echo "[ai] $*"; }
 die() { echo "[ai] ERRO: $*" >&2; exit 1; }
 
+# shellcheck source=/dev/null
+source "$ROOT/scripts/use-node22.sh"
+log "Node: $(node -v)"
+
 free_port() {
   local port="$1"
   local pids
