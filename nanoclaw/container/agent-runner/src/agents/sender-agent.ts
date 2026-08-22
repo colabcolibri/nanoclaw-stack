@@ -12,6 +12,7 @@ export interface SenderContext {
   personaInstructions?: string;
   coreMemory?: string;
   temporalContext?: string;
+  senderModel?: string;
 }
 
 export class SenderAgent {
@@ -69,6 +70,7 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
     const response = await complete(messages, false, {
       purpose: 'stage2_synthesis',
       agent: 'sender',
+      model: context.senderModel,
     });
 
     const latencyMs = Date.now() - startTime;

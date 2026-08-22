@@ -269,6 +269,8 @@ export const ConfigView: React.FC = () => {
     name: '',
     provider: 'deepseek',
     model: 'deepseek-v4-flash',
+    orchestratorModel: 'deepseek-chat',
+    senderModel: 'deepseek-chat',
     baseUrl: 'https://api.deepseek.com',
     city: '',
     country: '',
@@ -306,6 +308,8 @@ export const ConfigView: React.FC = () => {
           name: data.config.assistantName || data.config.name || 'Barão',
           provider: providerKey,
           model: data.config.model || meta.defaultModel,
+          orchestratorModel: data.config.orchestratorModel || 'deepseek-chat',
+          senderModel: data.config.senderModel || 'deepseek-chat',
           baseUrl: data.config.baseUrl || meta.defaultBaseUrl,
           city: data.config.city || '',
           country: data.config.country || data.config.location || '',
@@ -474,28 +478,66 @@ export const ConfigView: React.FC = () => {
               </select>
             </div>
 
-            {/* Model Selector (Synchronized Dynamically with Selected Provider) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[var(--text-main)]">
-                  {t('model')}
-                </label>
-                <Badge variant="outline" className="text-[10px] py-0 px-2 gap-1 font-mono font-bold">
-                  <Layers className="w-3 h-3 text-sky-600 dark:text-sky-400" />
-                  <span>Janela: {pricing.contextWindow} tok</span>
-                </Badge>
+            {/* Multi-Agent Role Model Routing Section */}
+            <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-sky-500" />
+                <span className="text-xs font-bold text-[var(--text-main)]">
+                  Roteamento de Modelos por Papel no Sistema Multi-Agente
+                </span>
               </div>
-              <select
-                className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono"
-                value={config.model}
-                onChange={(e) => setConfig({ ...config, model: e.target.value })}
-              >
-                {availableModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* 1. Orchestrator Model */}
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                    Modelo do Orquestrador (Triagem & Raciocínio)
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    value={config.orchestratorModel}
+                    onChange={(e) => setConfig({ ...config, orchestratorModel: e.target.value })}
+                  >
+                    {Object.entries(PROVIDERS_META).map(([pKey, pMeta]) => (
+                      <optgroup key={pKey} label={pMeta.name}>
+                        {pMeta.models.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-[var(--text-dim)] mt-1 block">
+                    Ideal: modelos ultra-rápidos para triage, deconstrução e fast-path.
+                  </span>
+                </div>
+
+                {/* 2. Sender Model */}
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                    Modelo do Sender (Persona & Alma do Barão)
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    value={config.senderModel}
+                    onChange={(e) => setConfig({ ...config, senderModel: e.target.value })}
+                  >
+                    {Object.entries(PROVIDERS_META).map(([pKey, pMeta]) => (
+                      <optgroup key={pKey} label={pMeta.name}>
+                        {pMeta.models.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-[var(--text-dim)] mt-1 block">
+                    Ideal: modelos com alta expressividade, tom de voz e síntese executiva.
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Live Token Pricing & Cache Parameters Panel */}

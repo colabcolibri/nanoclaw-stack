@@ -128,8 +128,9 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
         const completeFn = async (currentMessages: any[], enableTools: boolean | any[], options?: any) => {
           if (aborted) throw new Error('Query aborted');
 
+          const targetModel = options?.model || model;
           const payload: any = {
-            model,
+            model: targetModel,
             messages: currentMessages,
             stream: false,
           };
@@ -240,7 +241,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
               previewPrefix = 'Conversa: ';
             }
 
-            TokenLedger.record(input.cwd, model, usage, {
+            TokenLedger.record(input.cwd, targetModel, usage, {
               toolCallsCount: msg.tool_calls?.length || 0,
               latencyMs,
               preview: msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '',
@@ -285,7 +286,10 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             personaInstructions,
             coreMemory,
             historyLimit,
-          },
+            orchestratorModel: (config as any).orchestratorModel || model,
+            senderModel: (config as any).senderModel || model,
+            defaultModel: model,
+          } as any,
           () => {
             // Activity heartbeat
           }

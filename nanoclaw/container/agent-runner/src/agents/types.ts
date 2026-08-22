@@ -94,4 +94,7 @@ export interface MultiAgentTurnOptions {
   systemInstructions?: string;
   historyLimit?: number;
   maxWorkerIterations?: number;
+  orchestratorModel?: string;
+  senderModel?: string;
+  defaultModel?: string;
 }

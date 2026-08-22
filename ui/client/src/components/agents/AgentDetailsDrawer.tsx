@@ -252,14 +252,36 @@ model: ${model || 'deepseek-chat'}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1">Modelo Preferido</label>
-                <input
-                  type="text"
+                <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1">Modelo Dedicado</label>
+                <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="deepseek-chat"
                   className="w-full bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-hidden focus:border-sky-500 font-mono"
-                />
+                >
+                  <optgroup label="DeepSeek Official">
+                    <option value="deepseek-chat">DeepSeek V3 (Chat Standard)</option>
+                    <option value="deepseek-v4-flash">DeepSeek V4 Flash (Ultra Rápido)</option>
+                    <option value="deepseek-reasoner">DeepSeek R1 (Raciocínio Profundo / CoT)</option>
+                    <option value="deepseek-v4-pro">DeepSeek V4 Pro (Análise Avançada)</option>
+                  </optgroup>
+                  <optgroup label="Groq Cloud (LPU Ultra-Rápido)">
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                    <option value="openai/gpt-oss-120b">Grok 120B (gpt-oss-120b)</option>
+                    <option value="openai/gpt-oss-20b">Grok 20B (gpt-oss-20b)</option>
+                    <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill 70B</option>
+                    <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                  </optgroup>
+                  <optgroup label="Anthropic Claude">
+                    <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                  </optgroup>
+                  <optgroup label="OpenRouter Gateway">
+                    <option value="anthropic/claude-3.7-sonnet">OpenRouter / Claude 3.7</option>
+                    <option value="deepseek/deepseek-r1">OpenRouter / DeepSeek R1</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct">OpenRouter / Llama 3.3 70B</option>
+                  </optgroup>
+                </select>
               </div>
             </div>
 

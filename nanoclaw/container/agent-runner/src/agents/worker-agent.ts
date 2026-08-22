@@ -49,6 +49,7 @@ export class WorkerAgentRunner {
         agent: agent.id,
         department: agent.departmentId,
         iteration: iter + 1,
+        model: agent.model,
       });
 
       const latencyMs = Date.now() - startTime;

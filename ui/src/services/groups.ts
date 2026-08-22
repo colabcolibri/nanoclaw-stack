@@ -279,6 +279,8 @@ export class GroupManager {
       ...containerCfg,
       provider: activeProvider,
       model: containerCfg.model || envMap[currentMapping.modelName] || (activeProvider === "groq" ? "openai/gpt-oss-120b" : "deepseek-v4-flash"),
+      orchestratorModel: containerCfg.orchestratorModel || "deepseek-chat",
+      senderModel: containerCfg.senderModel || "deepseek-chat",
       assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Íris",
       timezone: containerCfg.timezone || envMap["TZ"] || "Europe/Brussels",
       city: containerCfg.city || "",

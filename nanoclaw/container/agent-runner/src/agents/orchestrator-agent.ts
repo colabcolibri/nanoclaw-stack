@@ -57,6 +57,7 @@ export class OrchestratorAgent {
           personaInstructions: options.personaInstructions,
           coreMemory: options.coreMemory,
           temporalContext,
+          senderModel: options.senderModel,
         },
         complete,
         onActivity
@@ -180,6 +181,7 @@ export class OrchestratorAgent {
         personaInstructions: options.personaInstructions,
         coreMemory: options.coreMemory,
         temporalContext,
+        senderModel: options.senderModel,
       },
       complete,
       onActivity
