@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Sparkles, RefreshCw, Save, Search, Check, AlertCircle, Folder, Code2, Zap, AlignLeft, Layers } from 'lucide-react'
-import { ApiClient, type SkillItem } from '@/api/client'
+import { ApiClient, type SkillItem, type AgentItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { SkillDetailsDrawer } from '@/components/skills/SkillDetailsDrawer'
 
 export const SkillsView: React.FC = () => {
   const [skills, setSkills] = useState<SkillItem[]>([])
+  const [agents, setAgents] = useState<AgentItem[]>([])
   const [mode, setMode] = useState<'all' | 'custom'>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -25,9 +26,13 @@ export const SkillsView: React.FC = () => {
   const loadSkills = async () => {
     setIsLoading(true)
     try {
-      const data = await ApiClient.getSkills('barao')
-      setSkills(data.skills || [])
-      setMode(data.mode || 'all')
+      const [skillsData, agentsData] = await Promise.all([
+        ApiClient.getSkills('barao'),
+        ApiClient.getDepartmentsAndAgents('barao').catch(() => ({ agents: [] })),
+      ])
+      setSkills(skillsData.skills || [])
+      setMode(skillsData.mode || 'all')
+      setAgents(agentsData.agents || [])
     } catch {} finally {
       setIsLoading(false)
     }
@@ -277,11 +282,46 @@ export const SkillsView: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3 font-normal">
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2 font-normal">
                     {skill.description || 'Habilidade nativa de automação e execução.'}
                   </p>
 
-                  <div className="pt-2 border-t border-[var(--border-main)] flex justify-end">
+                  {/* Owning Agents or Global Badge */}
+                  <div className="pt-2 border-t border-[var(--border-main)] flex items-center justify-between gap-1 text-[11px]">
+                    <span className="text-[10px] text-[var(--text-dim)] font-semibold">Atribuído a:</span>
+                    {skill.isGlobal ? (
+                      <span className="text-[10px] font-mono text-emerald-500 font-medium">Todos os Agentes (Global)</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {agents
+                          .filter((ag) =>
+                            ag.skills.some(
+                              (s) =>
+                                s === skill.name ||
+                                s.replace(/_/g, '-') === skill.name ||
+                                s === skill.name.replace(/-/g, '_')
+                            )
+                          )
+                          .map((ag) => (
+                            <Badge key={ag.id} variant="secondary" className="text-[9px] font-mono py-0 px-1.5">
+                              {ag.name}
+                            </Badge>
+                          ))}
+                        {agents.filter((ag) =>
+                          ag.skills.some(
+                            (s) =>
+                              s === skill.name ||
+                              s.replace(/_/g, '-') === skill.name ||
+                              s === skill.name.replace(/-/g, '_')
+                          )
+                        ).length === 0 && (
+                          <span className="text-[10px] font-mono text-[var(--text-dim)] italic">Sem agente</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-1 flex justify-end">
                     <Button
                       variant="outline"
                       size="sm"
