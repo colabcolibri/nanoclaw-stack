@@ -1,0 +1,106 @@
+{
+  "subtitle": "Manage your assistant's official connections (Google, Notion, Yampi, macOS, Correios) and MCP servers.",
+  "refresh": "Refresh status",
+  "statsConnected": "Active integrations",
+  "statsTotal": "Total available",
+  "statsMcpServers": "MCP servers",
+  "statsOAuth": "OAuth connected",
+  "sectionOfficial": "Official integrations",
+  "sectionOfficialHint": "Connect external services used by Barão day to day.",
+  "actions": {
+    "configure": "Configure",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connectGoogle": "Connect Google account",
+    "cancel": "Cancel",
+    "save": "Save",
+    "testAndSave": "Test & save"
+  },
+  "status": {
+    "connected": "Connected",
+    "connectedAs": "Connected as {{name}}",
+    "connectedEmail": "Connected · {{email}}",
+    "connectedAlias": "Connected · {{alias}}",
+    "disconnected": "Disconnected",
+    "active": "Active",
+    "activeCep": "Active · ZIP {{cep}}",
+    "ready": "Ready"
+  },
+  "masked": {
+    "current": "Current",
+    "newKeyOptional": "New key (optional)",
+    "keepCurrent": "Leave empty to keep current"
+  },
+  "googleTitle": "Google Workspace",
+  "googleDescription": "Calendar, meetings and Gmail inbox reading.",
+  "notionTitle": "Notion",
+  "notionDescription": "Structured notes, meeting notes and databases.",
+  "yampiTitle": "Yampi",
+  "yampiDescription": "Catalog, stock and order tracking for the store.",
+  "macTitle": "MacBook & Apple Shortcuts",
+  "macDescription": "Siri commands, global shortcuts and Mac integration.",
+  "shippingTitle": "Correios & shipping",
+  "shippingDescription": "Automatic PAC and SEDEX quotes for proposals.",
+  "google": {
+    "policyMode": "Email handling mode",
+    "policyDraft": "Gmail draft & Telegram approval (recommended)",
+    "policyAuto": "Autonomous reply for safe cases",
+    "policyNotify": "Telegram notify only",
+    "emailSender": "Official sender (alias)",
+    "policyButton": "Email policy"
+  },
+  "notion": {
+    "apiKey": "Internal integration secret / API token",
+    "dbId": "Default database ID (optional)"
+  },
+  "yampi": {
+    "alias": "Store alias",
+    "token": "User token",
+    "secret": "User secret key"
+  },
+  "mac": {
+    "endpoint": "HTTPS endpoint",
+    "apiKey": "Authentication key (Bearer)",
+    "noKey": "No key generated yet.",
+    "howToTitle": "Set up on your Mac in 1 minute",
+    "step1": "Open the Shortcuts app on macOS.",
+    "step2": "Create a shortcut with Ask for Input (text).",
+    "step3": "Add Get Contents of URL (POST, Bearer auth, JSON body with prompt).",
+    "step4": "Extract the reply key and show the response."
+  },
+  "shipping": {
+    "originCep": "Origin ZIP code",
+    "margin": "Price margin (+%)",
+    "buffer": "Lead time buffer (+ days)"
+  },
+  "custom": {
+    "title": "Custom MCP servers",
+    "description": "Register external MCP servers compatible with STDIO or SSE.",
+    "colServer": "Server",
+    "colTransport": "Transport",
+    "colEndpoint": "Endpoint / command",
+    "save": "Save MCP servers"
+  },
+  "sheet": {
+    "google": {
+      "title": "Google Workspace",
+      "description": "OAuth connection and email sending policy."
+    },
+    "notion": {
+      "title": "Notion",
+      "description": "Internal integration credentials and default database."
+    },
+    "yampi": {
+      "title": "Yampi",
+      "description": "Store alias and API credentials."
+    },
+    "mac": {
+      "title": "MacBook & shortcuts",
+      "description": "Endpoint and key for the macOS shortcut."
+    },
+    "shipping": {
+      "title": "Correios & shipping",
+      "description": "Origin ZIP and quote parameters."
+    }
+  }
+}

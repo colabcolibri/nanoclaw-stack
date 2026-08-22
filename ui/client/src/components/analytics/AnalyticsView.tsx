@@ -17,6 +17,7 @@ import {
 import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
+import { ExpandableTextBlock } from '@/components/common/ExpandableTextBlock'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -424,9 +425,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
                   <span>Conteúdo da Mensagem</span>
                 </div>
-                <div className="p-4 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] text-xs text-[var(--text-main)] font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
-                  {selectedMessage.text}
-                </div>
+                <ExpandableTextBlock
+                  content={selectedMessage.text || ''}
+                  collapsedMaxHeight={160}
+                  preClassName="bg-[var(--bg-card-subtle)] p-4 text-xs"
+                />
               </div>
 
               {/* Linked Intermediate Runs Section */}
@@ -497,10 +500,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           <span>Hit: {(step.cacheHitTokens || 0).toLocaleString()}</span>
                         </div>
 
-                        {step.rawContent && (
-                          <pre className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-main)] text-[11px] text-[var(--text-main)] whitespace-pre-wrap max-h-32 overflow-y-auto">
-                            {step.rawContent}
-                          </pre>
+                        {(step.rawContent || step.preview) && (
+                          <ExpandableTextBlock
+                            content={step.rawContent || step.preview || ''}
+                            collapsedMaxHeight={128}
+                          />
                         )}
                       </div>
                     ))}

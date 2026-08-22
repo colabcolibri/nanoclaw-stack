@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { CONFIG } from '../config.js';
 
 export interface CurrencyCacheData {
   rate: number;
@@ -11,7 +12,7 @@ export class CurrencyService {
   private static cachedRate: number | null = null;
   private static lastFetched = 0;
   private static readonly TTL_MS = 60 * 60 * 1000; // 1 hora de cache em memória
-  private static readonly PERSIST_PATH = '/opt/nanoclaw-stack/nanoclaw/data/currency_rate.json';
+  private static readonly PERSIST_PATH = path.join(CONFIG.DATA_PATH, "currency_rate.json");
 
   /**
    * Tenta obter a cotação em múltiplos provedores financeiros de mercado com retries em cascata.

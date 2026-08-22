@@ -19,6 +19,7 @@ import { McpsView } from '@/components/mcps/McpsView'
 import { ModelsView } from '@/components/models/ModelsView'
 import { ServiceView } from '@/components/service/ServiceView'
 import { InspectorSheet } from '@/components/chat/InspectorSheet'
+import { AppConfigProvider } from '@/contexts/AppConfigContext'
 import { AuthView } from '@/components/auth/AuthView'
 
 const VALID_VIEWS: ViewType[] = [
@@ -49,6 +50,7 @@ function getInitialView(): ViewType {
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [appConfig, setAppConfig] = useState<{ defaultGroupFolder: string } | null>(null)
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL')
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
@@ -119,6 +121,10 @@ function AppContent() {
   const checkAuthentication = async () => {
     const res = await ApiClient.checkAuth()
     setIsAuthenticated(res.authenticated)
+    if (res.authenticated) {
+      const cfg = await ApiClient.getAppConfig()
+      setAppConfig({ defaultGroupFolder: cfg.defaultGroupFolder })
+    }
   }
 
   const loadInitialData = async () => {
@@ -198,10 +204,19 @@ function AppContent() {
   }
 
   if (isAuthenticated === false) {
-    return <AuthView onLoginSuccess={() => setIsAuthenticated(true)} />
+    return <AuthView onLoginSuccess={() => checkAuthentication()} />
+  }
+
+  if (!appConfig) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[var(--text-muted)] font-mono text-xs">
+        Carregando configuração...
+      </div>
+    )
   }
 
   return (
+    <AppConfigProvider config={appConfig}>
     <div className="h-screen w-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)] flex flex-row">
       {isSidebarOpen && isMobile && (
         <button
@@ -271,6 +286,7 @@ function AppContent() {
         message={inspectedMessage}
       />
     </div>
+    </AppConfigProvider>
   )
 }
 

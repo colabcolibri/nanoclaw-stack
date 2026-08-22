@@ -238,17 +238,19 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
 
     const triggerMessageId = routing.inReplyTo || (keep[0] ? keep[0].id : undefined);
 
+    const skippedSet = new Set(skipped.map((s) => s.id));
+    const processingIds = ids.filter((id) => !commandIds.includes(id) && !skippedSet.has(id));
+
     const query = config.provider.query({
       prompt,
       continuation,
       cwd: config.cwd,
       systemContext: config.systemContext,
       messageId: triggerMessageId,
+      inboundMessageIds: processingIds,
     });
 
     // Process the query while concurrently polling for new messages
-    const skippedSet = new Set(skipped.map((s) => s.id));
-    const processingIds = ids.filter((id) => !commandIds.includes(id) && !skippedSet.has(id));
     // Publish the batch's in_reply_to so MCP tools (send_message, send_file)
     // can stamp it on outbound rows — needed for a2a return-path routing.
     setCurrentInReplyTo(routing.inReplyTo);
@@ -519,7 +521,9 @@ export async function processQuery(
         // at all — either way the turn is finished.
         markCompleted(initialBatchIds);
         if (event.text) {
-          const { sent, hasUnwrapped, taskBlocks } = dispatchResultText(event.text, routing);
+          const { sent, hasUnwrapped, taskBlocks } = dispatchResultText(event.text, routing, {
+            outboundMemo: event.outboundMemo,
+          });
           const willRetryTaskBlocks = shouldNudgeTaskBlocks(routing.taskRun, taskBlocks, taskBlockNudged);
           // One-door task delivery: the final text becomes the run log entry
           // while explicit append-log calls remain optional additive notes.
@@ -658,7 +662,16 @@ export interface TaskMessageBlock {
 export function dispatchResultText(
   text: string,
   routing: RoutingContext,
+  options?: { outboundMemo?: string },
 ): { sent: number; hasUnwrapped: boolean; taskBlocks: TaskMessageBlock[] } {
+  const outboundMemo = options?.outboundMemo;
+  let turnMemo = outboundMemo;
+  const takeTurnMemo = (): string | undefined => {
+    const memo = turnMemo;
+    turnMemo = undefined;
+    return memo;
+  };
+
   const MESSAGE_RE = /<message\s+to="([^"]+)"\s*>([\s\S]*?)<\/message>/g;
 
   let match: RegExpExecArray | null;
@@ -694,11 +707,12 @@ export function dispatchResultText(
         channel_type: routing.channelType,
         thread_id: routing.threadId,
         content: JSON.stringify({ text: body }),
+        memo: takeTurnMemo(),
       });
       sent++;
       continue;
     }
-    sendToDestination(dest, body, routing);
+    sendToDestination(dest, body, routing, takeTurnMemo());
     sent++;
   }
 
@@ -720,6 +734,7 @@ export function dispatchResultText(
         channel_type: routing.channelType,
         thread_id: routing.threadId,
         content: JSON.stringify({ text: rawClean }),
+        memo: takeTurnMemo(),
       });
       sent++;
     }
@@ -786,7 +801,7 @@ export function autoAppendTaskLog(text: string): void {
   log('Task run log auto-appended from final text');
 }
 
-function sendToDestination(dest: DestinationEntry, body: string, routing: RoutingContext): void {
+function sendToDestination(dest: DestinationEntry, body: string, routing: RoutingContext, memo?: string): void {
   const platformId = dest.type === 'channel' ? dest.platformId! : dest.agentGroupId!;
   const channelType = dest.type === 'channel' ? dest.channelType! : 'agent';
   // Resolve thread_id per-destination from the most recent inbound message
@@ -802,6 +817,7 @@ function sendToDestination(dest: DestinationEntry, body: string, routing: Routin
     channel_type: channelType,
     thread_id: destRouting?.threadId ?? null,
     content: JSON.stringify({ text: body }),
+    memo,
   });
 }
 

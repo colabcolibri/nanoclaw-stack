@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Check, Save, Trash2, Pencil, Cpu } from 'lucide-react'
 import { type AgentItem, type DepartmentItem, type SkillItem, ApiClient } from '@/api/client'
@@ -36,6 +37,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   onAgentSaved,
   onAgentDeleted,
 }) => {
+  const group = useDefaultGroup()
   const { t } = useTranslation('agents')
   const { providers } = useLlmRegistry()
   const [activeTab, setActiveTab] = useState('overview')
@@ -114,7 +116,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const res = await ApiClient.saveAgent('barao', agent.id, {
+      const res = await ApiClient.saveAgent(group, agent.id, {
         name,
         department,
         role,
@@ -139,7 +141,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   const handleDelete = async () => {
     if (!confirm(t('deleteConfirm', { name: agent.name }))) return
     try {
-      const res = await ApiClient.deleteAgent('barao', agent.id)
+      const res = await ApiClient.deleteAgent(group, agent.id)
       if (res.success) {
         onAgentDeleted?.(agent.id)
         onClose()

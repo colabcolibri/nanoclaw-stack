@@ -1,32 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 
+import { resolveAgentGroupDir } from '../runtime-paths.js';
+
 /** Identidade / voz / persona — arquivo canônico do grupo (SOUL). */
 export const SOUL_FILE = 'instructions.prepend.md';
 
 /** Regras operacionais, módulos e comportamento estendido — separado da identidade. */
 export const CONTEXT_FILE = 'instructions.context.md';
 
-export type SoulMode = 'compact' | 'full';
-
 function readGroupMarkdown(cwd: string, filename: string): string {
-  const candidates = [
-    path.join(cwd, filename),
-    path.join('/workspace/group', filename),
-    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, filename)] : []),
-    path.join('/opt/nanoclaw-stack/nanoclaw/groups/barao', filename),
-  ];
+  const groupDir = resolveAgentGroupDir(cwd);
+  const filePath = path.join(groupDir, filename);
 
-  for (const file of candidates) {
-    try {
-      if (fs.existsSync(file)) {
-        const content = fs.readFileSync(file, 'utf-8').trim();
-        if (content) return content;
-      }
-    } catch {}
+  if (!fs.existsSync(filePath)) {
+    return '';
   }
 
-  return '';
+  return fs.readFileSync(filePath, 'utf-8').trim();
 }
 
 /**
@@ -57,3 +48,5 @@ export class PersonaLoader {
     return context ? `${soul}\n\n${context}` : soul;
   }
 }
+
+export type SoulMode = 'compact' | 'full';

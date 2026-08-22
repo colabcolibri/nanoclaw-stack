@@ -39,6 +39,15 @@ export interface HistoryMessage {
  * - TokenLedger telemetry tracking
  */
 export class UnifiedAgentGateway {
+  private static resolveAgentGroupId(groupFolder: string): string {
+    const groups = GroupManager.list();
+    const match = groups.find((g) => g.folder === groupFolder);
+    if (!match?.id) {
+      throw new Error(`Grupo de agente não encontrado para pasta: ${groupFolder}`);
+    }
+    return match.id;
+  }
+
   private static getSessionDir(groupId: string, sessionId: string): string {
     const dir = path.join(CONFIG.DATA_PATH, "v2-sessions", groupId, sessionId);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -185,8 +194,8 @@ export class UnifiedAgentGateway {
    */
   static async processTurn(input: ProcessTurnInput): Promise<ProcessTurnResult> {
     const { Database } = await import("bun:sqlite");
-    const groupFolder = input.groupFolder || "barao";
-    const agentGroupId = "ag-4c9ad14f-4032-4305-8efc-0cd8b700042c";
+    const groupFolder = input.groupFolder ?? CONFIG.DEFAULT_GROUP_FOLDER;
+    const agentGroupId = this.resolveAgentGroupId(groupFolder);
     const sessionId = input.sessionId || `sess-${input.channel}-sergio`;
     const senderName = input.senderName || (input.channel === "macos" ? "MacBook (Sérgio)" : input.channel === "ios" ? "iPhone (Sérgio)" : "Sérgio");
 
@@ -372,9 +381,9 @@ export class UnifiedAgentGateway {
   /**
    * Retrieves paginated, sorted message history for any channel session.
    */
-  static async getHistory(channel: string, groupFolder = "barao", limit = 50): Promise<HistoryMessage[]> {
+  static async getHistory(channel: string, groupFolder: string, limit = 50): Promise<HistoryMessage[]> {
     const { Database } = await import("bun:sqlite");
-    const agentGroupId = "ag-4c9ad14f-4032-4305-8efc-0cd8b700042c";
+    const agentGroupId = this.resolveAgentGroupId(groupFolder);
     const sessionId = `sess-${channel}-sergio`;
     const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions", agentGroupId, sessionId);
     if (!fs.existsSync(sessionDir)) return [];
@@ -432,9 +441,9 @@ export class UnifiedAgentGateway {
   /**
    * Resets history for any channel session.
    */
-  static async resetSession(channel: string, groupFolder = "barao"): Promise<boolean> {
+  static async resetSession(channel: string, groupFolder: string): Promise<boolean> {
     const { Database } = await import("bun:sqlite");
-    const agentGroupId = "ag-4c9ad14f-4032-4305-8efc-0cd8b700042c";
+    const agentGroupId = this.resolveAgentGroupId(groupFolder);
     const sessionId = `sess-${channel}-sergio`;
     const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions", agentGroupId, sessionId);
     if (!fs.existsSync(sessionDir)) return true;

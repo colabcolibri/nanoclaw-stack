@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
+import { readEnvFile } from './env.js';
 import { OneCLI } from '@onecli-sh/sdk';
 
 import {
@@ -524,6 +525,11 @@ async function buildContainerArgs(
   // Environment — only vars read by code we don't own.
   // Everything NanoClaw-specific is in container.json (read by runner at startup).
   args.push('-e', `TZ=${containerConfig.timezone ?? TIMEZONE}`);
+  args.push('-e', `NANOCLAW_DATA_DIR=${DATA_DIR}`);
+  const uiPublicUrl = readEnvFile(['UI_PUBLIC_URL']).UI_PUBLIC_URL;
+  if (uiPublicUrl) {
+    args.push('-e', `UI_PUBLIC_URL=${uiPublicUrl}`);
+  }
 
   // Provider-contributed env vars (e.g. XDG_DATA_HOME, OPENCODE_*, NO_PROXY).
   if (providerContribution.env) {

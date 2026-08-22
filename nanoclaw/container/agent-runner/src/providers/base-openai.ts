@@ -301,6 +301,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             prompt: input.prompt,
             cwd: input.cwd,
             chatJid: (input as any).chatJid,
+            inboundMessageIds: input.inboundMessageIds,
             history,
             systemInstructions: technicalDirectives,
             personaInstructions,
@@ -324,6 +325,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
           type: 'result',
           text: turnResult.deliveredText,
           isError: false,
+          outboundMemo: turnResult.assistantMemo,
         };
       } catch (err: any) {
         yield {

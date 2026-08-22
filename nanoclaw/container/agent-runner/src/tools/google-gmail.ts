@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import type { AgentTool } from './types.js';
 import { getGoogleToken } from './google-auth.js';
+import { resolveUiPublicUrl } from '../runtime-paths.js';
 
 export interface EmailPolicy {
   mode: 'draft_approval' | 'auto_safe' | 'notify_only';
@@ -194,7 +195,7 @@ export const googleGmailTool: AgentTool = {
       return JSON.stringify({
         status: 'error',
         error:
-          'Conta do Gmail não conectada ainda. Conecte sua conta clicando em "Conectar Conta Google" no painel Web (https://uai.sergioluciano.com na aba Servidores MCP).',
+          `Conta do Gmail não conectada ainda. Conecte sua conta clicando em "Conectar Conta Google" no painel Web (${resolveUiPublicUrl()} na aba Servidores MCP).`,
       });
     }
 

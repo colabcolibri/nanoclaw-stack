@@ -92,7 +92,9 @@ export interface MultiAgentTurnOptions {
   prompt: string;
   cwd: string;
   chatJid?: string;
-  history: Array<{ role: string; content?: string; [key: string]: any }>;
+  /** IDs das mensagens inbound deste turn (para gravar memo semântico no SQLite). */
+  inboundMessageIds?: string[];
+  history: Array<{ role: string; memo?: string; content?: string; [key: string]: any }>;
   personaInstructions?: string;
   coreMemory?: string;
   systemInstructions?: string;

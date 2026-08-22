@@ -60,7 +60,7 @@ export class SystemService {
     }
   }
 
-  static async generateTelegramPairing(folder = "barao"): Promise<{ code?: string; error?: string }> {
+  static async generateTelegramPairing(folder: string): Promise<{ code?: string; error?: string }> {
     try {
       const cmd = `cd ${CONFIG.NANOCLAW_PATH} && node /usr/bin/pnpm exec tsx -e '
         import("./src/channels/telegram-pairing.js").then(async ({ createPairing }) => {

@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, RefreshCw, Smartphone, Key, Check, Copy, Activity, ShieldCheck, CheckCircle2 } from 'lucide-react'
-import { ApiClient } from '@/api/client'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
+import { RefreshCw, Smartphone, Key, Check, Copy, Activity, CheckCircle2, Radio, MessageSquare } from 'lucide-react'
+import { ApiClient, type ConnectedChannelItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import {
+  formatEngageMode,
+  formatSenderPolicy,
+  getChannelDisplayName,
+  getChannelLabel,
+} from '@/components/service/channel-utils'
 
 export const ServiceView: React.FC = () => {
+  const group = useDefaultGroup()
   const [containers, setContainers] = useState<any[]>([])
   const [statusInfo, setStatusInfo] = useState<{
     active: boolean
@@ -18,28 +27,37 @@ export const ServiceView: React.FC = () => {
   const [isGeneratingPairing, setIsGeneratingPairing] = useState<boolean>(false)
   const [isRestarting, setIsRestarting] = useState<boolean>(false)
   const [copiedCode, setCopiedCode] = useState<boolean>(false)
+  const [channels, setChannels] = useState<ConnectedChannelItem[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
     loadServiceData()
   }, [])
 
   const loadServiceData = async () => {
+    setIsLoading(true)
     try {
-      const data = await ApiClient.getServiceStatus()
+      const [data, channelsData] = await Promise.all([
+        ApiClient.getServiceStatus(),
+        ApiClient.getConnectedChannels().catch(() => ({ channels: [] })),
+      ])
       setContainers(data.dockerContainers || [])
+      setChannels(channelsData.channels || [])
       setStatusInfo({
         active: data.active,
         statusText: data.statusText,
         uptime: data.uptime,
         mainPid: data.mainPid,
       })
-    } catch {}
+    } catch {} finally {
+      setIsLoading(false)
+    }
   }
 
   const handleGeneratePairing = async () => {
     setIsGeneratingPairing(true)
     try {
-      const data = await ApiClient.generateTelegramPairing('barao')
+      const data = await ApiClient.generateTelegramPairing(group)
       setPairingCode(data.code || 'CODE-1234')
     } catch {
       setPairingCode('ERRO-GERAR')
@@ -81,9 +99,10 @@ export const ServiceView: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={loadServiceData}
+            disabled={isLoading}
             className="h-9 gap-1.5 text-xs font-semibold"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Atualizar Status</span>
           </Button>
         }
@@ -221,6 +240,96 @@ export const ServiceView: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
+        <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
+                <Radio className="w-4 h-4 text-[var(--accent)]" />
+                <span>Canais conectados</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
+                Chats e grupos wired ao agente no banco central (<code className="font-mono text-[10px]">messaging_groups</code>).
+              </CardDescription>
+            </div>
+            <Badge variant="secondary" className="w-fit text-[10px] font-semibold">
+              {channels.length} {channels.length === 1 ? 'canal' : 'canais'}
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-5">
+          {channels.length === 0 ? (
+            <EmptyState
+              icon={<MessageSquare className="w-6 h-6 text-[var(--text-dim)]" />}
+              title="Nenhum canal wired"
+              description="Quando alguém falar com o bot ou um canal for registrado no setup, ele aparece aqui."
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {channels.map((channel) => {
+                const isDenied = Boolean(channel.deniedAt)
+                const displayName = getChannelDisplayName(channel)
+
+                return (
+                  <div
+                    key={channel.id}
+                    className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-4 flex flex-col gap-3 min-w-0"
+                  >
+                    <div className="flex items-start justify-between gap-2 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-[var(--text-main)]">{displayName}</p>
+                        <p className="truncate font-mono text-[10px] text-[var(--text-dim)] mt-0.5">{channel.platformId}</p>
+                      </div>
+                      <Badge variant={isDenied ? 'destructive' : 'success'} className="shrink-0 text-[10px]">
+                        {isDenied ? 'Negado' : 'Conectado'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="telegram" className="text-[10px]">
+                        {getChannelLabel(channel.channelType)}
+                      </Badge>
+                      {channel.isGroup && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Grupo
+                        </Badge>
+                      )}
+                      {channel.agentGroupName && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {channel.agentGroupName}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
+                      <div className="min-w-0">
+                        <dt className="uppercase font-bold text-[var(--text-dim)]">Agente</dt>
+                        <dd className="truncate text-[var(--text-main)]">{channel.agentFolder || '—'}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="uppercase font-bold text-[var(--text-dim)]">Engajamento</dt>
+                        <dd className="truncate text-[var(--text-main)]">{formatEngageMode(channel.engageMode)}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="uppercase font-bold text-[var(--text-dim)]">Remetentes</dt>
+                        <dd className="truncate text-[var(--text-main)]">{formatSenderPolicy(channel.unknownSenderPolicy)}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="uppercase font-bold text-[var(--text-dim)]">Desde</dt>
+                        <dd className="truncate text-[var(--text-main)]">
+                          {new Date(channel.createdAt).toLocaleDateString('pt-BR')}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

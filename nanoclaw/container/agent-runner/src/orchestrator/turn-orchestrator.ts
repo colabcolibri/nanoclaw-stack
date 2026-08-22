@@ -2,20 +2,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { OrchestratorAgent } from '../agents/orchestrator-agent.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
+import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
 
 export function getTemporalContext(cwd?: string): string {
   const now = new Date();
-  let tz = process.env.TZ || '';
+  let tz = process.env.TZ?.trim() ?? '';
   let city = '';
   let country = '';
   let location = '';
 
-  const candidateFiles = [
-    ...(cwd ? [path.join(cwd, 'container.json')] : []),
-    '/workspace/group/container.json',
-    '/opt/nanoclaw-stack/nanoclaw/groups/barao/container.json',
-    ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'container.json')] : []),
-  ];
+  const candidateFiles: string[] = [];
+  if (cwd) {
+    candidateFiles.push(path.join(cwd, 'container.json'));
+  }
+  candidateFiles.push(path.join(CONTAINER_AGENT_DIR, 'container.json'));
+  if (process.env.AGENT_GROUP_DIR?.trim()) {
+    candidateFiles.push(path.join(process.env.AGENT_GROUP_DIR.trim(), 'container.json'));
+  }
 
   for (const f of candidateFiles) {
     try {
@@ -30,8 +33,14 @@ export function getTemporalContext(cwd?: string): string {
     } catch {}
   }
 
+  if (!tz) {
+    throw new Error(
+      'timezone não configurado. Defina TZ no ambiente ou timezone em container.json do grupo.',
+    );
+  }
+
   const resolvedLocation = [city, country].filter(Boolean).join(', ') || location;
-  const resolvedTz = tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const resolvedTz = tz;
 
   try {
     const formatted = new Intl.DateTimeFormat('pt-BR', {

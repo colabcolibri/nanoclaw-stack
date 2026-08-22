@@ -14,6 +14,8 @@ import configPt from './locales/pt/config.json'
 import configEn from './locales/en/config.json'
 import agentsPt from './locales/pt/agents.json'
 import agentsEn from './locales/en/agents.json'
+import mcpsPt from './locales/pt/mcps.json'
+import mcpsEn from './locales/en/mcps.json'
 
 const resources = {
   pt: {
@@ -23,6 +25,7 @@ const resources = {
     analytics: analyticsPt,
     config: configPt,
     agents: agentsPt,
+    mcps: mcpsPt,
   },
   en: {
     common: commonEn,
@@ -31,6 +34,7 @@ const resources = {
     analytics: analyticsEn,
     config: configEn,
     agents: agentsEn,
+    mcps: mcpsEn,
   },
 }
 
@@ -41,7 +45,7 @@ i18n
     resources,
     fallbackLng: 'pt',
     defaultNS: 'common',
-    ns: ['common', 'chat', 'soul', 'analytics', 'config', 'agents'],
+    ns: ['common', 'chat', 'soul', 'analytics', 'config', 'agents', 'mcps'],
     interpolation: {
       escapeValue: false,
     },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import { Bot, Plus, RefreshCw } from 'lucide-react'
 import { ApiClient, type AgentItem, type DepartmentItem, type SkillItem } from '@/api/client'
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const AgentsView: React.FC = () => {
+  const group = useDefaultGroup()
   const { t } = useTranslation('agents')
   const [departments, setDepartments] = useState<DepartmentItem[]>([])
   const [agents, setAgents] = useState<AgentItem[]>([])
@@ -35,8 +37,8 @@ export const AgentsView: React.FC = () => {
     setIsLoading(true)
     try {
       const [agentsData, skillsData] = await Promise.all([
-        ApiClient.getDepartmentsAndAgents('barao'),
-        ApiClient.getSkills('barao'),
+        ApiClient.getDepartmentsAndAgents(group),
+        ApiClient.getSkills(group),
       ])
       setDepartments(agentsData.departments || [])
       setAgents(agentsData.agents || [])
@@ -96,7 +98,7 @@ export const AgentsView: React.FC = () => {
     if (!createForm.id || !createForm.name) return
     setIsCreating(true)
     try {
-      const res = await ApiClient.createAgent('barao', {
+      const res = await ApiClient.createAgent(group, {
         id: createForm.id,
         name: createForm.name,
         department: createForm.department,

@@ -14,6 +14,29 @@ function resolveProviderForModel(modelId: string): string | null {
   return null;
 }
 
+function parseLocationFields(input: {
+  city?: string | null;
+  country?: string | null;
+  location?: string | null;
+}): { city: string; country: string; location: string } {
+  let city = (input.city || "").trim();
+  let country = (input.country || "").trim();
+  const rawLocation = (input.location || "").trim();
+
+  if (!city && !country && rawLocation) {
+    const parts = rawLocation.split(",").map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      city = parts[0];
+      country = parts.slice(1).join(", ");
+    } else if (parts.length === 1) {
+      city = parts[0];
+    }
+  }
+
+  const location = rawLocation || [city, country].filter(Boolean).join(", ");
+  return { city, country, location };
+}
+
 export interface GroupSummary {
   id: string;
   name: string;
@@ -32,6 +55,12 @@ export interface MarkdownDocInfo {
   category: "⭐ 1. Principais (Edição Frequente)" | "⚙️ 2. Módulos & Ferramentas (Comportamento)" | "🔒 3. Protocolos de Sistema (Avançado)";
   fallbackPath?: string;
 }
+
+const mcpInstructions = (file: string) =>
+  path.join(CONFIG.NANOCLAW_PATH, "container", "agent-runner", "src", "mcp-tools", file);
+
+const skillInstructions = (file: string) =>
+  path.join(CONFIG.NANOCLAW_PATH, "container", "skills", file);
 
 const DEFAULT_CONTAINER_DOCS: Record<string, { title: string; category: MarkdownDocInfo["category"]; fallback: string }> = {
   "instructions.prepend.md": {
@@ -52,32 +81,32 @@ const DEFAULT_CONTAINER_DOCS: Record<string, { title: string; category: Markdown
   ".claude-fragments/module-scheduling.md": {
     title: "⏰ Agendamentos & Tarefas Cron (ncl tasks)",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/scheduling.instructions.md",
+    fallback: mcpInstructions("scheduling.instructions.md"),
   },
   ".claude-fragments/module-interactive.md": {
     title: "💬 Modo Interativo & Perguntas (ask_user_question)",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/interactive.instructions.md",
+    fallback: mcpInstructions("interactive.instructions.md"),
   },
   ".claude-fragments/module-agents.md": {
     title: "👥 Criação & Delegação de Agentes (create_agent)",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/agents.instructions.md",
+    fallback: mcpInstructions("agents.instructions.md"),
   },
   ".claude-fragments/module-self-mod.md": {
     title: "🔄 Instalação de Pacotes & Auto-Modificação",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/self-mod.instructions.md",
+    fallback: mcpInstructions("self-mod.instructions.md"),
   },
   ".claude-fragments/module-cli.md": {
     title: "💻 Terminal & CLI do NanoClaw (ncl)",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/cli.instructions.md",
+    fallback: mcpInstructions("cli.instructions.md"),
   },
   ".claude-fragments/skill-onecli-gateway.md": {
     title: "🔌 Skill: OneCLI Gateway & Auth",
     category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: "/opt/nanoclaw/container/skills/onecli-gateway/instructions.md",
+    fallback: skillInstructions("onecli-gateway/instructions.md"),
   },
   "memory/system/definition.md": {
     title: "📐 Arquitetura de Memória OKF (definition.md)",
@@ -87,7 +116,7 @@ const DEFAULT_CONTAINER_DOCS: Record<string, { title: string; category: Markdown
   ".claude-fragments/module-core.md": {
     title: "⚙️ Core de Mensagens & Arquivos (module-core.md)",
     category: "🔒 3. Protocolos de Sistema (Avançado)",
-    fallback: "/opt/nanoclaw/container/agent-runner/src/mcp-tools/core.instructions.md",
+    fallback: mcpInstructions("core.instructions.md"),
   },
 };
 
@@ -258,7 +287,8 @@ export class GroupManager {
   }
 
   static getConfig(folder: string): any {
-    const configFile = path.join(CONFIG.GROUPS_PATH, path.basename(folder), "container.json");
+    const safeFolder = path.basename(folder);
+    const configFile = path.join(CONFIG.GROUPS_PATH, safeFolder, "container.json");
     let containerCfg: any = {};
     if (fs.existsSync(configFile)) {
       try {
@@ -266,22 +296,35 @@ export class GroupManager {
       } catch {}
     }
 
+    const dbRow = DatabaseService.getContainerConfigByFolder(safeFolder);
     const envMap = this.readNanoClawEnv();
-    const workerModel = containerCfg.model ?? "";
+    const workerModel = containerCfg.model ?? dbRow?.model ?? "";
     const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
-    const activeProvider = derivedProvider ?? containerCfg.provider ?? null;
+    const activeProvider = derivedProvider ?? containerCfg.provider ?? dbRow?.provider ?? null;
+
+    const locationFields = parseLocationFields({
+      city: containerCfg.city || dbRow?.city,
+      country: containerCfg.country || dbRow?.country,
+      location: containerCfg.location || dbRow?.location,
+    });
 
     return {
       ...containerCfg,
+      agentGroupId: containerCfg.agentGroupId || dbRow?.agent_group_id,
       provider: activeProvider,
       model: workerModel,
-      orchestratorModel: containerCfg.orchestratorModel ?? "",
-      senderModel: containerCfg.senderModel ?? "",
-      assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "",
-      timezone: containerCfg.timezone || envMap["TZ"] || "",
-      city: containerCfg.city || "",
-      country: containerCfg.country || containerCfg.location || "",
-      location: containerCfg.location || [containerCfg.city, containerCfg.country].filter(Boolean).join(", ") || "",
+      orchestratorModel: containerCfg.orchestratorModel ?? dbRow?.orchestrator_model ?? "",
+      senderModel: containerCfg.senderModel ?? dbRow?.sender_model ?? "",
+      assistantName:
+        containerCfg.assistantName ||
+        containerCfg.groupName ||
+        dbRow?.assistant_name ||
+        envMap["NANOCLAW_AGENT_NAME"] ||
+        "",
+      timezone: containerCfg.timezone || dbRow?.timezone || envMap["TZ"] || "",
+      city: locationFields.city,
+      country: locationFields.country,
+      location: locationFields.location,
       hasTelegramToken: !!envMap["TELEGRAM_BOT_TOKEN"],
     };
   }

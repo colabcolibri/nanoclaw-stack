@@ -37,7 +37,6 @@ export const tokenUsageTool: AgentTool = {
       const candidates = [
         path.join(cwd, 'logs', 'token_usage.db'),
         '/workspace/agent/logs/token_usage.db',
-        '/opt/nanoclaw-stack/nanoclaw/groups/barao/logs/token_usage.db',
       ];
 
       let dbPath: string | null = null;

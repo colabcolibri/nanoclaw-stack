@@ -57,7 +57,6 @@ export function loadProductsFromCsv(customCsvPath?: string): ProductPriceRow[] {
     '/app/skills/store-email-attendant/references/tabela_precos_revenda.csv',
     '/workspace/skills/store-email-attendant/references/tabela_precos_revenda.csv',
     '/workspace/agent/skills/store-email-attendant/references/tabela_precos_revenda.csv',
-    '/opt/nanoclaw-stack/nanoclaw/container/skills/store-email-attendant/references/tabela_precos_revenda.csv',
     path.join(process.cwd(), 'skills', 'store-email-attendant', 'references', 'tabela_precos_revenda.csv'),
   ].filter(Boolean) as string[];
 

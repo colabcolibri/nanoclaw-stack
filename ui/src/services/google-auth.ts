@@ -4,11 +4,11 @@ import { CONFIG } from "../config.js";
 import { GroupManager } from "./groups.js";
 
 export class GoogleAuthService {
-  private static getTokensPath(folder: string = "barao"): string {
+  private static getTokensPath(folder: string): string {
     return path.join(CONFIG.GROUPS_PATH, path.basename(folder), "google_tokens.json");
   }
 
-  private static getCredentials(folder: string = "barao") {
+  private static getCredentials(folder: string) {
     const cfg = GroupManager.getConfig(folder) || {};
     const mcp = cfg.mcpServers || {};
     
@@ -20,10 +20,12 @@ export class GoogleAuthService {
     return { clientId, clientSecret };
   }
 
-  static getAuthUrl(folder: string = "barao", reqHost?: string): string {
+  static getAuthUrl(folder: string, reqHost: string): string {
     const { clientId } = this.getCredentials(folder);
-    const host = reqHost || "uai.sergioluciano.com";
-    const redirectUri = `https://${host}/api/integrations/google/callback`;
+    if (!reqHost?.trim()) {
+      throw new Error("Host da requisição é obrigatório para OAuth Google.");
+    }
+    const redirectUri = `https://${reqHost.trim()}/api/integrations/google/callback`;
 
     const scopes = [
       "https://www.googleapis.com/auth/calendar",
@@ -47,10 +49,12 @@ export class GoogleAuthService {
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
-  static async handleCallback(code: string, folder: string = "barao", reqHost?: string): Promise<{ success: boolean; email?: string; error?: string }> {
+  static async handleCallback(code: string, folder: string, reqHost: string): Promise<{ success: boolean; email?: string; error?: string }> {
     const { clientId, clientSecret } = this.getCredentials(folder);
-    const host = reqHost || "uai.sergioluciano.com";
-    const redirectUri = `https://${host}/api/integrations/google/callback`;
+    if (!reqHost?.trim()) {
+      return { success: false, error: "Host da requisição é obrigatório para OAuth Google." };
+    }
+    const redirectUri = `https://${reqHost.trim()}/api/integrations/google/callback`;
 
     try {
       const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -105,7 +109,7 @@ export class GoogleAuthService {
     }
   }
 
-  static getStatus(folder: string = "barao"): { connected: boolean; email?: string; updatedAt?: string } {
+  static getStatus(folder: string): { connected: boolean; email?: string; updatedAt?: string } {
     const tokensPath = this.getTokensPath(folder);
     if (!fs.existsSync(tokensPath)) {
       return { connected: false };
@@ -123,7 +127,7 @@ export class GoogleAuthService {
     }
   }
 
-  static disconnect(folder: string = "barao"): boolean {
+  static disconnect(folder: string): boolean {
     const tokensPath = this.getTokensPath(folder);
     if (fs.existsSync(tokensPath)) {
       try {

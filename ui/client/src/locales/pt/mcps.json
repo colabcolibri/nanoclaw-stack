@@ -1,0 +1,106 @@
+{
+  "subtitle": "Gerencie as conexões oficiais do seu assistente (Google, Notion, Yampi, macOS, Correios) e servidores MCP.",
+  "refresh": "Atualizar status",
+  "statsConnected": "Integrações ativas",
+  "statsTotal": "Total disponível",
+  "statsMcpServers": "Servidores MCP",
+  "statsOAuth": "OAuth conectados",
+  "sectionOfficial": "Integrações oficiais",
+  "sectionOfficialHint": "Conecte serviços externos usados pelo Barão no dia a dia.",
+  "actions": {
+    "configure": "Configurar",
+    "connect": "Conectar",
+    "disconnect": "Desconectar",
+    "connectGoogle": "Conectar conta Google",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "testAndSave": "Testar e salvar"
+  },
+  "status": {
+    "connected": "Conectado",
+    "connectedAs": "Conectado como {{name}}",
+    "connectedEmail": "Conectado · {{email}}",
+    "connectedAlias": "Conectado · {{alias}}",
+    "disconnected": "Desconectado",
+    "active": "Ativo",
+    "activeCep": "Ativo · CEP {{cep}}",
+    "ready": "Pronto"
+  },
+  "masked": {
+    "current": "Atual",
+    "newKeyOptional": "Nova chave (opcional)",
+    "keepCurrent": "Deixe vazio para manter"
+  },
+  "googleTitle": "Google Workspace",
+  "googleDescription": "Agenda, reuniões e leitura de e-mails via Gmail e Calendar.",
+  "notionTitle": "Notion",
+  "notionDescription": "Notas estruturadas, atas e databases no workspace.",
+  "yampiTitle": "Yampi",
+  "yampiDescription": "Catálogo, estoque e rastreamento de pedidos da loja.",
+  "macTitle": "MacBook e atalhos Apple",
+  "macDescription": "Comandos por Siri, atalhos globais e integração com o Mac.",
+  "shippingTitle": "Correios e frete",
+  "shippingDescription": "Cotação automática de PAC e SEDEX para orçamentos.",
+  "google": {
+    "policyMode": "Modo de atendimento de e-mails",
+    "policyDraft": "Rascunho no Gmail e aprovação no Telegram (recomendado)",
+    "policyAuto": "Resposta autônoma em casos seguros",
+    "policyNotify": "Apenas notificar no Telegram",
+    "emailSender": "Remetente oficial (alias)",
+    "policyButton": "Política de e-mails"
+  },
+  "notion": {
+    "apiKey": "Internal integration secret / API token",
+    "dbId": "Database ID padrão (opcional)"
+  },
+  "yampi": {
+    "alias": "Alias da loja",
+    "token": "User-token",
+    "secret": "User-secret-key"
+  },
+  "mac": {
+    "endpoint": "Endpoint HTTPS",
+    "apiKey": "Chave de autenticação (Bearer)",
+    "noKey": "Nenhuma chave gerada ainda.",
+    "howToTitle": "Como configurar no Mac em 1 minuto",
+    "step1": "Abra o app Atalhos (Shortcuts) no macOS.",
+    "step2": "Crie um atalho com a ação Pedir Entrada (texto).",
+    "step3": "Adicione Obter Conteúdo do URL (POST, Authorization Bearer, corpo JSON com prompt).",
+    "step4": "Extraia a chave reply e mostre a resposta ao usuário."
+  },
+  "shipping": {
+    "originCep": "CEP de origem",
+    "margin": "Margem de preço (+%)",
+    "buffer": "Buffer de prazo (+ dias)"
+  },
+  "custom": {
+    "title": "Servidores MCP personalizados",
+    "description": "Registre servidores MCP externos compatíveis com STDIO ou SSE.",
+    "colServer": "Servidor",
+    "colTransport": "Transporte",
+    "colEndpoint": "Endpoint / comando",
+    "save": "Salvar servidores MCP"
+  },
+  "sheet": {
+    "google": {
+      "title": "Google Workspace",
+      "description": "Conexão OAuth e política de envio de e-mails."
+    },
+    "notion": {
+      "title": "Notion",
+      "description": "Credenciais da integração interna e database padrão."
+    },
+    "yampi": {
+      "title": "Yampi",
+      "description": "Alias da loja e credenciais da API."
+    },
+    "mac": {
+      "title": "MacBook e atalhos",
+      "description": "Endpoint e chave para o atalho no macOS."
+    },
+    "shipping": {
+      "title": "Correios e frete",
+      "description": "CEP de origem e parâmetros de cotação."
+    }
+  }
+}

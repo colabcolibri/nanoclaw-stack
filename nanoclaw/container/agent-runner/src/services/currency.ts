@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import { resolveNanoclawDataDir } from '../runtime-paths.js';
+
 export interface CurrencyCacheData {
   rate: number;
   provider: string;
@@ -13,17 +15,17 @@ export class CurrencyService {
   private static readonly TTL_MS = 60 * 60 * 1000; // 1 hora de cache em memória
 
   private static getPersistPath(): string {
-    const candidates = [
-      '/opt/nanoclaw-stack/nanoclaw/data/currency_rate.json',
-      '/workspace/group/currency_rate.json',
-      '/workspace/agent/currency_rate.json',
-      path.join(process.cwd(), 'currency_rate.json'),
-    ];
-    for (const p of candidates) {
-      const dir = path.dirname(p);
-      if (fs.existsSync(dir)) return p;
+    try {
+      return path.join(resolveNanoclawDataDir(), 'currency_rate.json');
+    } catch {
+      const agentPath = '/workspace/agent/currency_rate.json';
+      if (fs.existsSync(path.dirname(agentPath))) {
+        return agentPath;
+      }
+      throw new Error(
+        'NANOCLAW_DATA_DIR não configurado — impossível persistir cotação USD/BRL.',
+      );
     }
-    return '/tmp/currency_rate.json';
   }
 
   /**
@@ -162,7 +164,9 @@ export class CurrencyService {
     }
     // Dispara a busca em background para popular imediatamente
     this.getUsdToBrlRate().catch(() => {});
-    return 5.70;
+    throw new Error(
+      'Cotação USD/BRL indisponível. Aguarde a busca em background ou verifique conectividade.',
+    );
   }
 
   /**

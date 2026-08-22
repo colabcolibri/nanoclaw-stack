@@ -1,5 +1,8 @@
 # 🚀 Arquitetura & Fluxo de Trabalho do NanoClaw v2
 
+> **Desatualizado (2026-08):** o fluxo atual é multi-agente (`Orchestrator` → `Worker` → `Sender`).  
+> Ver **[agent-turn-flow.md](../../docs/agent-turn-flow.md)** — inclui memos (300/450 chars), `retrieve_message_context` e estado do resumo semântico.
+
 Este documento descreve o fluxo de execução de ponta a ponta do agente, desde a chegada da mensagem até a entrega no canal e no painel de controle.
 
 ---

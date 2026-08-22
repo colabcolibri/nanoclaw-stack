@@ -89,10 +89,7 @@ export class AgentRegistry {
     const candidateDirs = [
       '/app/agents',
       path.join(process.cwd(), 'agents'),
-      path.join(process.cwd(), '..', 'agents'),
       path.join(process.cwd(), 'container', 'agents'),
-      path.join(process.cwd(), '..', 'container', 'agents'),
-      '/opt/nanoclaw-stack/nanoclaw/container/agents',
     ];
 
     if (cwd) {

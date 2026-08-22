@@ -50,9 +50,17 @@ export type LLMCompletionFn = (
   options?: LLMCallOptions
 ) => Promise<LLMResponse>;
 
+/** Entrada compacta no continuation — só memo, nunca texto integral. */
+export interface ConversationMemoEntry {
+  role: 'user' | 'assistant';
+  memo: string;
+  messageId?: string;
+}
+
 export interface OrchestratorResult {
   deliveredText: string;
-  updatedHistory: any[];
+  updatedHistory: ConversationMemoEntry[];
   toolsExecutedCount: number;
-  memo?: string;
+  userMemo: string;
+  assistantMemo: string;
 }

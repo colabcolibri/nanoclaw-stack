@@ -130,7 +130,7 @@ export function insertMessage(
       clean = parsed.text || message.content;
     } catch {}
     clean = clean.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').replace(/\s+/g, ' ').trim();
-    memoText = clean.length <= 300 ? clean : `${clean.slice(0, 297)}...`;
+    memoText = clean.length <= 450 ? clean : `${clean.slice(0, 447)}...`;
   }
 
   db.prepare(

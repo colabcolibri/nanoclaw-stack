@@ -31,13 +31,13 @@ export class ExecutionScratchpad {
         }
       }
     } else if (recentHistory && recentHistory.length > 0) {
-      // Fallback from passed history
+      // Fallback from continuation (memo-only entries or legacy content)
       for (const h of recentHistory.slice(-4)) {
-        if (h.content && typeof h.content === 'string') {
-          const clean = MemoService.extractMemo(h.content);
-          if (clean && clean !== this.userGoal) {
-            this.contextExtracts.push(`- [${h.role}]: "${clean}"`);
-          }
+        const memoText =
+          (typeof h.memo === 'string' && h.memo.trim()) ||
+          (h.content && typeof h.content === 'string' ? MemoService.extractMemo(h.content) : '');
+        if (memoText && memoText !== this.userGoal) {
+          this.contextExtracts.push(`- [${h.role}]: "${memoText}"`);
         }
       }
     }

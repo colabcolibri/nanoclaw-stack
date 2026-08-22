@@ -13,6 +13,9 @@
   "country": "Country / Region",
   "countryPlaceholder": "e.g. Belgium",
   "timezone": "Timezone",
+  "timezonePlaceholder": "Select a timezone",
+  "timezoneSearch": "Search timezone (e.g. São Paulo, Brussels)...",
+  "timezoneEmpty": "No timezone found",
   "save": "Save Parameters",
   "savedSuccess": "Parameters saved successfully!",
   "saveError": "Failed to save configuration."

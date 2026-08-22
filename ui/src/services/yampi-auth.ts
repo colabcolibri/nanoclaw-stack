@@ -10,11 +10,30 @@ export interface YampiCredentials {
 }
 
 export class YampiAuthService {
-  private static getFilePath(groupFolder = 'barao'): string {
+  private static getFilePath(groupFolder: string): string {
     return path.join(CONFIG.GROUPS_PATH, groupFolder, 'yampi_tokens.json');
   }
 
-  static getCredentials(groupFolder = 'barao'): YampiCredentials | null {
+  private static maskSecret(value: string): string {
+    if (!value) return '';
+    if (value.length <= 8) return '••••••••';
+    return `${value.slice(0, 4)}...${value.slice(-4)}`;
+  }
+
+  static getStatus(groupFolder: string) {
+    const creds = this.getCredentials(groupFolder);
+    if (!creds) return { connected: false as const };
+
+    return {
+      connected: true as const,
+      alias: creds.alias,
+      maskedUserToken: this.maskSecret(creds.userToken),
+      maskedUserSecret: this.maskSecret(creds.userSecretKey),
+      updatedAt: creds.updatedAt || null,
+    };
+  }
+
+  static getCredentials(groupFolder: string): YampiCredentials | null {
     const filePath = this.getFilePath(groupFolder);
     if (!fs.existsSync(filePath)) return null;
 
@@ -27,7 +46,7 @@ export class YampiAuthService {
     return null;
   }
 
-  static saveCredentials(creds: YampiCredentials, groupFolder = 'barao'): void {
+  static saveCredentials(creds: YampiCredentials, groupFolder: string): void {
     const filePath = this.getFilePath(groupFolder);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -42,7 +61,7 @@ export class YampiAuthService {
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
   }
 
-  static removeCredentials(groupFolder = 'barao'): void {
+  static removeCredentials(groupFolder: string): void {
     const filePath = this.getFilePath(groupFolder);
     if (fs.existsSync(filePath)) {
       try {

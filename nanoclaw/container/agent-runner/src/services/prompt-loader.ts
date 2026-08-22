@@ -34,7 +34,6 @@ export class PromptLoader {
     const candidatePaths = [
       path.join(process.cwd(), 'src', 'prompts', filename),
       path.join(process.cwd(), 'prompts', filename),
-      path.join('/opt/nanoclaw-stack/nanoclaw/container/agent-runner/src/prompts', filename),
       path.join(import.meta.dirname || '', '..', 'prompts', filename),
     ];
 

@@ -21,6 +21,8 @@ Pré-requisitos: Docker Desktop ligado, **Node 22** (motor), `ui/.env` e `nanocl
 
 O motor usa `better-sqlite3`, que não compila no Node 26. Os scripts `pnpm dev` / `pnpm ai` já preferem `node@22` do Homebrew se instalado (`brew install node@22`).
 
+Fluxo do agente (turn, memos, orquestrador): [agent-turn-flow.md](agent-turn-flow.md).
+
 ---
 
 ## o que roda onde
@@ -51,7 +53,13 @@ Crie `ui/.env`:
 
 ```env
 NANOCLAW_PATH=/caminho/absoluto/para/nanoclaw/nanoclaw
+NANOCLAW_DEFAULT_GROUP=barao
+UI_PUBLIC_URL=http://localhost:3080
 ALLOWED_EMAIL=seu@email.com
+RESEND_API_KEY=re_...
+FROM_EMAIL=NanoClaw UI <seu@email.com>
+SESSION_SECRET=um_secret_aleatorio
+PORT=3001
 ```
 
 O login OTP chega por email (Resend). Digite o código na segunda tela do login.
@@ -97,9 +105,14 @@ lsof -ti :3001 | xargs kill
 | arquivo | variável | uso |
 | :--- | :--- | :--- |
 | `ui/.env` | `NANOCLAW_PATH` | caminho do checkout `nanoclaw/` (local ou `/opt/nanoclaw-stack/nanoclaw` no servidor) |
+| `ui/.env` | `NANOCLAW_DEFAULT_GROUP` | pasta do agente em `groups/` (ex.: `barao`) |
+| `ui/.env` | `UI_PUBLIC_URL` | URL pública do painel (dev: `http://localhost:3080`) |
 | `ui/.env` | `ALLOWED_EMAIL` | email autorizado no login OTP |
 | `ui/.env` | `VITE_DEV_PORT` | porta do painel em dev (padrão `3080`) |
+| `nanoclaw/.env` | `UI_PUBLIC_URL` | mesma URL do painel — injetada no container do agente (mensagens de erro) |
 | `nanoclaw/.env` | chaves de provider, tokens de canal | motor e agent-runner |
+
+**Importante (Telegram):** nunca rode o motor local e o `nanoclaw.service` no servidor com o **mesmo** `TELEGRAM_BOT_TOKEN`. Um token só pode ter um long-polling ativo — o outro processo recebe `Conflict: terminated by other getUpdates request`.
 
 Arquivos locais **nunca vão pro git**: `.env`, `data/`, `groups/`, tokens OAuth.
 

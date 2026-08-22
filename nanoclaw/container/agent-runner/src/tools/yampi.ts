@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { AgentTool } from './types.js';
+import { resolveUiPublicUrl } from '../runtime-paths.js';
 
 interface YampiCreds {
   alias: string;
@@ -93,7 +94,7 @@ export const yampiTool: AgentTool = {
       return JSON.stringify({
         status: 'error',
         error:
-          'Credenciais da Yampi não configuradas. Cadastre seu Alias, User-Token e Secret-Key no painel Web (https://uai.sergioluciano.com na aba Contas & Integrações).',
+          `Credenciais da Yampi não configuradas. Cadastre seu Alias, User-Token e Secret-Key no painel Web (${resolveUiPublicUrl()} na aba Contas & Integrações).`,
       });
     }
 

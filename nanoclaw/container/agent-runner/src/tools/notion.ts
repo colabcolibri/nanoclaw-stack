@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { AgentTool } from './types.js';
+import { resolveUiPublicUrl } from '../runtime-paths.js';
 
 async function getNotionToken(cwd: string): Promise<{ apiKey: string; defaultDatabaseId?: string } | null> {
   const candidatePaths = [
@@ -92,7 +93,7 @@ export const notionTool: AgentTool = {
     if (!auth || !auth.apiKey) {
       return JSON.stringify({
         status: 'error',
-        error: 'Chave do Notion não configurada. Conecte sua integração com o Notion pelo painel Web (https://uai.sergioluciano.com na aba Servidores/Integrações) ou crie o arquivo notion_tokens.json.',
+        error: `Chave do Notion não configurada. Conecte sua integração com o Notion pelo painel Web (${resolveUiPublicUrl()} na aba Servidores/Integrações) ou crie o arquivo notion_tokens.json.`,
       });
     }
 

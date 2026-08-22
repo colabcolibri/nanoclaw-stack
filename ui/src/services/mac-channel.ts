@@ -9,15 +9,16 @@ import { UnifiedAgentGateway } from "./agent-gateway.js";
  * Adheres strictly to SRP and DRY by delegating all core turn execution,
  * LLM provider resolution, memory, and persistence to UnifiedAgentGateway.
  */
+
 export class MacChannelService {
-  private static getKeyFilePath(groupFolder = "barao"): string {
+  private static getKeyFilePath(groupFolder: string): string {
     return path.join(CONFIG.GROUPS_PATH, groupFolder, "mac_channel.json");
   }
 
   /**
    * Retrieves or initializes the dedicated API key for Mac integration.
    */
-  static getOrCreateApiKey(groupFolder = "barao"): string {
+  static getOrCreateApiKey(groupFolder: string): string {
     const filePath = this.getKeyFilePath(groupFolder);
     if (fs.existsSync(filePath)) {
       try {
@@ -36,7 +37,7 @@ export class MacChannelService {
   /**
    * Validates the provided Bearer token against the group's API key.
    */
-  static validateApiKey(token: string, groupFolder = "barao"): boolean {
+  static validateApiKey(token: string, groupFolder: string): boolean {
     const expected = this.getOrCreateApiKey(groupFolder);
     if (!token || !expected) return false;
     return token.trim() === expected.trim();
@@ -47,7 +48,7 @@ export class MacChannelService {
    */
   static async processPrompt(
     prompt: string,
-    groupFolder = "barao",
+    groupFolder: string,
     resetSession = false
   ) {
     return UnifiedAgentGateway.processTurn({
@@ -61,14 +62,14 @@ export class MacChannelService {
   /**
    * Retrieves conversation history for the macOS session.
    */
-  static async getHistory(groupFolder = "barao", limit = 50) {
+  static async getHistory(groupFolder: string, limit = 50) {
     return UnifiedAgentGateway.getHistory("macos", groupFolder, limit);
   }
 
   /**
    * Resets the conversation history for macOS session.
    */
-  static async resetSession(groupFolder = "barao"): Promise<boolean> {
+  static async resetSession(groupFolder: string): Promise<boolean> {
     return UnifiedAgentGateway.resetSession("macos", groupFolder);
   }
 
@@ -77,7 +78,7 @@ export class MacChannelService {
    */
   static async processAudio(
     audioBlob: Blob | ArrayBuffer | Uint8Array,
-    groupFolder = "barao"
+    groupFolder: string,
   ): Promise<{ transcription: string; reply: string; timestamp: string }> {
     const formData = new FormData();
     const blob = audioBlob instanceof Blob ? audioBlob : new Blob([audioBlob as any], { type: "audio/m4a" });

@@ -3,11 +3,11 @@ import path from 'path';
 import { CONFIG } from '../config.js';
 
 export class NotionAuthService {
-  private static getTokenFilePath(folder: string = 'barao'): string {
+  private static getTokenFilePath(folder: string): string {
     return path.join(CONFIG.NANOCLAW_PATH, 'groups', folder, 'notion_tokens.json');
   }
 
-  static getStatus(folder: string = 'barao') {
+  static getStatus(folder: string) {
     const filePath = this.getTokenFilePath(folder);
     if (!fs.existsSync(filePath)) {
       return { connected: false };
@@ -31,12 +31,26 @@ export class NotionAuthService {
     }
   }
 
-  static async connect(folder: string = 'barao', apiKey: string, defaultDatabaseId?: string) {
-    if (!apiKey || !apiKey.trim()) {
-      return { success: false, error: 'Chave de API do Notion é obrigatória.' };
-    }
+  static async connect(folder: string, apiKey: string, defaultDatabaseId?: string) {
+    const cleanKey = (apiKey || '').trim();
+    const existing = this.getStatus(folder);
 
-    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      if (!existing.connected) {
+        return { success: false, error: 'Chave de API do Notion é obrigatória.' };
+      }
+
+      try {
+        const filePath = this.getTokenFilePath(folder);
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        data.defaultDatabaseId = (defaultDatabaseId || '').trim();
+        data.updatedAt = new Date().toISOString();
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), { mode: 0o600 });
+        return { success: true, botName: data.botName || existing.botName };
+      } catch (err: any) {
+        return { success: false, error: err.message || String(err) };
+      }
+    }
 
     try {
       // Test token with Notion API
@@ -82,7 +96,7 @@ export class NotionAuthService {
     }
   }
 
-  static disconnect(folder: string = 'barao'): boolean {
+  static disconnect(folder: string): boolean {
     const filePath = this.getTokenFilePath(folder);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

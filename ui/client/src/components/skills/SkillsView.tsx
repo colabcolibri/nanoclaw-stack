@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { Sparkles, RefreshCw, Search, Folder, Code2, Zap, AlignLeft, Bot, Globe, Lock, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import { ApiClient, type SkillItem, type AgentItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -10,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { SkillDetailsDrawer } from '@/components/skills/SkillDetailsDrawer'
 
 export const SkillsView: React.FC = () => {
+  const group = useDefaultGroup()
   const [skills, setSkills] = useState<SkillItem[]>([])
   const [agents, setAgents] = useState<AgentItem[]>([])
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -26,8 +28,8 @@ export const SkillsView: React.FC = () => {
     setIsLoading(true)
     try {
       const [skillsData, agentsData] = await Promise.all([
-        ApiClient.getSkills('barao'),
-        ApiClient.getDepartmentsAndAgents('barao').catch(() => ({ agents: [], departments: [] })),
+        ApiClient.getSkills(group),
+        ApiClient.getDepartmentsAndAgents(group).catch(() => ({ agents: [], departments: [] })),
       ])
       setSkills(skillsData.skills || [])
       setAgents(agentsData.agents || [])

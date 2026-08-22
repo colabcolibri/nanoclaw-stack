@@ -12,7 +12,7 @@ import {
   type ContextPlan,
 } from '../services/context-pack.js';
 import type { MultiAgentTurnOptions, HandoverPackage, RoutingDecision, SpecialistAgent } from './types.js';
-import type { LLMCompletionFn, OrchestratorResult } from '../orchestrator/types.js';
+import type { LLMCompletionFn, OrchestratorResult, ConversationMemoEntry } from '../orchestrator/types.js';
 
 function parseContextPlan(raw: unknown): ContextPlan | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
@@ -68,7 +68,7 @@ export class OrchestratorAgent {
       const handover: HandoverPackage = {
         userGoal: prompt,
         technicalFindings: '(No tools needed to be executed)',
-        guidanceForSender: routing.instructionsForSender || 'Responda diretamente na persona.',
+        guidanceForSender: routing.instructionsForSender || 'Reply directly in character.',
         isFastPath: true,
         contextPlan: routing.contextPlan ?? DEFAULT_FAST_CONTEXT_PLAN,
       };
@@ -80,23 +80,15 @@ export class OrchestratorAgent {
         onActivity
       );
 
-      const memo = await MemoService.generateSemanticMemo(rawContent, async (sys, usr) => {
-        const resp = await complete(
-          [{ role: 'system', content: sys }, { role: 'user', content: usr }],
-          false,
-          { purpose: 'semantic_memo', model: senderModel }
-        );
-        return resp.content || '';
+      return this.finalizeTurnResult({
+        prompt,
+        deliveredText,
+        rawContent,
+        options,
+        senderModel,
+        complete,
+        toolsExecutedCount: 0,
       });
-
-      const historyLimit = options.historyLimit || 10;
-      const updatedHistory = [
-        ...options.history,
-        { role: 'user', content: prompt },
-        { role: 'assistant', content: deliveredText },
-      ].slice(-historyLimit);
-
-      return { deliveredText, updatedHistory, toolsExecutedCount: 0, memo };
     }
 
     const selectedDeptId = routing.departmentId;
@@ -133,16 +125,15 @@ export class OrchestratorAgent {
         complete,
         onActivity
       );
-      const historyLimit = options.historyLimit || 10;
-      return {
+      return this.finalizeTurnResult({
+        prompt,
         deliveredText,
-        updatedHistory: [
-          ...options.history,
-          { role: 'user', content: prompt },
-          { role: 'assistant', content: deliveredText },
-        ].slice(-historyLimit),
+        rawContent,
+        options,
+        senderModel,
+        complete,
         toolsExecutedCount: 0,
-      };
+      });
     }
 
     AgentAuditLogger.record(options.cwd, {
@@ -193,27 +184,80 @@ export class OrchestratorAgent {
       onActivity
     );
 
-    const memo = await MemoService.generateSemanticMemo(rawContent, async (sys, usr) => {
-      const resp = await complete(
-        [{ role: 'system', content: sys }, { role: 'user', content: usr }],
-        false,
-        { purpose: 'semantic_memo', model: senderModel }
-      );
-      return resp.content || '';
+    return this.finalizeTurnResult({
+      prompt,
+      deliveredText,
+      rawContent,
+      options,
+      senderModel,
+      complete,
+      toolsExecutedCount: workerResult.findings.length,
     });
+  }
 
-    const historyLimit = options.historyLimit || 10;
-    const updatedHistory = [
-      ...options.history,
-      { role: 'user', content: prompt },
-      { role: 'assistant', content: deliveredText },
+  private static createMemoGenerator(senderModel: string, complete: LLMCompletionFn) {
+    return (content: string) =>
+      MemoService.generateSemanticMemo(content, async (sys, usr) => {
+        const resp = await complete(
+          [{ role: 'system', content: sys }, { role: 'user', content: usr }],
+          false,
+          { purpose: 'semantic_memo', model: senderModel }
+        );
+        return resp.content || '';
+      });
+  }
+
+  private static normalizeHistoryEntry(
+    entry: { role: string; memo?: string; content?: string; [key: string]: any }
+  ): ConversationMemoEntry | null {
+    const role = entry.role === 'assistant' ? 'assistant' : 'user';
+    const memo =
+      (typeof entry.memo === 'string' && entry.memo.trim()) ||
+      (typeof entry.content === 'string' && entry.content.trim()
+        ? MemoService.extractMemo(entry.content)
+        : '');
+    if (!memo) return null;
+    return { role, memo };
+  }
+
+  private static async finalizeTurnResult(params: {
+    prompt: string;
+    deliveredText: string;
+    rawContent: string;
+    options: MultiAgentTurnOptions;
+    senderModel: string;
+    complete: LLMCompletionFn;
+    toolsExecutedCount: number;
+  }): Promise<OrchestratorResult> {
+    const generateMemo = this.createMemoGenerator(params.senderModel, params.complete);
+    const [userMemo, assistantMemo] = await Promise.all([
+      generateMemo(params.prompt),
+      generateMemo(params.rawContent || params.deliveredText),
+    ]);
+
+    if (params.options.inboundMessageIds?.length) {
+      for (const id of params.options.inboundMessageIds) {
+        MemoService.updateInboundMemo(id, userMemo);
+      }
+    }
+
+    const historyLimit = params.options.historyLimit || 10;
+    const priorHistory = params.options.history
+      .map((entry) => this.normalizeHistoryEntry(entry))
+      .filter((entry): entry is ConversationMemoEntry => entry !== null);
+
+    const updatedHistory: ConversationMemoEntry[] = [
+      ...priorHistory,
+      { role: 'user' as const, memo: userMemo },
+      { role: 'assistant' as const, memo: assistantMemo },
     ].slice(-historyLimit);
 
     return {
-      deliveredText,
+      deliveredText: params.deliveredText,
       updatedHistory,
-      toolsExecutedCount: workerResult.findings.length,
-      memo,
+      toolsExecutedCount: params.toolsExecutedCount,
+      userMemo,
+      assistantMemo,
     };
   }
 
@@ -221,7 +265,7 @@ export class OrchestratorAgent {
     return AgentRegistry.getDepartments()
       .map((dept) => {
         const agents = AgentRegistry.getAgentsInDepartment(dept.id);
-        const agentIds = agents.map((a) => a.id).join(', ') || '(nenhum)';
+        const agentIds = agents.map((a) => a.id).join(', ') || '(none)';
         const keywords = dept.keywords.slice(0, 6).join(', ');
         return `- ${dept.id}: [${keywords}] → ${agentIds}`;
       })
@@ -240,8 +284,8 @@ export class OrchestratorAgent {
     if (parsed.type === 'fast_path') {
       return {
         type: 'fast_path',
-        reasoning: parsed.reasoning || 'Conversa direta',
-        instructionsForSender: parsed.instructionsForSender || 'Responda diretamente na persona.',
+        reasoning: parsed.reasoning || 'Direct conversation',
+        instructionsForSender: parsed.instructionsForSender || 'Reply directly in character.',
         contextPlan,
       };
     }
@@ -272,9 +316,9 @@ export class OrchestratorAgent {
 
     const systemPrompt =
       PromptLoader.load('orchestrator.triage', { CATALOG: catalog }) ||
-      `Roteie a mensagem. Catálogo:\n${catalog}`;
+      `Route the message. Catalog:\n${catalog}`;
 
-    const userPrompt = `## Mensagem atual\n${prompt}\n\n## Índice de memos recentes\n${memoIndex}`;
+    const userPrompt = `## Current message\n${prompt}\n\n## Recent memo index\n${memoIndex}`;
 
     onActivity?.();
     const startTime = Date.now();
@@ -323,14 +367,14 @@ export class OrchestratorAgent {
       agent: 'orchestrator',
       purpose: `LLM triage fallback: fast_path (parse failed)`,
       latencyMs: Date.now() - startTime,
-      responsePreview: 'Triagem inconclusiva — rota segura para sender',
+      responsePreview: 'Triage inconclusive — safe route to sender',
       timestamp: new Date().toISOString(),
     });
 
     return {
       type: 'fast_path',
-      reasoning: 'Triagem inconclusiva; sender responde com contexto mínimo.',
-      instructionsForSender: 'Responda com cordialidade na persona, sem inventar dados técnicos.',
+      reasoning: 'Triage inconclusive; sender replies with minimal context.',
+      instructionsForSender: 'Reply politely in character; do not invent technical data.',
       contextPlan: DEFAULT_FAST_CONTEXT_PLAN,
     };
   }

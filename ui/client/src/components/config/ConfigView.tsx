@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import {
   Sliders,
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { ModelSelect } from '@/components/common/ModelSelect'
+import { TimezoneSelect } from '@/components/config/TimezoneSelect'
 import { useLlmRegistry } from '@/hooks/useLlmRegistry'
 import { findModelInProviders } from '@/lib/model-registry'
 
@@ -31,6 +33,7 @@ const DEFAULT_PRICING = {
 }
 
 export const ConfigView: React.FC = () => {
+  const group = useDefaultGroup()
   const { t } = useTranslation('config')
   const { providers, isLoading: isLoadingModels } = useLlmRegistry()
   const [config, setConfig] = useState({
@@ -49,13 +52,31 @@ export const ConfigView: React.FC = () => {
   useEffect(() => {
     loadConfig()
     loadRate()
-  }, [])
+  }, [group])
 
   useEffect(() => {
     if (Object.keys(providers).length > 0) {
       loadConfig()
     }
-  }, [providers])
+  }, [providers, group])
+
+  const parseLocationFromConfig = (cfg: Record<string, unknown>) => {
+    let city = String(cfg.city ?? '').trim()
+    let country = String(cfg.country ?? '').trim()
+    const location = String(cfg.location ?? '').trim()
+
+    if (!city && !country && location) {
+      const parts = location.split(',').map((part) => part.trim()).filter(Boolean)
+      if (parts.length >= 2) {
+        city = parts[0]
+        country = parts.slice(1).join(', ')
+      } else if (parts.length === 1) {
+        city = parts[0]
+      }
+    }
+
+    return { city, country }
+  }
 
   const loadRate = async () => {
     try {
@@ -68,15 +89,16 @@ export const ConfigView: React.FC = () => {
 
   const loadConfig = async () => {
     try {
-      const data = await ApiClient.getConfig('barao')
+      const data = await ApiClient.getConfig(group)
       if (data.config) {
+        const { city, country } = parseLocationFromConfig(data.config)
         setConfig({
           name: data.config.assistantName || data.config.name || 'Barão',
           model: data.config.model ?? '',
           orchestratorModel: data.config.orchestratorModel ?? '',
           senderModel: data.config.senderModel ?? '',
-          city: data.config.city ?? '',
-          country: data.config.country || data.config.location || '',
+          city,
+          country,
           timezone: data.config.timezone || 'Europe/Brussels',
         })
       }
@@ -92,7 +114,7 @@ export const ConfigView: React.FC = () => {
     }
     setIsSaving(true)
     try {
-      await ApiClient.saveConfig('barao', {
+      await ApiClient.saveConfig(group, {
         name: config.name,
         assistantName: config.name,
         model: config.model,
@@ -182,12 +204,9 @@ export const ConfigView: React.FC = () => {
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
                   <span>{t('timezone')}</span>
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] font-mono focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                <TimezoneSelect
                   value={config.timezone}
-                  onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
-                  placeholder="Europe/Brussels"
+                  onChange={(timezone) => setConfig({ ...config, timezone })}
                 />
               </div>
             </div>

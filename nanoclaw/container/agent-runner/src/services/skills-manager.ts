@@ -19,7 +19,7 @@ export class SkillsManager {
 
   /**
    * Discovers all available skills from standard skill directories:
-   * 1. System/Shared skills (/app/skills, /opt/nanoclaw-stack/nanoclaw/container/skills)
+   * 1. System/Shared skills (/app/skills)
    * 2. Group custom skills (/workspace/agent/skills, <cwd>/skills)
    */
   static discoverSkills(cwd?: string): DiscoveredSkill[] {
@@ -32,7 +32,6 @@ export class SkillsManager {
       '/app/skills',
       path.join(process.cwd(), 'skills'),
       path.join(process.cwd(), 'container', 'skills'),
-      '/opt/nanoclaw-stack/nanoclaw/container/skills',
     ];
 
     if (cwd) {

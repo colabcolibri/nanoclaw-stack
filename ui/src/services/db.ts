@@ -77,7 +77,58 @@ export interface SecurityOverview {
   sessions: { id: string; agentGroupId: string; createdAt: string; lastActiveAt: string }[];
 }
 
+export interface ConnectedChannelItem {
+  id: string;
+  channelType: string;
+  platformId: string;
+  instance: string;
+  name: string | null;
+  isGroup: boolean;
+  unknownSenderPolicy: string;
+  createdAt: string;
+  deniedAt: string | null;
+  agentGroupId: string | null;
+  agentGroupName: string | null;
+  agentFolder: string | null;
+  engageMode: string | null;
+}
+
 export class DatabaseService {
+  private static resolveGroupFolderByAgentGroupId(agentGroupId: string): string | null {
+    if (!fs.existsSync(CONFIG.DB_PATH)) return null;
+    const db = new Database(CONFIG.DB_PATH, { readonly: true });
+    try {
+      const row = db
+        .query("SELECT folder FROM agent_groups WHERE id = ?")
+        .get(agentGroupId) as { folder?: string } | undefined;
+      const folder = row?.folder?.trim();
+      return folder || null;
+    } catch {
+      return null;
+    } finally {
+      db.close();
+    }
+  }
+
+  static getContainerConfigByFolder(folder: string): Record<string, any> | null {
+    if (!fs.existsSync(CONFIG.DB_PATH)) return null;
+    const db = new Database(CONFIG.DB_PATH, { readonly: true });
+    try {
+      const group = db
+        .query("SELECT id FROM agent_groups WHERE folder = ?")
+        .get(path.basename(folder)) as { id?: string } | undefined;
+      if (!group?.id) return null;
+      const row = db
+        .query("SELECT * FROM container_configs WHERE agent_group_id = ?")
+        .get(group.id) as Record<string, any> | undefined;
+      return row ?? null;
+    } catch {
+      return null;
+    } finally {
+      db.close();
+    }
+  }
+
   static updateContainerConfig(agentGroupId: string, config: any) {
     if (!fs.existsSync(CONFIG.DB_PATH)) return;
     const db = new Database(CONFIG.DB_PATH);
@@ -96,6 +147,7 @@ export class DatabaseService {
       const now = new Date().toISOString();
 
       try {
+        db.run("ALTER TABLE container_configs ADD COLUMN location TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN city TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN country TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN orchestrator_model TEXT;");
@@ -105,29 +157,46 @@ export class DatabaseService {
       db.query(`
         UPDATE container_configs 
         SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, timezone = ?, location = ?,
-            orchestrator_model = ?, sender_model = ?, updated_at = ?
+            city = ?, country = ?, orchestrator_model = ?, sender_model = ?, updated_at = ?
         WHERE agent_group_id = ?
-      `).run(provider, model, assistantName, skillsJson, mcpJson, timezone, location, orchestratorModel, senderModel, now, agentGroupId);
+      `).run(
+        provider,
+        model,
+        assistantName,
+        skillsJson,
+        mcpJson,
+        timezone,
+        location,
+        city,
+        country,
+        orchestratorModel,
+        senderModel,
+        now,
+        agentGroupId
+      );
 
       // Also sync to container.json for container runtime access
-      const baraoContainer = path.join(CONFIG.GROUPS_PATH, "barao", "container.json");
-      if (fs.existsSync(baraoContainer)) {
-        try {
-          const current = JSON.parse(fs.readFileSync(baraoContainer, "utf-8"));
-          const updated = {
-            ...current,
-            provider,
-            model,
-            assistantName,
-            timezone,
-            orchestratorModel,
-            senderModel,
-            city,
-            country,
-            location,
-          };
-          fs.writeFileSync(baraoContainer, JSON.stringify(updated, null, 2), "utf-8");
-        } catch {}
+      const groupFolder = this.resolveGroupFolderByAgentGroupId(agentGroupId);
+      if (groupFolder) {
+        const groupContainer = path.join(CONFIG.GROUPS_PATH, groupFolder, "container.json");
+        if (fs.existsSync(groupContainer)) {
+          try {
+            const current = JSON.parse(fs.readFileSync(groupContainer, "utf-8"));
+            const updated = {
+              ...current,
+              provider,
+              model,
+              assistantName,
+              timezone,
+              orchestratorModel,
+              senderModel,
+              city,
+              country,
+              location,
+            };
+            fs.writeFileSync(groupContainer, JSON.stringify(updated, null, 2), "utf-8");
+          } catch {}
+        }
       }
     } catch (err) {
       console.error("Error updating container_configs in DB:", err);
@@ -160,7 +229,17 @@ export class DatabaseService {
     const db = new Database(CONFIG.DB_PATH, { readonly: true });
     try {
       try {
-        result.users = (db.query("SELECT id, type, name, created_at as createdAt FROM users ORDER BY created_at DESC").all() as any[]) || [];
+        result.users =
+          (db
+            .query(
+              `SELECT id,
+                      kind AS type,
+                      display_name AS name,
+                      created_at AS createdAt
+               FROM users
+               ORDER BY created_at DESC`,
+            )
+            .all() as any[]) || [];
       } catch {}
       try {
         result.pendingApprovals = (db.query("SELECT * FROM pending_approvals ORDER BY created_at DESC").all() as any[]) || [];
@@ -178,12 +257,84 @@ export class DatabaseService {
     return result;
   }
 
+  static getConnectedChannels(): ConnectedChannelItem[] {
+    if (!fs.existsSync(CONFIG.DB_PATH)) return [];
+    const db = new Database(CONFIG.DB_PATH, { readonly: true });
+    try {
+      const rows = db
+        .query(
+          `SELECT mg.id,
+                  mg.channel_type AS channelType,
+                  mg.platform_id AS platformId,
+                  mg.instance,
+                  mg.name,
+                  mg.is_group AS isGroup,
+                  mg.unknown_sender_policy AS unknownSenderPolicy,
+                  mg.created_at AS createdAt,
+                  mg.denied_at AS deniedAt,
+                  ag.id AS agentGroupId,
+                  ag.name AS agentGroupName,
+                  ag.folder AS agentFolder,
+                  mga.engage_mode AS engageMode
+           FROM messaging_groups mg
+           LEFT JOIN messaging_group_agents mga ON mga.messaging_group_id = mg.id
+           LEFT JOIN agent_groups ag ON ag.id = mga.agent_group_id
+           ORDER BY mg.created_at DESC`,
+        )
+        .all() as Array<{
+          id: string;
+          channelType: string;
+          platformId: string;
+          instance: string;
+          name: string | null;
+          isGroup: number;
+          unknownSenderPolicy: string;
+          createdAt: string;
+          deniedAt: string | null;
+          agentGroupId: string | null;
+          agentGroupName: string | null;
+          agentFolder: string | null;
+          engageMode: string | null;
+        }>;
+
+      return rows.map((row) => ({
+        id: row.id,
+        channelType: row.channelType,
+        platformId: row.platformId,
+        instance: row.instance,
+        name: row.name,
+        isGroup: row.isGroup === 1,
+        unknownSenderPolicy: row.unknownSenderPolicy,
+        createdAt: row.createdAt,
+        deniedAt: row.deniedAt,
+        agentGroupId: row.agentGroupId,
+        agentGroupName: row.agentGroupName,
+        agentFolder: row.agentFolder,
+        engageMode: row.engageMode,
+      }));
+    } catch {
+      return [];
+    } finally {
+      db.close();
+    }
+  }
+
   static getRealTokenRecords(limit = 200): any[] {
     const recordMap = new Map<string, any>();
     const searchDirs = [
       path.join(CONFIG.GROUPS_PATH),
       path.join(CONFIG.DATA_PATH, "v2-sessions"),
     ];
+
+    const upsertRecord = (rec: any) => {
+      if (!rec?.id) return;
+      const existing = recordMap.get(rec.id);
+      const recBody = rec.content || rec.preview || "";
+      const existingBody = existing?.content || existing?.preview || "";
+      if (!existing || recBody.length >= existingBody.length) {
+        recordMap.set(rec.id, rec);
+      }
+    };
 
     for (const baseDir of searchDirs) {
       if (!fs.existsSync(baseDir)) continue;
@@ -194,11 +345,50 @@ export class DatabaseService {
           const lines = content.split("\n").filter((line: string) => line.trim().length > 0);
           for (const line of lines) {
             try {
-              const rec = JSON.parse(line);
-              if (rec && rec.id) {
-                recordMap.set(rec.id, rec);
-              }
+              upsertRecord(JSON.parse(line));
             } catch {}
+          }
+        } catch {}
+      }
+
+      const dbFiles = glob.sync(`${baseDir}/**/token_ledger.db`);
+      for (const dbPath of dbFiles) {
+        try {
+          const db = new Database(dbPath, { readonly: true });
+          try {
+            const rows = db
+              .query(
+                `SELECT id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
+                        cache_miss_tokens, completion_tokens, total_tokens, cost_usd, cost_brl,
+                        has_tool_calls, tool_calls_count, latency_ms, preview, content
+                 FROM token_ledger
+                 ORDER BY timestamp DESC
+                 LIMIT ?`
+              )
+              .all(limit * 2) as any[];
+            for (const row of rows) {
+              upsertRecord({
+                id: row.id,
+                timestamp: row.timestamp,
+                model: row.model,
+                messageId: row.message_id,
+                purpose: row.purpose,
+                promptTokens: row.prompt_tokens,
+                cacheHitTokens: row.cache_hit_tokens,
+                cacheMissTokens: row.cache_miss_tokens,
+                completionTokens: row.completion_tokens,
+                totalTokens: row.total_tokens,
+                costUsd: row.cost_usd,
+                costBrl: row.cost_brl,
+                hasToolCalls: Boolean(row.has_tool_calls),
+                toolCallsCount: row.tool_calls_count,
+                latencyMs: row.latency_ms,
+                preview: row.preview,
+                content: row.content,
+              });
+            }
+          } finally {
+            db.close();
           }
         } catch {}
       }
@@ -219,10 +409,10 @@ export class DatabaseService {
         db.close();
       }
     }
-    const baraoContainer = path.join(CONFIG.GROUPS_PATH, "barao", "container.json");
-    if (fs.existsSync(baraoContainer)) {
+    const defaultContainer = path.join(CONFIG.GROUPS_PATH, CONFIG.DEFAULT_GROUP_FOLDER, "container.json");
+    if (fs.existsSync(defaultContainer)) {
       try {
-        const parsed = JSON.parse(fs.readFileSync(baraoContainer, "utf-8"));
+        const parsed = JSON.parse(fs.readFileSync(defaultContainer, "utf-8"));
         if (parsed.model) return parsed.model;
       } catch {}
     }
@@ -524,7 +714,7 @@ export class DatabaseService {
         costBrl: rec.costBrl,
         latencyMs: rec.latencyMs,
         toolName: toolName || (meta.purpose === 'stage1_action' ? 'Ferramenta' : undefined),
-        rawContent: rec.preview || "",
+        rawContent: rec.content || rec.preview || "",
         preview: rec.preview || label,
       });
     }
@@ -532,7 +722,7 @@ export class DatabaseService {
     return runs.slice(0, limit);
   }
 
-  static getScheduledTasks(folder = "barao") {
+  static getScheduledTasks() {
     const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
     const tasks: any[] = [];
     if (!fs.existsSync(sessionsRoot)) return tasks;
@@ -677,7 +867,7 @@ export class DatabaseService {
     }
   }
 
-  static getCronExecutionLogs(folder = "barao", limit = 50) {
+  static getCronExecutionLogs(limit = 50) {
     const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
     const logs: any[] = [];
     if (!fs.existsSync(sessionsRoot)) return logs;

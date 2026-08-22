@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import { Save } from 'lucide-react'
 import { ApiClient, type MarkdownDoc } from '@/api/client'
@@ -9,6 +10,7 @@ import { SoulEditorCard } from '@/components/soul/SoulEditorCard'
 import { Button } from '@/components/ui/button'
 
 export const SoulView: React.FC = () => {
+  const group = useDefaultGroup()
   const { t } = useTranslation('soul')
   const [docs, setDocs] = useState<MarkdownDoc[]>([])
   const [selectedPath, setSelectedPath] = useState<string>('instructions.prepend.md')
@@ -29,7 +31,7 @@ export const SoulView: React.FC = () => {
 
   const loadDocsList = async () => {
     try {
-      const data = await ApiClient.getDocs('barao')
+      const data = await ApiClient.getDocs(group)
       setDocs(data.docs || [])
       if (data.docs && data.docs.length > 0 && !selectedPath) {
         setSelectedPath(data.docs[0].relativePath)
@@ -42,7 +44,7 @@ export const SoulView: React.FC = () => {
   const loadDocContent = async (path: string) => {
     setIsLoading(true)
     try {
-      const data = await ApiClient.getDoc('barao', path)
+      const data = await ApiClient.getDoc(group, path)
       setContent(data.content || '')
     } catch {
       setContent('')
@@ -54,7 +56,7 @@ export const SoulView: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      await ApiClient.saveDoc('barao', selectedPath, content)
+      await ApiClient.saveDoc(group, selectedPath, content)
       setToastMessage({ text: t('savedSuccess'), type: 'success' })
       setTimeout(() => setToastMessage(null), 3000)
     } catch {

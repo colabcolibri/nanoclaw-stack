@@ -26,6 +26,20 @@ function parseCookies(cookieHeader: string | null): Record<string, string> {
   return list;
 }
 
+function requireRequestHost(req: Request): string {
+  const host = req.headers.get("host")?.trim();
+  if (!host) {
+    throw new Error("Header Host ausente — impossível montar URLs de callback.");
+  }
+  return host;
+}
+
+function resolveGroupFolder(param: string | null | undefined): string {
+  const trimmed = param?.trim();
+  if (trimmed) return trimmed;
+  return CONFIG.DEFAULT_GROUP_FOLDER;
+}
+
 function jsonResponse(data: any, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -86,7 +100,7 @@ export class ApiRouter {
     if (url.pathname.startsWith("/api/mac/")) {
       const authHeader = req.headers.get("Authorization") || "";
       const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
-      const folder = url.searchParams.get("group") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("group"));
 
       // Allow Bearer token auth for all /api/mac/* endpoints
       if (!MacChannelService.validateApiKey(bearerToken, folder)) {
@@ -170,6 +184,16 @@ export class ApiRouter {
           return jsonResponse({ error: err.message || "Erro ao reiniciar sessão." }, 500);
         }
       }
+
+      if (url.pathname === "/api/mac/config" && method === "GET") {
+        const configFolder = resolveGroupFolder(url.searchParams.get("group"));
+        const origin = new URL(req.url).origin;
+        return jsonResponse({
+          apiKey: MacChannelService.getOrCreateApiKey(configFolder),
+          endpoint: `${origin}/api/mac/prompt`,
+          group: configFolder,
+        });
+      }
     }
 
 
@@ -179,14 +203,10 @@ export class ApiRouter {
     const user = token ? TokenManager.verify(token) : null;
     if (!user) return jsonResponse({ error: "Não autorizado." }, 401);
 
-    // Mac Channel Config (For Web UI)
-    if (url.pathname === "/api/mac/config" && method === "GET") {
-      const folder = url.searchParams.get("group") || "barao";
-      const key = MacChannelService.getOrCreateApiKey(folder);
+    if (url.pathname === "/api/app-config" && method === "GET") {
       return jsonResponse({
-        apiKey: key,
-        endpoint: "https://uai.sergioluciano.com/api/mac/prompt",
-        group: folder,
+        defaultGroupFolder: CONFIG.DEFAULT_GROUP_FOLDER,
+        uiPublicUrl: CONFIG.UI_PUBLIC_URL,
       });
     }
 
@@ -315,16 +335,16 @@ export class ApiRouter {
 
     // Google OAuth 2.0 Integration
     if (url.pathname === "/api/integrations/google/connect" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
-      const host = req.headers.get("host") || "uai.sergioluciano.com";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
+      const host = requireRequestHost(req);
       const authUrl = GoogleAuthService.getAuthUrl(folder, host);
       return jsonResponse({ url: authUrl });
     }
 
     if (url.pathname === "/api/integrations/google/callback" && method === "GET") {
       const code = url.searchParams.get("code");
-      const folder = url.searchParams.get("state") || "barao";
-      const host = req.headers.get("host") || "uai.sergioluciano.com";
+      const folder = resolveGroupFolder(url.searchParams.get("state"));
+      const host = requireRequestHost(req);
       if (!code) {
         return new Response("Código de autorização ausente", { status: 400 });
       }
@@ -337,17 +357,17 @@ export class ApiRouter {
     }
 
     if (url.pathname === "/api/integrations/google/status" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
       return jsonResponse(GoogleAuthService.getStatus(folder));
     }
 
     if (url.pathname === "/api/integrations/google/disconnect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
-      return jsonResponse({ success: GoogleAuthService.disconnect(body.folder || "barao") });
+      return jsonResponse({ success: GoogleAuthService.disconnect(resolveGroupFolder(body.folder)) });
     }
 
     if (url.pathname === "/api/integrations/google/policy" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
       const filePath = path.join(CONFIG.GROUPS_PATH, folder, "email_policy.json");
       const defaults = {
         mode: "draft_approval",
@@ -372,7 +392,7 @@ export class ApiRouter {
         forwardToTelegram?: boolean;
         autoMarkAsRead?: boolean;
       };
-      const folder = body.folder || "barao";
+      const folder = resolveGroupFolder(body.folder);
       const folderDir = path.join(CONFIG.GROUPS_PATH, folder);
       if (!fs.existsSync(folderDir)) {
         fs.mkdirSync(folderDir, { recursive: true });
@@ -393,76 +413,66 @@ export class ApiRouter {
 
     // Notion Integration
     if (url.pathname === "/api/integrations/notion/status" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
       return jsonResponse(NotionAuthService.getStatus(folder));
     }
 
     if (url.pathname === "/api/integrations/notion/connect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string; apiKey?: string; defaultDatabaseId?: string };
-      const res = await NotionAuthService.connect(body.folder || "barao", body.apiKey || "", body.defaultDatabaseId);
+      const res = await NotionAuthService.connect(resolveGroupFolder(body.folder), body.apiKey || "", body.defaultDatabaseId);
       return jsonResponse(res, res.success ? 200 : 400);
     }
 
     if (url.pathname === "/api/integrations/notion/disconnect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
-      return jsonResponse({ success: NotionAuthService.disconnect(body.folder || "barao") });
+      return jsonResponse({ success: NotionAuthService.disconnect(resolveGroupFolder(body.folder)) });
     }
 
     // Yampi Store Integration
     if (url.pathname === "/api/integrations/yampi/status" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
-      const creds = YampiAuthService.getCredentials(folder);
-      return jsonResponse({
-        connected: !!creds,
-        alias: creds?.alias || null,
-        updatedAt: creds?.updatedAt || null,
-      });
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
+      return jsonResponse(YampiAuthService.getStatus(folder));
     }
 
     if (url.pathname === "/api/integrations/yampi/connect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string; alias?: string; userToken?: string; userSecretKey?: string };
-      if (!body.alias || !body.userToken || !body.userSecretKey) {
+      const folder = resolveGroupFolder(body.folder);
+      const existing = YampiAuthService.getCredentials(folder);
+      const alias = body.alias?.trim() || existing?.alias || "";
+      const userToken = body.userToken?.trim() || existing?.userToken || "";
+      const userSecretKey = body.userSecretKey?.trim() || existing?.userSecretKey || "";
+
+      if (!alias || !userToken || !userSecretKey) {
         return jsonResponse({ success: false, error: "Alias, User-Token e Secret-Key são obrigatórios." }, 400);
       }
       const test = await YampiAuthService.testConnection({
-        alias: body.alias,
-        userToken: body.userToken,
-        userSecretKey: body.userSecretKey,
+        alias,
+        userToken,
+        userSecretKey,
       });
       if (!test.success) {
         return jsonResponse({ success: false, error: test.error || "Falha ao validar credenciais com a API da Yampi." }, 400);
       }
       YampiAuthService.saveCredentials(
         {
-          alias: body.alias,
-          userToken: body.userToken,
-          userSecretKey: body.userSecretKey,
+          alias,
+          userToken,
+          userSecretKey,
         },
-        body.folder || "barao"
+        folder
       );
-      return jsonResponse({ success: true, message: `Loja ${body.alias} conectada com sucesso à Yampi!` });
+      return jsonResponse({ success: true, message: `Loja ${alias} conectada com sucesso à Yampi!` });
     }
 
     if (url.pathname === "/api/integrations/yampi/disconnect" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
-      YampiAuthService.removeCredentials(body.folder || "barao");
+      YampiAuthService.removeCredentials(resolveGroupFolder(body.folder));
       return jsonResponse({ success: true });
-    }
-
-    // Mac & Apple Shortcuts Config
-    if (url.pathname === "/api/mac/config" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
-      const host = req.headers.get("host") || "uai.sergioluciano.com";
-      const apiKey = MacChannelService.getOrCreateApiKey(folder);
-      return jsonResponse({
-        endpoint: `https://${host}/api/mac/prompt`,
-        apiKey,
-      });
     }
 
     // Correios & Shipping Logistics Config
     if (url.pathname === "/api/shipping/config" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
       const filePath = path.join(CONFIG.GROUPS_PATH, folder, "shipping_config.json");
       const defaults = {
         originCep: "12243-380",
@@ -487,7 +497,7 @@ export class ApiRouter {
         priceMarginPercent?: number;
         daysBuffer?: number;
       };
-      const folder = body.folder || "barao";
+      const folder = resolveGroupFolder(body.folder);
       const folderDir = path.join(CONFIG.GROUPS_PATH, folder);
       if (!fs.existsSync(folderDir)) {
         fs.mkdirSync(folderDir, { recursive: true });
@@ -508,8 +518,8 @@ export class ApiRouter {
 
     // Scheduler & Autonomous Routines (Cron & Delayed Tasks)
     if (url.pathname === "/api/scheduler/tasks" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
-      const tasks = DatabaseService.getScheduledTasks(folder);
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
+      const tasks = DatabaseService.getScheduledTasks();
       return jsonResponse({ tasks, total: tasks.length });
     }
 
@@ -535,9 +545,9 @@ export class ApiRouter {
     }
 
     if (url.pathname === "/api/scheduler/logs" && method === "GET") {
-      const folder = url.searchParams.get("folder") || "barao";
+      const folder = resolveGroupFolder(url.searchParams.get("folder"));
       const limit = parseInt(url.searchParams.get("limit") || "50", 10);
-      const logs = DatabaseService.getCronExecutionLogs(folder, limit);
+      const logs = DatabaseService.getCronExecutionLogs(limit);
       return jsonResponse({ logs, total: logs.length });
     }
 
@@ -587,9 +597,13 @@ export class ApiRouter {
       return jsonResponse(await SystemService.restartNanoClaw());
     }
 
+    if (url.pathname === "/api/channels/connected" && method === "GET") {
+      return jsonResponse({ channels: DatabaseService.getConnectedChannels() });
+    }
+
     if (url.pathname === "/api/channels/telegram/pair" && method === "POST") {
       const body = (await req.json().catch(() => ({}))) as { folder?: string };
-      return jsonResponse(await SystemService.generateTelegramPairing(body.folder || "barao"));
+      return jsonResponse(await SystemService.generateTelegramPairing(resolveGroupFolder(body.folder)));
     }
 
     return jsonResponse({ error: "Endpoint não encontrado." }, 404);

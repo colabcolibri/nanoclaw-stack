@@ -124,17 +124,14 @@ export class ModelRegistry {
     if (cwd) {
       candidates.push(cwd.endsWith('.json') ? cwd : path.join(cwd, 'llm-models.json'));
     }
-    const nanoclawPath = process.env.NANOCLAW_PATH?.trim();
+    const nanoclawPath = process.env.NANOCLAW_DATA_DIR?.trim();
     if (nanoclawPath) {
-      candidates.push(path.join(nanoclawPath, 'data', 'llm-models.json'));
+      candidates.push(path.join(nanoclawPath, 'llm-models.json'));
     }
     candidates.push(
       '/workspace/agent/llm-models.json',
-      '/workspace/group/llm-models.json',
       path.join(process.cwd(), 'llm-models.json'),
       path.join(process.cwd(), 'data', 'llm-models.json'),
-      path.join(process.cwd(), '..', 'data', 'llm-models.json'),
-      '/opt/nanoclaw-stack/nanoclaw/data/llm-models.json',
     );
     return candidates;
   }

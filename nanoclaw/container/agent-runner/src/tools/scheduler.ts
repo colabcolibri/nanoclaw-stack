@@ -1,38 +1,26 @@
 import { Database } from 'bun:sqlite';
-import path from 'path';
-import fs from 'fs';
 import { CronExpressionParser } from 'cron-parser';
 import type { AgentTool } from './types.js';
 import { getSessionRouting } from '../db/session-routing.js';
+import { resolveInboundDbPath } from '../runtime-paths.js';
 
-function findInboundDbPath(cwd: string): string | null {
-  const envPath = process.env.SESSION_INBOUND_DB_PATH;
-  if (envPath && fs.existsSync(envPath)) return envPath;
-
-  const candidates = [
-    '/workspace/inbound.db',
-    path.join(cwd, 'inbound.db'),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
+function requireSessionDeliveryTarget(): {
+  platformId: string;
+  channelType: string;
+  threadId: string | null;
+} {
+  const routing = getSessionRouting();
+  if (!routing.channel_type?.trim() || !routing.platform_id?.trim()) {
+    throw new Error(
+      'session_routing incompleto — não é possível agendar entrega sem channel_type e platform_id. ' +
+        'O host deve gravar session_routing ao acordar o container.',
+    );
   }
-
-  // Search active session in v2-sessions
-  const sessionsRoot = '/opt/nanoclaw-stack/nanoclaw/data/v2-sessions';
-  if (fs.existsSync(sessionsRoot)) {
-    try {
-      const groups = fs.readdirSync(sessionsRoot);
-      for (const g of groups) {
-        const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((s) => s.startsWith('sess-1'));
-        for (const s of sessions) {
-          const dbPath = path.join(gPath, s, 'inbound.db');
-          if (fs.existsSync(dbPath)) return dbPath;
-        }
-      }
-    } catch {}
-  }
-  return null;
+  return {
+    channelType: routing.channel_type,
+    platformId: routing.platform_id,
+    threadId: routing.thread_id,
+  };
 }
 
 export const schedulerTool: AgentTool = {
@@ -78,27 +66,27 @@ export const schedulerTool: AgentTool = {
     },
   },
   execute: async (args: any, cwd: string): Promise<string> => {
-    const dbPath = findInboundDbPath(cwd);
-    if (!dbPath) {
-      return JSON.stringify({ status: 'error', error: 'Banco de sessão inbound.db não encontrado para agendamento.' });
+    let dbPath: string;
+    try {
+      dbPath = resolveInboundDbPath(cwd);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return JSON.stringify({ status: 'error', error: message });
     }
 
     const inDb = new Database(dbPath);
     const action = args.action || 'schedule_delayed_task';
 
     try {
-      let platformId = 'telegram:7239635872';
-      let channelType = 'telegram';
-      let threadId: string | null = null;
-
+      let platformId: string;
+      let channelType: string;
+      let threadId: string | null;
       try {
-        const routeRow = inDb.query("SELECT channel_type, platform_id, thread_id FROM session_routing LIMIT 1").get() as any;
-        if (routeRow) {
-          platformId = routeRow.platform_id || platformId;
-          channelType = routeRow.channel_type || channelType;
-          threadId = routeRow.thread_id || null;
-        }
-      } catch {}
+        ({ platformId, channelType, threadId } = requireSessionDeliveryTarget());
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return JSON.stringify({ status: 'error', error: message });
+      }
 
       // 1. SCHEDULE DELAYED TASK
       if (action === 'schedule_delayed_task') {

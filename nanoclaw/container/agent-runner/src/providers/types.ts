@@ -101,6 +101,9 @@ export interface QueryInput {
 
   /** The inbound message ID triggering this query (for relational execution tracking). */
   messageId?: string;
+
+  /** Inbound message IDs in this batch (for persisting semantic memos after the turn). */
+  inboundMessageIds?: string[];
 }
 
 export type McpServerConfig =
@@ -148,7 +151,7 @@ export type ProviderEvent =
    * poll-loop uses it to surface the result text to the user instead of
    * dropping it as un-wrapped scratchpad, and to skip the re-wrap nudge.
    */
-  | { type: 'result'; text: string | null; isError?: boolean }
+  | { type: 'result'; text: string | null; isError?: boolean; outboundMemo?: string }
   | { type: 'error'; message: string; retryable: boolean; classification?: string }
   | { type: 'progress'; message: string }
   /**

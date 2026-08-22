@@ -93,6 +93,7 @@ export interface TokenRecord {
   toolCallsCount: number;
   latencyMs?: number;
   preview?: string;
+  content?: string;
 }
 
 export class TokenLedger {
@@ -158,7 +159,8 @@ export class TokenLedger {
           has_tool_calls INTEGER NOT NULL,
           tool_calls_count INTEGER NOT NULL,
           latency_ms INTEGER,
-          preview TEXT
+          preview TEXT,
+          content TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_token_ledger_ts ON token_ledger(timestamp DESC);
         CREATE INDEX IF NOT EXISTS idx_token_ledger_msg ON token_ledger(message_id);
@@ -170,6 +172,9 @@ export class TokenLedger {
       } catch {}
       try {
         db.run('ALTER TABLE token_ledger ADD COLUMN purpose TEXT;');
+      } catch {}
+      try {
+        db.run('ALTER TABLE token_ledger ADD COLUMN content TEXT;');
       } catch {}
 
       return db;
@@ -205,13 +210,13 @@ export class TokenLedger {
       toolCallsCount: meta.toolCallsCount || 0,
       latencyMs: meta.latencyMs,
       preview: meta.preview?.slice(0, 150),
+      content: meta.preview || undefined,
     };
 
     // 1. Write to JSONL
     try {
       const candidates = [
         path.join(cwd, 'logs'),
-        '/workspace/group/logs',
         '/workspace/agent/logs',
         ...(process.env.AGENT_GROUP_DIR ? [path.join(process.env.AGENT_GROUP_DIR, 'logs')] : []),
       ];
@@ -237,8 +242,8 @@ export class TokenLedger {
             id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
             cache_miss_tokens, completion_tokens, total_tokens,
             rate_hit_per_million, rate_miss_per_million, rate_out_per_million,
-            cost_usd, cost_brl, has_tool_calls, tool_calls_count, latency_ms, preview
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            cost_usd, cost_brl, has_tool_calls, tool_calls_count, latency_ms, preview, content
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
           [
             record.id,
@@ -260,6 +265,7 @@ export class TokenLedger {
             record.toolCallsCount,
             record.latencyMs || null,
             record.preview || null,
+            record.content || null,
           ]
         );
         db.close();
