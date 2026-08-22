@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Topbar } from '@/components/layout/Topbar'
 import { Sidebar, ViewType } from '@/components/layout/Sidebar'
 import { StatsGrid } from '@/components/layout/StatsGrid'
+import { ContentArea, getViewContentWidth } from '@/components/layout/ContentArea'
 import { ChatView } from '@/components/chat/ChatView'
 import { SoulView } from '@/components/soul/SoulView'
 import { AnalyticsView } from '@/components/analytics/AnalyticsView'
@@ -15,6 +16,7 @@ import { LogsView } from '@/components/logs/LogsView'
 import { SkillsView } from '@/components/skills/SkillsView'
 import { AgentsView } from '@/components/agents/AgentsView'
 import { McpsView } from '@/components/mcps/McpsView'
+import { ModelsView } from '@/components/models/ModelsView'
 import { ServiceView } from '@/components/service/ServiceView'
 import { InspectorSheet } from '@/components/chat/InspectorSheet'
 import { AuthView } from '@/components/auth/AuthView'
@@ -30,9 +32,12 @@ const VALID_VIEWS: ViewType[] = [
   'runs',
   'security',
   'logs',
+  'models',
   'config',
   'service',
 ]
+
+const STATS_VIEWS: ViewType[] = ['chat', 'usage']
 
 function getInitialView(): ViewType {
   const hash = window.location.hash.replace('#', '') as ViewType
@@ -45,12 +50,24 @@ function getInitialView(): ViewType {
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL')
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem('nanoclaw_sidebar_state')
     if (saved === 'open') return true
     if (saved === 'closed') return false
     return window.innerWidth >= 768
   })
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(e.matches)
+      if (e.matches) setIsSidebarOpen(false)
+    }
+    handler(mq)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => {
@@ -66,6 +83,7 @@ function AppContent() {
     setActiveView(view)
     localStorage.setItem('nanoclaw_active_tab', view)
     window.location.hash = view
+    if (isMobile) setIsSidebarOpen(false)
   }
 
   useEffect(() => {
@@ -84,7 +102,7 @@ function AppContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false)
   const [inspectedMessage, setInspectedMessage] = useState<ChatMessage | null>(null)
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false)
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false)
 
   useEffect(() => {
     checkAuthentication()
@@ -165,6 +183,9 @@ function AppContent() {
     setIsInspectorOpen(true)
   }
 
+  const showStats = STATS_VIEWS.includes(activeView)
+  const showCurrency = STATS_VIEWS.includes(activeView)
+
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[var(--text-muted)] font-mono text-xs">
@@ -181,19 +202,27 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)] flex flex-row transition-colors">
-      {/* Navigation Sidebar (Full Height 100vh) */}
+    <div className="h-screen w-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)] flex flex-row">
+      {isSidebarOpen && isMobile && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          className="fixed inset-0 z-30 bg-[var(--bg-overlay)] backdrop-blur-[2px] md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
       <Sidebar
         isOpen={isSidebarOpen}
+        isMobile={isMobile}
         activeView={activeView}
         onSelectView={handleSelectView}
-        onToggleSidebar={toggleSidebar}
+        onClose={toggleSidebar}
       />
 
-      {/* Right Column: Topbar + Main scrollable view */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Top Header with Global Currency Selector */}
         <Topbar
+          activeView={activeView}
           agentName={stats?.agentName || 'Barão'}
           isOnline={stats?.serviceStatus === 'Online'}
           isSidebarOpen={isSidebarOpen}
@@ -201,40 +230,40 @@ function AppContent() {
           onLogout={handleLogout}
           currency={currency}
           onToggleCurrency={setCurrency}
+          showCurrency={showCurrency}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col transition-all duration-300">
-          {/* Top Metric Cards (Respects Selected Currency) */}
-          <StatsGrid stats={stats} currency={currency} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 lg:px-8 flex flex-col min-h-full gap-5">
+            {showStats && <StatsGrid stats={stats} currency={currency} />}
 
-          {/* Active View Container */}
-          <div className="flex-1 flex flex-col">
-            {activeView === 'chat' && (
-              <ChatView
-                messages={messages}
-                isLoading={isLoadingMessages}
-                onRefresh={handleRefreshChat}
-                onInspectMessage={handleInspectMessage}
-              />
-            )}
+            <ContentArea width={getViewContentWidth(activeView)} className="gap-5">
+              {activeView === 'chat' && (
+                <ChatView
+                  messages={messages}
+                  isLoading={isLoadingMessages}
+                  onRefresh={handleRefreshChat}
+                  onInspectMessage={handleInspectMessage}
+                />
+              )}
 
-            {activeView === 'usage' && <AnalyticsView currency={currency} onToggleCurrency={setCurrency} />}
-            {activeView === 'agents' && <AgentsView />}
-            {activeView === 'soul' && <SoulView />}
-            {activeView === 'skills' && <SkillsView />}
-            {activeView === 'mcps' && <McpsView />}
-            {activeView === 'schedules' && <SchedulesView />}
-            {activeView === 'runs' && <RunsView />}
-            {activeView === 'security' && <SecurityView />}
-            {activeView === 'logs' && <LogsView />}
-            {activeView === 'config' && <ConfigView />}
-            {activeView === 'service' && <ServiceView />}
+              {activeView === 'usage' && <AnalyticsView currency={currency} onToggleCurrency={setCurrency} />}
+              {activeView === 'agents' && <AgentsView />}
+              {activeView === 'soul' && <SoulView />}
+              {activeView === 'skills' && <SkillsView />}
+              {activeView === 'mcps' && <McpsView />}
+              {activeView === 'schedules' && <SchedulesView />}
+              {activeView === 'runs' && <RunsView />}
+              {activeView === 'security' && <SecurityView />}
+              {activeView === 'models' && <ModelsView />}
+              {activeView === 'logs' && <LogsView />}
+              {activeView === 'config' && <ConfigView />}
+              {activeView === 'service' && <ServiceView />}
+            </ContentArea>
           </div>
         </main>
       </div>
 
-      {/* Message Inspector Drawer */}
       <InspectorSheet
         isOpen={isInspectorOpen}
         onClose={() => setIsInspectorOpen(false)}

@@ -16,6 +16,9 @@ export interface TurnOptions {
   coreMemory?: string;
   historyLimit?: number;
   maxIterations?: number;
+  orchestratorModel?: string;
+  senderModel?: string;
+  defaultModel?: string;
 }
 
 export type LLMCallPurpose =
@@ -23,6 +26,7 @@ export type LLMCallPurpose =
   | 'stage2_synthesis'   // Etapa 2: Síntese na Persona (Barão)
   | 'semantic_memo'      // Pós-Turno: Geração de Resumo Semântico
   | 'fast_path_direct'   // Conversação direta (sem ferramentas)
+  | 'orchestrator_triage' // Triagem e roteamento multi-agente
   | 'skill_evaluation'   // Avaliação de Skills
   | 'system_diagnostics';// Diagnósticos / Testes
 

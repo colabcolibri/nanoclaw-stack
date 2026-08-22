@@ -1,6 +1,7 @@
 import { ResponseParser } from '../orchestrator/parser.js';
 import { IntermediateNotifier } from '../orchestrator/notifier.js';
 import { AgentAuditLogger } from './audit-logger.js';
+import { ModelRegistry } from '../services/model-registry.js';
 import type { HandoverPackage } from './types.js';
 import type { LLMCompletionFn } from '../orchestrator/types.js';
 
@@ -13,6 +14,7 @@ export interface SenderContext {
   coreMemory?: string;
   temporalContext?: string;
   senderModel?: string;
+  defaultModel?: string;
 }
 
 export class SenderAgent {
@@ -67,10 +69,16 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
     onActivity?.();
     const startTime = Date.now();
 
+    const resolvedModel = ModelRegistry.requireModelId(
+      context.senderModel,
+      'senderModel',
+      context.cwd,
+    );
+
     const response = await complete(messages, false, {
       purpose: 'stage2_synthesis',
       agent: 'sender',
-      model: context.senderModel,
+      model: resolvedModel,
     });
 
     const latencyMs = Date.now() - startTime;

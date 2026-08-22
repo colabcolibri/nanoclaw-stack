@@ -2,6 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { CONFIG } from "../config.js";
 import { DatabaseService } from "./db.js";
+import { LlmCredentialsService } from "./llm-credentials.js";
+import { LlmModelService } from "./llm-models.js";
+
+function resolveProviderForModel(modelId: string): string | null {
+  if (!modelId) return null;
+  const registry = LlmModelService.getRegistry();
+  for (const [providerId, meta] of Object.entries(registry.providers)) {
+    if (meta.models.some((m) => m.id === modelId)) return providerId;
+  }
+  return null;
+}
 
 export interface GroupSummary {
   id: string;
@@ -109,7 +120,7 @@ export class GroupManager {
             id: ent.name,
             name: cfg?.assistantName || cfg?.groupName || ent.name,
             folder: ent.name,
-            provider: cfg?.provider || "deepseek",
+            provider: cfg?.provider ?? null,
             createdAt: new Date().toISOString(),
             hasSoul: fs.existsSync(soulFile),
             model: cfg?.model || "",
@@ -250,48 +261,41 @@ export class GroupManager {
       } catch {}
     }
 
-    const PROVIDER_ENV_MAP: Record<string, { keyName: string; modelName: string; urlName: string; defaultUrl: string }> = {
-      deepseek: { keyName: "DEEPSEEK_API_KEY", modelName: "DEEPSEEK_MODEL", urlName: "DEEPSEEK_BASE_URL", defaultUrl: "https://api.deepseek.com" },
-      groq: { keyName: "GROQ_API_KEY", modelName: "GROQ_MODEL", urlName: "GROQ_BASE_URL", defaultUrl: "https://api.groq.com/openai/v1" },
-      claude: { keyName: "ANTHROPIC_API_KEY", modelName: "ANTHROPIC_MODEL", urlName: "ANTHROPIC_BASE_URL", defaultUrl: "https://api.anthropic.com" },
-      openrouter: { keyName: "OPENROUTER_API_KEY", modelName: "OPENROUTER_MODEL", urlName: "OPENROUTER_BASE_URL", defaultUrl: "https://openrouter.ai/api/v1" },
-      opencode: { keyName: "OPENCODE_API_KEY", modelName: "OPENCODE_MODEL", urlName: "OPENCODE_BASE_URL", defaultUrl: "http://127.0.0.1:4096" },
-    };
-
     const envMap = this.readNanoClawEnv();
-    const activeProvider = containerCfg.provider || envMap["NANOCLAW_AGENT_PROVIDER"] || "deepseek";
+    const workerModel = containerCfg.model ?? "";
+    const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
+    const activeProvider = derivedProvider ?? containerCfg.provider ?? null;
 
-    const keysStatus: Record<string, { hasKey: boolean; masked: string }> = {};
-    for (const [p, mapping] of Object.entries(PROVIDER_ENV_MAP)) {
-      const rawKey = envMap[mapping.keyName] || "";
-      keysStatus[p] = {
-        hasKey: Boolean(rawKey && rawKey.trim().length > 0),
-        masked: rawKey && rawKey.trim().length > 8 ? `${rawKey.slice(0, 5)}...${rawKey.slice(-4)}` : (rawKey ? "••••••••" : ""),
-      };
-    }
-
-    const currentMapping = PROVIDER_ENV_MAP[activeProvider] || PROVIDER_ENV_MAP.deepseek;
-    const currentKey = envMap[currentMapping.keyName] || "";
-    const hasApiKey = Boolean(currentKey && currentKey.trim().length > 0);
-    const maskedKey = hasApiKey && currentKey.length > 8 ? `${currentKey.slice(0, 5)}...${currentKey.slice(-4)}` : (hasApiKey ? "••••••••" : "");
+    const keysStatus = LlmCredentialsService.getKeysStatus();
 
     return {
       ...containerCfg,
       provider: activeProvider,
-      model: containerCfg.model || envMap[currentMapping.modelName] || (activeProvider === "groq" ? "openai/gpt-oss-120b" : "deepseek-v4-flash"),
-      orchestratorModel: containerCfg.orchestratorModel || "deepseek-chat",
-      senderModel: containerCfg.senderModel || "deepseek-chat",
-      assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "Íris",
-      timezone: containerCfg.timezone || envMap["TZ"] || "Europe/Brussels",
+      model: workerModel,
+      orchestratorModel: containerCfg.orchestratorModel ?? "",
+      senderModel: containerCfg.senderModel ?? "",
+      assistantName: containerCfg.assistantName || containerCfg.groupName || envMap["NANOCLAW_AGENT_NAME"] || "",
+      timezone: containerCfg.timezone || envMap["TZ"] || "",
       city: containerCfg.city || "",
       country: containerCfg.country || containerCfg.location || "",
       location: containerCfg.location || [containerCfg.city, containerCfg.country].filter(Boolean).join(", ") || "",
-      baseUrl: envMap[currentMapping.urlName] || currentMapping.defaultUrl,
-      hasApiKey,
-      maskedApiKey: maskedKey,
       keysStatus,
       hasTelegramToken: !!envMap["TELEGRAM_BOT_TOKEN"],
     };
+  }
+
+  static saveProviderApiKey(providerId: string, apiKey: string): boolean {
+    if (!apiKey.trim()) return false;
+    try {
+      LlmCredentialsService.setProviderApiKey(providerId, apiKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  static getProviderKeysStatus(): Record<string, { hasKey: boolean; masked: string }> {
+    return LlmCredentialsService.getKeysStatus();
   }
 
   static saveConfig(folder: string, newConfig: any): boolean {
@@ -309,12 +313,25 @@ export class GroupManager {
 
     const merged: any = {
       ...current,
-      ...newConfig,
+      assistantName: newConfig.name ?? newConfig.assistantName ?? current.assistantName,
+      name: newConfig.name ?? current.name,
+      model: newConfig.model ?? current.model,
+      orchestratorModel: newConfig.orchestratorModel ?? current.orchestratorModel,
+      senderModel: newConfig.senderModel ?? current.senderModel,
       city,
       country,
       location,
       timezone: newConfig.timezone || current.timezone || "Europe/Brussels",
     };
+
+    const workerModel = merged.model;
+    const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
+    if (derivedProvider) {
+      merged.provider = derivedProvider;
+    } else if (newConfig.provider || current.provider) {
+      merged.provider = newConfig.provider || current.provider;
+    }
+
     fs.writeFileSync(configFile, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 
     // Sync SQLite table container_configs in central DB (Primary source of truth for NanoClaw)
@@ -322,28 +339,8 @@ export class GroupManager {
       DatabaseService.updateContainerConfig(merged.agentGroupId, merged);
     }
 
-    const PROVIDER_ENV_MAP: Record<string, { keyName: string; modelName: string; urlName: string }> = {
-      deepseek: { keyName: "DEEPSEEK_API_KEY", modelName: "DEEPSEEK_MODEL", urlName: "DEEPSEEK_BASE_URL" },
-      groq: { keyName: "GROQ_API_KEY", modelName: "GROQ_MODEL", urlName: "GROQ_BASE_URL" },
-      claude: { keyName: "ANTHROPIC_API_KEY", modelName: "ANTHROPIC_MODEL", urlName: "ANTHROPIC_BASE_URL" },
-      openrouter: { keyName: "OPENROUTER_API_KEY", modelName: "OPENROUTER_MODEL", urlName: "OPENROUTER_BASE_URL" },
-      opencode: { keyName: "OPENCODE_API_KEY", modelName: "OPENCODE_MODEL", urlName: "OPENCODE_BASE_URL" },
-    };
-
-    const envUpdates: Record<string, string> = {};
-    const provider = newConfig.provider || current.provider || "deepseek";
-    envUpdates["NANOCLAW_AGENT_PROVIDER"] = provider;
-
-    if (newConfig.assistantName) envUpdates["NANOCLAW_AGENT_NAME"] = newConfig.assistantName;
-    if (newConfig.timezone) envUpdates["TZ"] = newConfig.timezone;
-
-    const mapping = PROVIDER_ENV_MAP[provider] || PROVIDER_ENV_MAP.deepseek;
-    if (newConfig.model) envUpdates[mapping.modelName] = newConfig.model;
-    if (newConfig.baseUrl && newConfig.baseUrl.trim()) envUpdates[mapping.urlName] = newConfig.baseUrl.trim();
-    if (newConfig.apiKey && newConfig.apiKey.trim()) envUpdates[mapping.keyName] = newConfig.apiKey.trim();
-
-    if (Object.keys(envUpdates).length > 0) {
-      this.writeNanoClawEnv(envUpdates);
+    if (!merged.provider) {
+      throw new Error("provider não configurado — selecione um modelo válido no catálogo");
     }
 
     return true;

@@ -74,25 +74,30 @@ export class DatabaseService {
     try {
       const mcpJson = JSON.stringify(config.mcpServers || {});
       const skillsJson = typeof config.skills === "string" ? `"${config.skills}"` : JSON.stringify(config.skills || "all");
-      const provider = config.provider || "deepseek";
-      const model = config.model || "deepseek-v4-flash";
+      const provider = config.provider ?? null;
+      const model = config.model ?? null;
       const assistantName = config.assistantName || config.groupName || config.name || "Barão";
       const timezone = config.timezone || "Europe/Brussels";
       const city = config.city || "";
       const country = config.country || config.location || "";
       const location = [city, country].filter(Boolean).join(", ") || "";
+      const orchestratorModel = config.orchestratorModel || null;
+      const senderModel = config.senderModel || null;
       const now = new Date().toISOString();
 
       try {
         db.run("ALTER TABLE container_configs ADD COLUMN city TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN country TEXT;");
+        db.run("ALTER TABLE container_configs ADD COLUMN orchestrator_model TEXT;");
+        db.run("ALTER TABLE container_configs ADD COLUMN sender_model TEXT;");
       } catch {}
 
       db.query(`
         UPDATE container_configs 
-        SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, timezone = ?, location = ?, updated_at = ?
+        SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, timezone = ?, location = ?,
+            orchestrator_model = ?, sender_model = ?, updated_at = ?
         WHERE agent_group_id = ?
-      `).run(provider, model, assistantName, skillsJson, mcpJson, timezone, location, now, agentGroupId);
+      `).run(provider, model, assistantName, skillsJson, mcpJson, timezone, location, orchestratorModel, senderModel, now, agentGroupId);
 
       // Also sync to container.json for container runtime access
       const baraoContainer = path.join(CONFIG.GROUPS_PATH, "barao", "container.json");
@@ -105,6 +110,8 @@ export class DatabaseService {
             model,
             assistantName,
             timezone,
+            orchestratorModel,
+            senderModel,
             city,
             country,
             location,
@@ -209,7 +216,7 @@ export class DatabaseService {
         if (parsed.model) return parsed.model;
       } catch {}
     }
-    return "deepseek-v4-flash";
+    return "";
   }
 
   static getSystemStats(): any {

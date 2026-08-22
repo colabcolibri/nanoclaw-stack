@@ -3,7 +3,8 @@
 // level. Skills add a new provider by appending one import line below.
 
 import './claude.js';
-import './mock.js';
-import './opencode.js';
 import './deepseek.js';
 import './groq.js';
+import './mock.js';
+import './openrouter.js';
+import './opencode.js';

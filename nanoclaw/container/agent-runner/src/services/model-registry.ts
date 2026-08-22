@@ -1,5 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import {
+  applyInferenceParamsToPayload,
+  mergeInferenceParams,
+  type InferenceParams,
+} from '../inference-params.js';
+
+export type LlmProtocol = 'openai-compatible' | 'anthropic';
 
 export interface ModelPricingRates {
   cacheHitPerMillion: number;
@@ -10,227 +17,262 @@ export interface ModelPricingRates {
 export interface RegisteredModelInfo {
   id: string;
   name: string;
-  provider: 'deepseek' | 'groq' | 'claude' | 'openrouter' | 'opencode' | 'openai' | string;
+  providerId: string;
   description: string;
   recommendedRole?: 'orchestrator' | 'worker' | 'sender' | 'all';
   pricing: ModelPricingRates;
-  contextWindow?: string;
-  isCustom?: boolean;
+  contextWindow: string;
+  completionUrl: string;
+  keyEnvName: string;
+  protocol: LlmProtocol;
+  inferenceParams: InferenceParams;
 }
 
-export interface ProviderKeyInfo {
-  provider: string;
-  keyEnvName: string;
-  baseUrlEnvName: string;
+export interface RegisteredProviderInfo {
+  id: string;
+  name: string;
   defaultBaseUrl: string;
+  completionUrl: string;
+  keyEnvName: string;
+  protocol: LlmProtocol;
+  defaultParams: InferenceParams;
   defaultModel: string;
 }
 
-export const PROVIDER_ENV_SPECS: Record<string, ProviderKeyInfo> = {
-  deepseek: {
-    provider: 'deepseek',
-    keyEnvName: 'DEEPSEEK_API_KEY',
-    baseUrlEnvName: 'DEEPSEEK_BASE_URL',
-    defaultBaseUrl: 'https://api.deepseek.com',
-    defaultModel: 'deepseek-chat',
-  },
-  groq: {
-    provider: 'groq',
-    keyEnvName: 'GROQ_API_KEY',
-    baseUrlEnvName: 'GROQ_BASE_URL',
-    defaultBaseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'llama-3.3-70b-versatile',
-  },
-  claude: {
-    provider: 'claude',
-    keyEnvName: 'ANTHROPIC_API_KEY',
-    baseUrlEnvName: 'ANTHROPIC_BASE_URL',
-    defaultBaseUrl: 'https://api.anthropic.com',
-    defaultModel: 'claude-3-7-sonnet-20250219',
-  },
-  openrouter: {
-    provider: 'openrouter',
-    keyEnvName: 'OPENROUTER_API_KEY',
-    baseUrlEnvName: 'OPENROUTER_BASE_URL',
-    defaultBaseUrl: 'https://openrouter.ai/api/v1',
-    defaultModel: 'deepseek/deepseek-chat',
-  },
-  opencode: {
-    provider: 'opencode',
-    keyEnvName: 'OPENCODE_API_KEY',
-    baseUrlEnvName: 'OPENCODE_BASE_URL',
-    defaultBaseUrl: 'http://127.0.0.1:4096',
-    defaultModel: 'local-model',
-  },
-};
+export interface ModelInvocation {
+  modelId: string;
+  providerId: string;
+  completionUrl: string;
+  keyEnvName: string;
+  protocol: LlmProtocol;
+  params: InferenceParams;
+}
+
+interface MaterializedRegistryFile {
+  providers?: Record<
+    string,
+    {
+      name: string;
+      defaultBaseUrl: string;
+      completionUrl: string;
+      keyEnvName: string;
+      protocol: string;
+      defaultParams?: InferenceParams;
+      defaultModel: string;
+      models: Array<{
+        id: string;
+        label: string;
+        recommended?: boolean;
+        recommendedRole?: string;
+        inferenceParams?: InferenceParams;
+        pricing: {
+          inputPerMillion: number;
+          outputPerMillion: number;
+          cacheWritePerMillion: number;
+          cacheHitPerMillion: number;
+          contextWindow: string;
+          savingsPct?: number;
+        };
+      }>;
+    }
+  >;
+  modelsById?: Record<
+    string,
+    {
+      id: string;
+      providerId: string;
+      displayName: string;
+      completionUrl: string;
+      keyEnvName: string;
+      protocol: string;
+      recommendedRole?: string;
+      inferenceParams?: InferenceParams;
+      pricing: {
+        inputPerMillion: number;
+        outputPerMillion: number;
+        cacheWritePerMillion: number;
+        cacheHitPerMillion: number;
+        contextWindow: string;
+        savingsPct?: number;
+      };
+    }
+  >;
+}
+
+function requireNonEmpty(value: string | undefined | null, label: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(`Campo obrigatório ausente em llm-models.json: ${label}`);
+  }
+  return trimmed;
+}
+
+function parseProtocol(value: string, label: string): LlmProtocol {
+  if (value === 'openai-compatible' || value === 'anthropic') {
+    return value;
+  }
+  throw new Error(`Protocolo inválido em llm-models.json (${label}): "${value}"`);
+}
 
 export class ModelRegistry {
   private static models: Map<string, RegisteredModelInfo> = new Map();
+  private static providers: Map<string, RegisteredProviderInfo> = new Map();
+  private static loaded = false;
 
-  static {
-    this.initializeDefaults();
+  private static registryFileCandidates(cwd?: string): string[] {
+    const candidates: string[] = [];
+    if (cwd) {
+      candidates.push(cwd.endsWith('.json') ? cwd : path.join(cwd, 'llm-models.json'));
+    }
+    const nanoclawPath = process.env.NANOCLAW_PATH?.trim();
+    if (nanoclawPath) {
+      candidates.push(path.join(nanoclawPath, 'data', 'llm-models.json'));
+    }
+    candidates.push(
+      '/workspace/agent/llm-models.json',
+      '/workspace/group/llm-models.json',
+      path.join(process.cwd(), 'llm-models.json'),
+      path.join(process.cwd(), 'data', 'llm-models.json'),
+      path.join(process.cwd(), '..', 'data', 'llm-models.json'),
+      '/opt/nanoclaw-stack/nanoclaw/data/llm-models.json',
+    );
+    return candidates;
   }
 
-  static initializeDefaults(): void {
+  static loadFromDisk(cwd?: string): boolean {
+    if (this.loaded && this.models.size > 0) return true;
+
+    for (const filePath of this.registryFileCandidates(cwd)) {
+      try {
+        if (!fs.existsSync(filePath)) continue;
+        const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as MaterializedRegistryFile;
+        this.ingestMaterialized(raw);
+        this.loaded = true;
+        return this.models.size > 0;
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('llm-models.json')) {
+          throw err;
+        }
+      }
+    }
+    return false;
+  }
+
+  private static ingestMaterialized(raw: MaterializedRegistryFile): void {
     this.models.clear();
+    this.providers.clear();
 
-    // DeepSeek Models
-    this.registerModel({
-      id: 'deepseek-chat',
-      name: 'DeepSeek V3 (Chat & Execution)',
-      provider: 'deepseek',
-      description: 'Modelo padrão equilibrado de altíssima velocidade e excelente suporte a tool calls.',
-      recommendedRole: 'all',
-      pricing: { cacheHitPerMillion: 0.014, cacheMissPerMillion: 0.44, outputPerMillion: 1.32 },
-      contextWindow: '128k',
-    });
+    if (!raw.modelsById || Object.keys(raw.modelsById).length === 0) {
+      throw new Error('llm-models.json inválido: modelsById ausente ou vazio');
+    }
 
-    this.registerModel({
-      id: 'deepseek-v4-flash',
-      name: 'DeepSeek Flash (Ultra Rápido)',
-      provider: 'deepseek',
-      description: 'Ideal para orquestração, triagem rápida e respostas diretas.',
-      recommendedRole: 'orchestrator',
-      pricing: { cacheHitPerMillion: 0.014, cacheMissPerMillion: 0.44, outputPerMillion: 1.32 },
-      contextWindow: '128k',
-    });
+    if (raw.providers) {
+      for (const [providerId, provider] of Object.entries(raw.providers)) {
+        this.providers.set(providerId, {
+          id: providerId,
+          name: requireNonEmpty(provider.name, `providers.${providerId}.name`),
+          defaultBaseUrl: requireNonEmpty(provider.defaultBaseUrl, `providers.${providerId}.defaultBaseUrl`),
+          completionUrl: requireNonEmpty(provider.completionUrl, `providers.${providerId}.completionUrl`),
+          keyEnvName: requireNonEmpty(provider.keyEnvName, `providers.${providerId}.keyEnvName`),
+          protocol: parseProtocol(requireNonEmpty(provider.protocol, `providers.${providerId}.protocol`), providerId),
+          defaultParams: provider.defaultParams ?? {},
+          defaultModel: requireNonEmpty(provider.defaultModel, `providers.${providerId}.defaultModel`),
+        });
+      }
+    }
 
-    this.registerModel({
-      id: 'deepseek-reasoner',
-      name: 'DeepSeek R1 (Raciocínio & CoT)',
-      provider: 'deepseek',
-      description: 'Modelo de raciocínio profundo. Ideal para tarefas analíticas complexas e cálculos.',
-      recommendedRole: 'worker',
-      pricing: { cacheHitPerMillion: 0.044, cacheMissPerMillion: 1.32, outputPerMillion: 3.96 },
-      contextWindow: '128k',
-    });
+    for (const m of Object.values(raw.modelsById)) {
+      const provider = this.providers.get(m.providerId);
+      const providerDefaults = provider?.defaultParams ?? {};
+      const modelParams = m.inferenceParams ?? {};
 
-    this.registerModel({
-      id: 'deepseek-v4-pro',
-      name: 'DeepSeek Pro (Análise Avançada)',
-      provider: 'deepseek',
-      description: 'Alta capacidade de síntese e resolução técnica.',
-      recommendedRole: 'sender',
-      pricing: { cacheHitPerMillion: 0.044, cacheMissPerMillion: 1.32, outputPerMillion: 3.96 },
-      contextWindow: '128k',
-    });
-
-    // Groq Models
-    this.registerModel({
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B Versatile (Groq)',
-      provider: 'groq',
-      description: 'Velocidade extrema de geração com alta inteligência geral.',
-      recommendedRole: 'all',
-      pricing: { cacheHitPerMillion: 0.59, cacheMissPerMillion: 0.59, outputPerMillion: 0.79 },
-      contextWindow: '128k',
-    });
-
-    this.registerModel({
-      id: 'openai/gpt-oss-120b',
-      name: 'Grok 120B (Groq)',
-      provider: 'groq',
-      description: 'Modelo de alto porte no hardware LPU da Groq.',
-      recommendedRole: 'worker',
-      pricing: { cacheHitPerMillion: 0.15, cacheMissPerMillion: 0.15, outputPerMillion: 0.60 },
-      contextWindow: '128k',
-    });
-
-    this.registerModel({
-      id: 'openai/gpt-oss-20b',
-      name: 'Grok 20B (Groq Flash)',
-      provider: 'groq',
-      description: 'Latência quase instantânea para orquestração e fast-path.',
-      recommendedRole: 'orchestrator',
-      pricing: { cacheHitPerMillion: 0.075, cacheMissPerMillion: 0.075, outputPerMillion: 0.30 },
-      contextWindow: '128k',
-    });
-
-    this.registerModel({
-      id: 'deepseek-r1-distill-llama-70b',
-      name: 'DeepSeek R1 Distill 70B (Groq)',
-      provider: 'groq',
-      description: 'Raciocínio R1 executado em ultra-velocidade na Groq.',
-      recommendedRole: 'worker',
-      pricing: { cacheHitPerMillion: 0.59, cacheMissPerMillion: 0.59, outputPerMillion: 0.79 },
-      contextWindow: '128k',
-    });
-
-    this.registerModel({
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B Instant (Groq)',
-      provider: 'groq',
-      description: 'Micro modelo para validações e checagens ultrarrápidas.',
-      recommendedRole: 'orchestrator',
-      pricing: { cacheHitPerMillion: 0.05, cacheMissPerMillion: 0.05, outputPerMillion: 0.08 },
-      contextWindow: '128k',
-    });
-
-    // Claude / Anthropic Models
-    this.registerModel({
-      id: 'claude-3-7-sonnet-20250219',
-      name: 'Claude 3.7 Sonnet (Anthropic)',
-      provider: 'claude',
-      description: 'Inteligência de ponta para código, personas refinadas e raciocínio híbrido.',
-      recommendedRole: 'all',
-      pricing: { cacheHitPerMillion: 0.30, cacheMissPerMillion: 3.00, outputPerMillion: 15.00 },
-      contextWindow: '200k',
-    });
-
-    this.registerModel({
-      id: 'claude-3-5-haiku-20241022',
-      name: 'Claude 3.5 Haiku (Anthropic)',
-      provider: 'claude',
-      description: 'Execução rápida e econômica de alta precisão.',
-      recommendedRole: 'orchestrator',
-      pricing: { cacheHitPerMillion: 0.08, cacheMissPerMillion: 0.80, outputPerMillion: 4.00 },
-      contextWindow: '200k',
-    });
+      this.registerModel({
+        id: requireNonEmpty(m.id, 'modelsById.id'),
+        name: requireNonEmpty(m.displayName, `modelsById.${m.id}.displayName`),
+        providerId: requireNonEmpty(m.providerId, `modelsById.${m.id}.providerId`),
+        description: m.displayName,
+        recommendedRole: m.recommendedRole as RegisteredModelInfo['recommendedRole'],
+        completionUrl: requireNonEmpty(m.completionUrl, `modelsById.${m.id}.completionUrl`),
+        keyEnvName: requireNonEmpty(m.keyEnvName, `modelsById.${m.id}.keyEnvName`),
+        protocol: parseProtocol(requireNonEmpty(m.protocol, `modelsById.${m.id}.protocol`), m.id),
+        inferenceParams: mergeInferenceParams(providerDefaults, modelParams),
+        pricing: {
+          cacheHitPerMillion: m.pricing.cacheHitPerMillion,
+          cacheMissPerMillion: m.pricing.inputPerMillion,
+          outputPerMillion: m.pricing.outputPerMillion,
+        },
+        contextWindow: requireNonEmpty(m.pricing.contextWindow, `modelsById.${m.id}.pricing.contextWindow`),
+      });
+    }
   }
 
   static registerModel(model: RegisteredModelInfo): void {
     this.models.set(model.id, model);
   }
 
-  static getModel(id: string): RegisteredModelInfo | null {
-    return this.models.get(id) || null;
+  static getModel(id: string, cwd?: string): RegisteredModelInfo | null {
+    this.loadFromDisk(cwd);
+    return this.models.get(id) ?? null;
   }
 
-  static getModelsByProvider(provider: string): RegisteredModelInfo[] {
-    return Array.from(this.models.values()).filter((m) => m.provider === provider);
+  static getProvider(id: string, cwd?: string): RegisteredProviderInfo | null {
+    this.loadFromDisk(cwd);
+    return this.providers.get(id) ?? null;
   }
 
-  static getAllModels(): RegisteredModelInfo[] {
+  static getAllModels(cwd?: string): RegisteredModelInfo[] {
+    this.loadFromDisk(cwd);
     return Array.from(this.models.values());
   }
 
-  /**
-   * Defensively resolves the model to use for any role or agent.
-   * Priority:
-   * 1. Explicit model specified on agent / request (if valid)
-   * 2. Configured role model (orchestrator / sender)
-   * 3. Configured container default model
-   * 4. Provider default model
-   * 5. Safe absolute fallback ('deepseek-chat')
-   */
-  static resolveModel(
-    explicitModel?: string,
-    roleDefault?: string,
-    containerDefault?: string,
-    providerDefault?: string
-  ): string {
-    if (explicitModel && explicitModel.trim()) {
-      return explicitModel.trim();
+  /** Exige modelId configurado e presente no catálogo. */
+  static requireModelId(modelId: string | undefined, fieldName: string, cwd?: string): string {
+    const id = modelId?.trim();
+    if (!id) {
+      throw new Error(`${fieldName} não configurado em container.json`);
     }
-    if (roleDefault && roleDefault.trim()) {
-      return roleDefault.trim();
+    if (!this.loadFromDisk(cwd)) {
+      throw new Error('llm-models.json não encontrado. Reinicie o NanoClaw para materializar o catálogo.');
     }
-    if (containerDefault && containerDefault.trim()) {
-      return containerDefault.trim();
+    if (!this.models.has(id)) {
+      throw new Error(`Modelo "${id}" (${fieldName}) não existe no catálogo llm-models.json`);
     }
-    if (providerDefault && providerDefault.trim()) {
-      return providerDefault.trim();
+    return id;
+  }
+
+  /** Resolução por chamada: URL, key env, protocol, params. */
+  static requireInvocation(modelId: string, cwd?: string): ModelInvocation {
+    const id = this.requireModelId(modelId, 'model', cwd);
+    const model = this.models.get(id)!;
+    return {
+      modelId: model.id,
+      providerId: model.providerId,
+      completionUrl: model.completionUrl,
+      keyEnvName: model.keyEnvName,
+      protocol: model.protocol,
+      params: model.inferenceParams,
+    };
+  }
+
+  static applyParamsToPayload(payload: Record<string, unknown>, modelId: string, cwd?: string): void {
+    const inv = this.requireInvocation(modelId, cwd);
+    applyInferenceParamsToPayload(payload, inv.params);
+  }
+
+  /** @internal Apenas para testes unitários. */
+  static seedForTests(models: RegisteredModelInfo[]): void {
+    this.models.clear();
+    this.providers.clear();
+    for (const model of models) {
+      this.registerModel(model);
     }
-    return 'deepseek-chat';
+    this.loaded = true;
+  }
+
+  /** @internal Apenas para testes unitários. */
+  static resetForTests(): void {
+    this.models.clear();
+    this.providers.clear();
+    this.loaded = false;
   }
 }

@@ -76,6 +76,15 @@ async function main(): Promise<void> {
   runMigrations(db);
   log.info('Central DB ready', { path: dbPath });
 
+  try {
+    const { syncLlmCatalogToDatabase } = await import('./llm/sync-catalog.js');
+    const { materializeLlmModelsJson } = await import('./llm-models-materialize.js');
+    syncLlmCatalogToDatabase();
+    materializeLlmModelsJson();
+  } catch (err) {
+    log.warn('LLM catalog sync/materialization failed', { err: String(err) });
+  }
+
   // 1b. Backfill container_configs from legacy container.json files.
   // Idempotent — skips groups that already have a config row.
   backfillContainerConfigs();

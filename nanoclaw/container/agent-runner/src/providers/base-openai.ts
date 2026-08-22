@@ -4,6 +4,7 @@ import { AGENT_TOOLS, ALL_TOOLS } from '../tools/index.js';
 import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
 import { TokenLedger } from '../services/token-ledger.js';
+import { ModelRegistry } from '../services/model-registry.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type {
   AgentProvider,
@@ -67,7 +68,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     const baseURL = this.baseURL.replace(/\/+$/, '');
     const model = this.defaultModel.trim();
     const providerName = this.config.providerName;
-    const logFileName = this.config.logFileName || `${providerName}_activity.log`;
+    const logFileName = this.config.logFileName ?? `${providerName}_activity.log`;
     let aborted = false;
 
     // Load or initialize conversation history from continuation
@@ -108,32 +109,72 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     const technicalDirectives = input.systemContext?.instructions || '';
     const coreMemory = MemoryManager.loadCoreMemory(input.cwd) || '';
 
+    // Load role models from container.json (obrigatórios para multi-agente)
+    let workerModel: string | undefined;
+    let orchestratorModel: string | undefined;
+    let senderModel: string | undefined;
+    const containerJsonCandidates = [
+      path.join(input.cwd, 'container.json'),
+      '/workspace/agent/container.json',
+      '/workspace/group/container.json',
+    ];
+    for (const cfgPath of containerJsonCandidates) {
+      try {
+        if (fs.existsSync(cfgPath)) {
+          const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+          workerModel = cfg.model;
+          orchestratorModel = cfg.orchestratorModel;
+          senderModel = cfg.senderModel;
+          break;
+        }
+      } catch {}
+    }
+
     const customHeaders = this.config.customHeaders || {};
 
     async function* executeTurn(): AsyncGenerator<ProviderEvent> {
       yield { type: 'activity' };
 
-      if (!apiKey) {
+      if (!ModelRegistry.loadFromDisk(input.cwd)) {
         yield {
           type: 'result',
-          text: `Error: ${providerName.toUpperCase()}_API_KEY is not configured in NanoClaw .env. Please configure your API key in settings.`,
+          text: 'Error: llm-models.json não encontrado. Reinicie o NanoClaw para materializar o catálogo.',
           isError: true,
         };
         return;
       }
 
       try {
-        const url = `${baseURL}/chat/completions`;
-
         const completeFn = async (currentMessages: any[], enableTools: boolean | any[], options?: any) => {
           if (aborted) throw new Error('Query aborted');
 
-          const targetModel = options?.model || model;
+          const callModel = options?.model?.trim();
+          if (!callModel) {
+            throw new Error('model é obrigatório em cada chamada LLM');
+          }
+
+          const targetModel = ModelRegistry.requireModelId(callModel, 'model', input.cwd);
+          const invocation = ModelRegistry.requireInvocation(targetModel, input.cwd);
+          if (invocation.protocol !== 'openai-compatible') {
+            throw new Error(
+              `Modelo "${targetModel}" usa protocolo ${invocation.protocol}. Use provider claude para Anthropic.`,
+            );
+          }
+
+          const callApiKey = process.env[invocation.keyEnvName]?.trim();
+          if (!callApiKey) {
+            throw new Error(
+              `API key ausente (${invocation.keyEnvName}). Configure em Credenciais LLM no painel.`,
+            );
+          }
+
+          const url = invocation.completionUrl;
           const payload: any = {
             model: targetModel,
             messages: currentMessages,
             stream: false,
           };
+          ModelRegistry.applyParamsToPayload(payload, targetModel, input.cwd);
 
           if (Array.isArray(enableTools)) {
             if (enableTools.length > 0) payload.tools = enableTools;
@@ -144,7 +185,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
           const startTime = Date.now();
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${callApiKey}`,
             ...customHeaders,
           };
 
@@ -275,6 +316,10 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
 
         const historyLimit = Math.max(10, parseInt(process.env.CONVERSATION_HISTORY_LIMIT || '50', 10));
 
+        const resolvedWorker = ModelRegistry.requireModelId(workerModel ?? model, 'model', input.cwd);
+        const resolvedOrchestrator = ModelRegistry.requireModelId(orchestratorModel, 'orchestratorModel', input.cwd);
+        const resolvedSender = ModelRegistry.requireModelId(senderModel, 'senderModel', input.cwd);
+
         const turnResult = await TurnOrchestrator.runTurn(
           completeFn,
           {
@@ -286,10 +331,10 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             personaInstructions,
             coreMemory,
             historyLimit,
-            orchestratorModel: (config as any).orchestratorModel || model,
-            senderModel: (config as any).senderModel || model,
-            defaultModel: model,
-          } as any,
+            orchestratorModel: resolvedOrchestrator,
+            senderModel: resolvedSender,
+            defaultModel: resolvedWorker,
+          },
           () => {
             // Activity heartbeat
           }

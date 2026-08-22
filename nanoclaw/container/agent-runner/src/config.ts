@@ -20,6 +20,8 @@ export interface RunnerConfig {
   mcpServers: Record<string, McpServerConfig>;
   model?: string;
   effort?: string;
+  orchestratorModel?: string;
+  senderModel?: string;
 }
 
 const DEFAULT_MAX_MESSAGES = 10;
@@ -49,6 +51,8 @@ export function loadConfig(): RunnerConfig {
     mcpServers: (raw.mcpServers as RunnerConfig['mcpServers']) || {},
     model: (raw.model as string) || undefined,
     effort: (raw.effort as string) || undefined,
+    orchestratorModel: (raw.orchestratorModel as string) || undefined,
+    senderModel: (raw.senderModel as string) || undefined,
   };
 
   return _config;

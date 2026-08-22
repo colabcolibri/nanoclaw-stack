@@ -35,7 +35,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   })
 
   return (
-    <div className="flex flex-col flex-1 gap-4 w-full">
+    <div className="flex flex-col flex-1 gap-4 w-full min-h-0">
       {/* Reusable PageHeader Template */}
       <PageHeader
         icon={<MessageSquare className="w-5 h-5" />}
@@ -63,7 +63,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       />
 
       {/* Real Chat Message Stream - Newest at the top */}
-      <div className="flex-1 p-4 sm:p-6 rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-y-auto space-y-6 max-h-[calc(100vh-270px)]">
+      <div className="flex-1 min-h-0 p-4 sm:p-5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] overflow-y-auto space-y-5">
         {filteredMessages.length === 0 ? (
           <EmptyState
             icon={<MessageSquare className="w-8 h-8 text-[var(--text-dim)]" />}

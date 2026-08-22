@@ -37,8 +37,15 @@
     "runs": "Executions (Runs)",
     "security": "Security & Users",
     "logs": "Terminal & Logs",
+    "models": "LLM Models",
     "config": "LLM Settings",
     "service": "Daemons & Pairing"
+  },
+  "navGroups": {
+    "communication": "Communication",
+    "intelligence": "Intelligence & agents",
+    "automation": "Automation & tasks",
+    "governance": "Governance & system"
   },
   "stats": {
     "totalMessages": "Total Messages",

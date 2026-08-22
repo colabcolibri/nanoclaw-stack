@@ -255,6 +255,24 @@ export class ApiClient {
     return this.fetchJson(`/api/groups/${group}/config`)
   }
 
+  static async getLlmRegistry(): Promise<{ updatedAt: string; providers: Record<string, any> }> {
+    return this.fetchJson('/api/llm/registry')
+  }
+
+  static async saveProviderApiKey(
+    providerId: string,
+    apiKey: string
+  ): Promise<{ success: boolean; keysStatus: Record<string, { hasKey: boolean; masked: string }> }> {
+    return this.fetchJson(`/api/llm/providers/${encodeURIComponent(providerId)}/api-key`, {
+      method: 'POST',
+      body: JSON.stringify({ apiKey }),
+    })
+  }
+
+  static async getLlmKeysStatus(): Promise<{ keysStatus: Record<string, { hasKey: boolean; masked: string }> }> {
+    return this.fetchJson('/api/llm/keys-status')
+  }
+
   static async saveConfig(group = 'barao', config: any): Promise<{ success: boolean }> {
     return this.fetchJson(`/api/groups/${group}/config`, {
       method: 'POST',

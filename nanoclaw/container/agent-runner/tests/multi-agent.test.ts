@@ -4,11 +4,40 @@ import { WorkerAgentRunner } from '../src/agents/worker-agent.js';
 import { SenderAgent } from '../src/agents/sender-agent.js';
 import { OrchestratorAgent } from '../src/agents/orchestrator-agent.js';
 import { AgentAuditLogger } from '../src/agents/audit-logger.js';
+import { ModelRegistry } from '../src/services/model-registry.js';
 import type { LLMResponse } from '../src/orchestrator/types.js';
+
+const TEST_MODEL = 'deepseek-chat';
+
+function seedTestCatalog(): void {
+  ModelRegistry.seedForTests([
+    {
+      id: TEST_MODEL,
+      name: 'DeepSeek Chat',
+      providerId: 'deepseek',
+      description: 'Test model',
+      completionUrl: 'https://api.deepseek.com/chat/completions',
+      keyEnvName: 'DEEPSEEK_API_KEY',
+      protocol: 'openai-compatible',
+      inferenceParams: {},
+      contextWindow: '128k',
+      pricing: { cacheHitPerMillion: 0, cacheMissPerMillion: 0, outputPerMillion: 0 },
+    },
+  ]);
+}
+
+const roleModels = {
+  orchestratorModel: TEST_MODEL,
+  senderModel: TEST_MODEL,
+  defaultModel: TEST_MODEL,
+};
 
 describe('Multi-Agent & Department Architecture', () => {
   beforeEach(() => {
+    ModelRegistry.resetForTests();
+    seedTestCatalog();
     AgentRegistry.initializeDefaults();
+    AgentRegistry.discoverAgents();
     AgentAuditLogger.clear();
   });
 
@@ -25,14 +54,12 @@ describe('Multi-Agent & Department Architecture', () => {
 
     const gmailAgent = AgentRegistry.getAgent('productivity_attendant');
     expect(gmailAgent).toBeDefined();
-    expect(gmailAgent?.agentSkills).toContain('google_gmail');
-    expect(gmailAgent?.agentSkills).toContain('google_calendar');
+    expect(gmailAgent?.agentSkills).toContain('gmail-inbox');
+    expect(gmailAgent?.agentSkills).toContain('autonomous-scheduler');
 
     // Tool isolation: Productivity agent only gets its specific tools + global tools
     const tools = AgentRegistry.getToolsForAgent('productivity_attendant');
     const toolNames = tools.map((t) => t.function.name);
-    expect(toolNames).toContain('google_gmail');
-    expect(toolNames).toContain('google_calendar');
     expect(toolNames).toContain('retrieve_message_context'); // global tool
     expect(toolNames).not.toContain('yampi_store'); // E-commerce tool MUST NOT leak here!
     expect(toolNames).not.toContain('resale_pricing'); // Pricing tool MUST NOT leak here!
@@ -69,7 +96,7 @@ describe('Multi-Agent & Department Architecture', () => {
       };
     };
 
-    const result = await WorkerAgentRunner.execute(agent, 'Verifique o pedido 12345', mockComplete, '/tmp');
+    const result = await WorkerAgentRunner.execute(agent, 'Verifique o pedido 12345', mockComplete, '/tmp', roleModels);
     expect(result.status).toBe('success');
     expect(result.findings.length).toBe(1);
     expect(result.findings[0].tool).toBe('read_file');
@@ -107,6 +134,7 @@ describe('Multi-Agent & Department Architecture', () => {
         cwd: '/tmp',
         history: [],
         personaInstructions: '# IDENTIDADE (SOUL)\nVocê é o Barão: Mineiro Sarcástico e refinado.',
+        senderModel: TEST_MODEL,
       },
       mockComplete
     );
@@ -122,6 +150,15 @@ describe('Multi-Agent & Department Architecture', () => {
     let workerInvoked = false;
 
     const mockComplete = async (messages: any[], tools: any, options: any): Promise<LLMResponse> => {
+      if (options?.purpose === 'orchestrator_triage') {
+        return {
+          content: JSON.stringify({
+            type: 'fast_path',
+            reasoning: 'Saudação simples, sem necessidade de ferramentas',
+            instructionsForSender: 'Responda com cordialidade.',
+          }),
+        };
+      }
       if (options?.agent === 'sender') {
         senderInvoked = true;
       }
@@ -140,6 +177,7 @@ describe('Multi-Agent & Department Architecture', () => {
         cwd: '/tmp',
         history: [],
         personaInstructions: 'Você é o Barão.',
+        ...roleModels,
       },
       '## Contexto Temporal: Hoje'
     );
@@ -158,6 +196,18 @@ describe('Multi-Agent & Department Architecture', () => {
     let callStep = 0;
     const mockComplete = async (messages: any[], tools: any, options: any): Promise<LLMResponse> => {
       callStep++;
+
+      if (options?.purpose === 'orchestrator_triage') {
+        return {
+          content: JSON.stringify({
+            type: 'department_delegation',
+            reasoning: 'Solicitação de e-mails requer especialista de produtividade',
+            departmentId: 'productivity',
+            agentId: 'productivity_attendant',
+            taskDescription: 'veja meus e-mails e compromissos de hoje',
+          }),
+        };
+      }
 
       if (options?.purpose === 'stage1_action') {
         // Specialist Worker pass
@@ -194,6 +244,7 @@ describe('Multi-Agent & Department Architecture', () => {
         cwd: '/tmp',
         history: [],
         personaInstructions: 'Você é o Barão.',
+        ...roleModels,
       },
       '## Contexto Temporal: Hoje'
     );

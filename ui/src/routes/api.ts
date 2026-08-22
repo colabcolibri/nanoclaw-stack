@@ -10,6 +10,7 @@ import { GoogleAuthService } from "../services/google-auth.js";
 import { NotionAuthService } from "../services/notion-auth.js";
 import { YampiAuthService } from "../services/yampi-auth.js";
 import { MacChannelService } from "../services/mac-channel.js";
+import { LlmModelService } from "../services/llm-models.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   const list: Record<string, string> = {};
@@ -192,6 +193,31 @@ export class ApiRouter {
     // Groups
     if (url.pathname === "/api/groups" && method === "GET") {
       return jsonResponse({ groups: GroupManager.list() });
+    }
+
+    // LLM Models Registry (read-only — catálogo vem do código)
+    if (url.pathname === "/api/llm/registry" && method === "GET") {
+      return jsonResponse(LlmModelService.getRegistry());
+    }
+
+    const llmProviderKeyMatch = url.pathname.match(/^\/api\/llm\/providers\/([^/]+)\/api-key$/);
+    if (llmProviderKeyMatch && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as Record<string, any>;
+      if (!body.apiKey || !String(body.apiKey).trim()) {
+        return jsonResponse({ error: "apiKey é obrigatória." }, 400);
+      }
+      const ok = GroupManager.saveProviderApiKey(llmProviderKeyMatch[1], String(body.apiKey));
+    if (!ok) {
+      return jsonResponse(
+        { error: "Não foi possível salvar a chave. Verifique NANOCLAW_CREDENTIALS_ENCRYPTION_KEY em nanoclaw/.env." },
+        400,
+      );
+    }
+      return jsonResponse({ success: true, keysStatus: GroupManager.getProviderKeysStatus() });
+    }
+
+    if (url.pathname === "/api/llm/keys-status" && method === "GET") {
+      return jsonResponse({ keysStatus: GroupManager.getProviderKeysStatus() });
     }
 
     // Soul / Docs List

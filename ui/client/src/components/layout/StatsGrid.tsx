@@ -11,9 +11,9 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
   const exchangeRate = Number(stats?.usdToBrlRate || 5.2014)
 
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {/* Total Messages & Interações */}
-      <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-xs transition-colors">
+      <div className="p-3 sm:p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-[var(--shadow-card)] transition-colors">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
           <span>Mensagens & Interações</span>
           <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
@@ -27,7 +27,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       </div>
 
       {/* Real API Tokens (In / Out Separados) */}
-      <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-xs transition-colors">
+      <div className="p-3 sm:p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-[var(--shadow-card)] transition-colors">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
           <span>Tokens (Entrada / Saída)</span>
           <Cpu className="w-4 h-4 text-emerald-500" />
@@ -47,7 +47,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       </div>
 
       {/* Real Cost in Selected Currency (BRL or USD) */}
-      <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-xs transition-colors">
+      <div className="p-3 sm:p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-[var(--shadow-card)] transition-colors">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
           <span>{currency === 'BRL' ? 'Custo Total (BRL)' : 'Custo Total (USD)'}</span>
           <DollarSign className="w-4 h-4 text-emerald-500" />
@@ -65,7 +65,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       </div>
 
       {/* Service Status */}
-      <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-xs transition-colors">
+      <div className="p-3 sm:p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] flex flex-col justify-between shadow-[var(--shadow-card)] transition-colors">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
           <span>Status do Sistema</span>
           <Activity className="w-4 h-4 text-emerald-500" />

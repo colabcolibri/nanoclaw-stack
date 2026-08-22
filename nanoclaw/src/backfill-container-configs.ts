@@ -66,6 +66,8 @@ export function backfillContainerConfigs(): void {
       additional_mounts: JSON.stringify(legacy.additionalMounts ?? []),
       cli_scope: 'group',
       timezone: null,
+      orchestrator_model: (legacy as { orchestratorModel?: string }).orchestratorModel ?? null,
+      sender_model: (legacy as { senderModel?: string }).senderModel ?? null,
       updated_at: new Date().toISOString(),
     };
 

@@ -76,6 +76,9 @@ export class TurnOrchestrator {
         systemInstructions: options.systemInstructions,
         historyLimit: options.historyLimit,
         maxWorkerIterations: options.maxIterations,
+        orchestratorModel: options.orchestratorModel,
+        senderModel: options.senderModel,
+        defaultModel: options.defaultModel,
       },
       timeContext,
       onActivity

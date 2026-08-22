@@ -3,6 +3,7 @@ import { executeTool } from '../tools/index.js';
 import { ExecutionScratchpad } from '../orchestrator/scratchpad.js';
 import { ResponseParser } from '../orchestrator/parser.js';
 import { AgentAuditLogger } from './audit-logger.js';
+import { ModelRegistry } from '../services/model-registry.js';
 import type { SpecialistAgent, WorkerResult, ToolFinding } from './types.js';
 import type { LLMCompletionFn } from '../orchestrator/types.js';
 
@@ -20,6 +21,7 @@ export class WorkerAgentRunner {
       maxIterations?: number;
       onActivity?: () => void;
       history?: any[];
+      defaultModel?: string;
     } = {}
   ): Promise<WorkerResult> {
     const maxIterations = Math.max(1, options.maxIterations || 6);
@@ -44,12 +46,18 @@ export class WorkerAgentRunner {
       const currentMessages = scratchpad.toStage1Messages(systemPrompt);
       const startTime = Date.now();
 
+      const resolvedModel = ModelRegistry.requireModelId(
+        agent.model ?? options.defaultModel,
+        agent.model ? `agents.${agent.id}.model` : 'model',
+        cwd,
+      );
+
       const response = await complete(currentMessages, tools, {
         purpose: 'stage1_action',
         agent: agent.id,
         department: agent.departmentId,
         iteration: iter + 1,
-        model: agent.model,
+        model: resolvedModel,
       });
 
       const latencyMs = Date.now() - startTime;

@@ -47,39 +47,47 @@ export class UnifiedAgentGateway {
 
   /**
    * Resolves the active LLM completion function based on the centralized NanoClaw environment.
+   * Supports per-role model routing via options.model (orchestrator, sender, worker).
    */
-  private static async getCompletionFunction(groupDir: string, userMsgId: string) {
+  private static async getCompletionFunction(groupDir: string, userMsgId: string, roleModels?: {
+    defaultModel: string;
+    orchestratorModel?: string;
+    senderModel?: string;
+  }) {
+    if (!roleModels?.defaultModel?.trim()) {
+      throw new Error('model (worker) não configurado em container_configs');
+    }
+
+    const { ModelRegistry } = await import(
+      path.join(CONFIG.NANOCLAW_PATH, 'container', 'agent-runner', 'src', 'services', 'model-registry.ts')
+    );
+    const registryPath = path.join(CONFIG.DATA_PATH, 'llm-models.json');
+    if (!ModelRegistry.loadFromDisk(registryPath)) {
+      throw new Error('llm-models.json não encontrado. Reinicie o NanoClaw.');
+    }
+
     const envMap = GroupManager.readNanoClawEnv();
-    const provider = (envMap["NANOCLAW_AGENT_PROVIDER"] || process.env.NANOCLAW_AGENT_PROVIDER || "deepseek").toLowerCase();
-
-    let rawBase = envMap["DEEPSEEK_BASE_URL"] || process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";
-    let apiKey = envMap["DEEPSEEK_API_KEY"] || process.env.DEEPSEEK_API_KEY || "";
-    let modelName = (envMap["DEEPSEEK_MODEL"] || process.env.DEEPSEEK_MODEL || "deepseek-chat").replace(/^deepseek\//, "");
-
-    if (provider === "groq" && (envMap["GROQ_API_KEY"] || process.env.GROQ_API_KEY)) {
-      rawBase = envMap["GROQ_BASE_URL"] || "https://api.groq.com/openai/v1";
-      apiKey = envMap["GROQ_API_KEY"] || process.env.GROQ_API_KEY || "";
-      modelName = envMap["GROQ_MODEL"] || "llama-3.3-70b-versatile";
-    } else if (!apiKey && (envMap["GROQ_API_KEY"] || process.env.GROQ_API_KEY)) {
-      rawBase = envMap["GROQ_BASE_URL"] || "https://api.groq.com/openai/v1";
-      apiKey = envMap["GROQ_API_KEY"] || process.env.GROQ_API_KEY || "";
-      modelName = envMap["GROQ_MODEL"] || "llama-3.3-70b-versatile";
-    }
-
-    if (!apiKey) {
-      throw new Error("Nenhuma chave de provedor LLM configurada no servidor (DEEPSEEK_API_KEY ou GROQ_API_KEY no .env).");
-    }
-
-    const cleanBase = rawBase.replace(/\/+$/, "");
-    const completionEndpoint = cleanBase.endsWith("/chat/completions")
-      ? cleanBase
-      : cleanBase.endsWith("/v1")
-      ? `${cleanBase}/chat/completions`
-      : `${cleanBase}/chat/completions`;
+    const defaultModel = roleModels.defaultModel.trim();
 
     const completeFn = async (messages: any[], tools?: any[], options?: any) => {
+      const explicitModel = options?.model as string | undefined;
+      const targetModel = ModelRegistry.requireModelId(
+        explicitModel ?? defaultModel,
+        explicitModel ? 'model' : 'model',
+        registryPath,
+      );
+      const invocation = ModelRegistry.requireInvocation(targetModel, registryPath);
+      if (invocation.protocol !== 'openai-compatible') {
+        throw new Error(`Modelo "${targetModel}" usa protocolo ${invocation.protocol} — não suportado neste gateway.`);
+      }
+
+      const apiKey = (envMap[invocation.keyEnvName] ?? process.env[invocation.keyEnvName])?.trim();
+      if (!apiKey) {
+        throw new Error(`API key ausente (${invocation.keyEnvName}). Configure em Credenciais LLM.`);
+      }
+
       const payload: any = {
-        model: modelName,
+        model: targetModel,
         messages: messages.map((m) => {
           const formatted: any = { role: m.role, content: m.content || "" };
           if (m.tool_calls) formatted.tool_calls = m.tool_calls;
@@ -91,8 +99,9 @@ export class UnifiedAgentGateway {
         payload.tools = tools;
         payload.tool_choice = "auto";
       }
+      ModelRegistry.applyParamsToPayload(payload, targetModel, registryPath);
 
-      const res = await fetch(completionEndpoint, {
+      const res = await fetch(invocation.completionUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,7 +169,7 @@ export class UnifiedAgentGateway {
 
         const previewText = msg.content ? `${previewPrefix}${msg.content}` : msg.tool_calls ? `Tool: ${msg.tool_calls[0]?.function?.name}` : '';
 
-        TokenLedger.record(groupDir, modelName, usage, {
+        TokenLedger.record(groupDir, targetModel, usage, {
           toolCallsCount: msg.tool_calls?.length || 0,
           preview: previewText,
           messageId: userMsgId,
@@ -174,7 +183,7 @@ export class UnifiedAgentGateway {
       };
     };
 
-    return { completeFn, modelName };
+    return { completeFn, defaultModel, orchestratorModel: roleModels?.orchestratorModel, senderModel: roleModels?.senderModel };
   }
 
   /**
@@ -264,12 +273,25 @@ export class UnifiedAgentGateway {
       history = combined.slice(-30).map((c) => ({ role: c.role, content: c.text }));
     } catch {}
 
-    // 3. Load Persona Soul and Core Memory
+    // 3. Load Persona Soul, Core Memory and role models from container.json
     const groupDir = path.join(CONFIG.GROUPS_PATH, groupFolder);
     const soulFile = path.join(groupDir, "instructions.prepend.md");
     let soulContent = "Você é o Barão, um assistente de IA prestativo, perspicaz e altamente resolutivo.";
     if (fs.existsSync(soulFile)) {
       soulContent = fs.readFileSync(soulFile, "utf-8").trim();
+    }
+
+    let orchestratorModel: string | undefined;
+    let senderModel: string | undefined;
+    let defaultModel: string | undefined;
+    const containerJsonPath = path.join(groupDir, "container.json");
+    if (fs.existsSync(containerJsonPath)) {
+      try {
+        const containerCfg = JSON.parse(fs.readFileSync(containerJsonPath, "utf-8"));
+        orchestratorModel = containerCfg.orchestratorModel;
+        senderModel = containerCfg.senderModel;
+        defaultModel = containerCfg.model;
+      } catch {}
     }
 
     const { MemoryManager } = await import(
@@ -282,8 +304,12 @@ export class UnifiedAgentGateway {
       `Você possui ferramentas nativas conectadas para Notion, Google Calendar, Gmail, Yampi Store, Pesquisa Web e Memória. Sempre execute a ferramenta apropriada quando solicitado.`,
     ].join("\n\n");
 
-    // 4. Initialize LLM completion function
-    const { completeFn } = await this.getCompletionFunction(groupDir, userMsgId);
+    // 4. Initialize LLM completion function with role-based model routing
+    const { completeFn } = await this.getCompletionFunction(groupDir, userMsgId, {
+      defaultModel: defaultModel || "deepseek-chat",
+      orchestratorModel,
+      senderModel,
+    });
 
     // 5. Execute Turn via TurnOrchestrator
     const { TurnOrchestrator } = await import(
@@ -299,6 +325,9 @@ export class UnifiedAgentGateway {
       personaInstructions: soulContent,
       coreMemory: coreMemory,
       historyLimit: 30,
+      orchestratorModel,
+      senderModel,
+      defaultModel: defaultModel || "deepseek-chat",
     });
 
     const cleanReply = turnResult.deliveredText

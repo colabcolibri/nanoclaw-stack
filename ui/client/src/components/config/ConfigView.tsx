@@ -1,292 +1,71 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sliders, Save, CheckCircle2, AlertCircle, Check, ChevronDown, ChevronUp, Zap, ArrowDownToLine, ArrowUpFromLine, Layers, Database, Target, Coins, Cpu, MapPin, Clock } from 'lucide-react'
+import {
+  Sliders,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Check,
+  Zap,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Layers,
+  Database,
+  Target,
+  Coins,
+  Cpu,
+  MapPin,
+  Clock,
+  KeyRound,
+  ExternalLink,
+} from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { ModelSelect } from '@/components/common/ModelSelect'
+import { useLlmRegistry } from '@/hooks/useLlmRegistry'
+import { findModelInProviders, providersForModels } from '@/lib/model-registry'
 
-export interface ModelPricing {
-  inputPerMillion: number       // Token In (Prompt / Cache Miss) $/1M
-  outputPerMillion: number      // Token Out (Completion) $/1M
-  cacheWritePerMillion: number  // Cache In / Cache Write $/1M
-  cacheHitPerMillion: number    // Cache Out / Cache Read (Hit) $/1M
-  contextWindow: string         // e.g. "64k", "128k", "200k"
-  savingsPct?: number           // e.g. 97% savings on cache hit
-}
+export type { ModelItem, ModelPricing, ProviderMeta } from '@/lib/model-registry'
 
-export interface ModelItem {
-  id: string
-  label: string
-  recommended?: boolean
-  pricing: ModelPricing
-}
-
-export interface ProviderMeta {
-  name: string
-  defaultBaseUrl: string
-  defaultModel: string
-  models: ModelItem[]
-}
-
-export const PROVIDERS_META: Record<string, ProviderMeta> = {
-  deepseek: {
-    name: 'DeepSeek Official (Direct Peak & Non-Peak)',
-    defaultBaseUrl: 'https://api.deepseek.com',
-    defaultModel: 'deepseek-v4-flash',
-    models: [
-      {
-        id: 'deepseek-v4-flash',
-        label: 'DeepSeek V4 Flash (0.44/M - Ultra Fast)',
-        recommended: true,
-        pricing: {
-          inputPerMillion: 0.44,
-          outputPerMillion: 1.32,
-          cacheWritePerMillion: 0.44,
-          cacheHitPerMillion: 0.014,
-          contextWindow: '128k',
-          savingsPct: 97,
-        },
-      },
-      {
-        id: 'deepseek-chat',
-        label: 'DeepSeek V3 (Chat Standard)',
-        pricing: {
-          inputPerMillion: 0.44,
-          outputPerMillion: 1.32,
-          cacheWritePerMillion: 0.44,
-          cacheHitPerMillion: 0.014,
-          contextWindow: '128k',
-          savingsPct: 97,
-        },
-      },
-      {
-        id: 'deepseek-v4-pro',
-        label: 'DeepSeek V4 Pro (Reasoning & Deep Analysis)',
-        pricing: {
-          inputPerMillion: 1.32,
-          outputPerMillion: 3.96,
-          cacheWritePerMillion: 1.32,
-          cacheHitPerMillion: 0.044,
-          contextWindow: '128k',
-          savingsPct: 97,
-        },
-      },
-      {
-        id: 'deepseek-reasoner',
-        label: 'DeepSeek R1 (Thinking CoT / Reasoning)',
-        pricing: {
-          inputPerMillion: 1.32,
-          outputPerMillion: 3.96,
-          cacheWritePerMillion: 1.32,
-          cacheHitPerMillion: 0.044,
-          contextWindow: '128k',
-          savingsPct: 97,
-        },
-      },
-    ],
-  },
-  groq: {
-    name: 'Groq Cloud (Ultra-Low Latency Llama/DeepSeek)',
-    defaultBaseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'openai/gpt-oss-20b',
-    models: [
-      {
-        id: 'openai/gpt-oss-20b',
-        label: 'Grok 20B (Groq / gpt-oss-20b - Ultra Fast)',
-        recommended: true,
-        pricing: {
-          inputPerMillion: 0.075,
-          outputPerMillion: 0.30,
-          cacheWritePerMillion: 0.075,
-          cacheHitPerMillion: 0.075,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-      {
-        id: 'openai/gpt-oss-120b',
-        label: 'Grok 120B (Groq / gpt-oss-120b - High Intelligence)',
-        pricing: {
-          inputPerMillion: 0.15,
-          outputPerMillion: 0.60,
-          cacheWritePerMillion: 0.15,
-          cacheHitPerMillion: 0.15,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-      {
-        id: 'llama-3.3-70b-versatile',
-        label: 'Llama 3.3 70B Versatile (128k Context)',
-        pricing: {
-          inputPerMillion: 0.59,
-          outputPerMillion: 0.79,
-          cacheWritePerMillion: 0.59,
-          cacheHitPerMillion: 0.59,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-      {
-        id: 'llama-3.1-8b-instant',
-        label: 'Llama 3.1 8B Instant (Ultra Fast)',
-        pricing: {
-          inputPerMillion: 0.05,
-          outputPerMillion: 0.08,
-          cacheWritePerMillion: 0.05,
-          cacheHitPerMillion: 0.05,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-      {
-        id: 'deepseek-r1-distill-llama-70b',
-        label: 'DeepSeek R1 Distill Llama 70B (Reasoning)',
-        pricing: {
-          inputPerMillion: 0.59,
-          outputPerMillion: 0.79,
-          cacheWritePerMillion: 0.59,
-          cacheHitPerMillion: 0.59,
-          contextWindow: '128k',
-          savingsPct: 0,
-        },
-      },
-    ],
-  },
-  claude: {
-    name: 'Anthropic Claude Official (Direct API)',
-    defaultBaseUrl: 'https://api.anthropic.com',
-    defaultModel: 'claude-3-5-sonnet-latest',
-    models: [
-      {
-        id: 'claude-3-5-sonnet-latest',
-        label: 'Claude 3.5 Sonnet (State of the Art)',
-        recommended: true,
-        pricing: {
-          inputPerMillion: 3.00,
-          outputPerMillion: 15.00,
-          cacheWritePerMillion: 3.75,
-          cacheHitPerMillion: 0.30,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-      {
-        id: 'claude-3-5-haiku-latest',
-        label: 'Claude 3.5 Haiku (Fast & Lightweight)',
-        pricing: {
-          inputPerMillion: 0.80,
-          outputPerMillion: 4.00,
-          cacheWritePerMillion: 1.00,
-          cacheHitPerMillion: 0.08,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-      {
-        id: 'claude-3-opus-latest',
-        label: 'Claude 3 Opus (Deep Complex Reasoning)',
-        pricing: {
-          inputPerMillion: 15.00,
-          outputPerMillion: 75.00,
-          cacheWritePerMillion: 18.75,
-          cacheHitPerMillion: 1.50,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-    ],
-  },
-  openrouter: {
-    name: 'OpenRouter Aggregator (Multi-Model Gateway)',
-    defaultBaseUrl: 'https://openrouter.ai/api/v1',
-    defaultModel: 'deepseek/deepseek-chat',
-    models: [
-      {
-        id: 'deepseek/deepseek-chat',
-        label: 'OpenRouter / DeepSeek V3',
-        pricing: {
-          inputPerMillion: 0.44,
-          outputPerMillion: 1.32,
-          cacheWritePerMillion: 0.44,
-          cacheHitPerMillion: 0.014,
-          contextWindow: '64k',
-          savingsPct: 97,
-        },
-      },
-      {
-        id: 'deepseek/deepseek-r1',
-        label: 'OpenRouter / DeepSeek R1',
-        pricing: {
-          inputPerMillion: 1.32,
-          outputPerMillion: 3.96,
-          cacheWritePerMillion: 1.32,
-          cacheHitPerMillion: 0.044,
-          contextWindow: '64k',
-          savingsPct: 97,
-        },
-      },
-      {
-        id: 'anthropic/claude-3.5-sonnet',
-        label: 'OpenRouter / Claude 3.5 Sonnet',
-        pricing: {
-          inputPerMillion: 3.00,
-          outputPerMillion: 15.00,
-          cacheWritePerMillion: 3.75,
-          cacheHitPerMillion: 0.30,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-    ],
-  },
-  opencode: {
-    name: 'OpenCode Local / Self-Hosted Gateway',
-    defaultBaseUrl: 'http://127.0.0.1:4096',
-    defaultModel: 'claude-3-5-sonnet',
-    models: [
-      {
-        id: 'claude-3-5-sonnet',
-        label: 'Local OpenCode / Claude 3.5 Sonnet',
-        pricing: {
-          inputPerMillion: 3.00,
-          outputPerMillion: 15.00,
-          cacheWritePerMillion: 3.75,
-          cacheHitPerMillion: 0.30,
-          contextWindow: '200k',
-          savingsPct: 90,
-        },
-      },
-    ],
-  },
+const DEFAULT_PRICING = {
+  inputPerMillion: 0,
+  outputPerMillion: 0,
+  cacheWritePerMillion: 0,
+  cacheHitPerMillion: 0,
+  contextWindow: '128k',
+  savingsPct: 0,
 }
 
 export const ConfigView: React.FC = () => {
   const { t } = useTranslation('config')
+  const { providers, isLoading: isLoadingModels } = useLlmRegistry()
   const [config, setConfig] = useState({
     name: '',
-    provider: 'deepseek',
-    model: 'deepseek-v4-flash',
-    orchestratorModel: 'deepseek-chat',
-    senderModel: 'deepseek-chat',
-    baseUrl: 'https://api.deepseek.com',
+    model: '',
+    orchestratorModel: '',
+    senderModel: '',
     city: '',
     country: '',
     timezone: 'Europe/Brussels',
   })
   const [keysStatus, setKeysStatus] = useState<Record<string, { hasKey: boolean; masked: string }>>({})
-  const [newApiKey, setNewApiKey] = useState<string>('')
   const [usdToBrlRate, setUsdToBrlRate] = useState<number>(5.5)
   const [isSaving, setIsSaving] = useState<boolean>(false)
-  const [showAdvancedUrl, setShowAdvancedUrl] = useState<boolean>(false)
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     loadConfig()
     loadRate()
   }, [])
+
+  useEffect(() => {
+    if (Object.keys(providers).length > 0) {
+      loadConfig()
+    }
+  }, [providers])
 
   const loadRate = async () => {
     try {
@@ -301,17 +80,12 @@ export const ConfigView: React.FC = () => {
     try {
       const data = await ApiClient.getConfig('barao')
       if (data.config) {
-        const providerKey = data.config.provider || 'deepseek'
-        const meta = PROVIDERS_META[providerKey] || PROVIDERS_META.deepseek
-
         setConfig({
           name: data.config.assistantName || data.config.name || 'Barão',
-          provider: providerKey,
-          model: data.config.model || meta.defaultModel,
-          orchestratorModel: data.config.orchestratorModel || 'deepseek-chat',
-          senderModel: data.config.senderModel || 'deepseek-chat',
-          baseUrl: data.config.baseUrl || meta.defaultBaseUrl,
-          city: data.config.city || '',
+          model: data.config.model ?? '',
+          orchestratorModel: data.config.orchestratorModel ?? '',
+          senderModel: data.config.senderModel ?? '',
+          city: data.config.city ?? '',
           country: data.config.country || data.config.location || '',
           timezone: data.config.timezone || 'Europe/Brussels',
         })
@@ -322,27 +96,26 @@ export const ConfigView: React.FC = () => {
     } catch {}
   }
 
-  const handleProviderChange = (newProvider: string) => {
-    const meta = PROVIDERS_META[newProvider] || PROVIDERS_META.deepseek
-    setConfig((prev) => ({
-      ...prev,
-      provider: newProvider,
-      model: meta.defaultModel,
-      baseUrl: meta.defaultBaseUrl,
-    }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!config.model || !config.orchestratorModel || !config.senderModel) {
+      setToast({ text: t('modelRequired') || 'Selecione os três modelos (worker, orchestrator, sender).', type: 'error' })
+      setTimeout(() => setToast(null), 3000)
+      return
+    }
     setIsSaving(true)
     try {
-      const payload: any = { ...config }
-      if (newApiKey.trim()) {
-        payload.apiKey = newApiKey.trim()
-      }
-      await ApiClient.saveConfig('barao', payload)
+      await ApiClient.saveConfig('barao', {
+        name: config.name,
+        assistantName: config.name,
+        model: config.model,
+        orchestratorModel: config.orchestratorModel,
+        senderModel: config.senderModel,
+        city: config.city,
+        country: config.country,
+        timezone: config.timezone,
+      })
       setToast({ text: t('savedSuccess'), type: 'success' })
-      setNewApiKey('')
       await loadConfig()
       setTimeout(() => setToast(null), 3000)
     } catch {
@@ -353,32 +126,21 @@ export const ConfigView: React.FC = () => {
     }
   }
 
-  const currentProviderMeta = PROVIDERS_META[config.provider] || PROVIDERS_META.deepseek
-  const availableModels = currentProviderMeta.models
-  const activeKeyInfo = keysStatus[config.provider] || { hasKey: false, masked: '' }
+  const usedProviderIds = useMemo(
+    () => providersForModels(providers, [config.model, config.orchestratorModel, config.senderModel]),
+    [providers, config.model, config.orchestratorModel, config.senderModel]
+  )
 
-  const selectedModelObj = availableModels.find((m) => m.id === config.model) || availableModels[0] || {
-    id: config.model,
-    label: config.model,
-    pricing: {
-      inputPerMillion: 0.44,
-      outputPerMillion: 1.32,
-      cacheWritePerMillion: 0.44,
-      cacheHitPerMillion: 0.014,
-      contextWindow: '128k',
-      savingsPct: 97,
-    },
-  }
+  const roleModels = [
+    { key: 'worker', label: 'Worker', modelId: config.model, color: 'text-sky-500' },
+    { key: 'orchestrator', label: 'Orquestrador', modelId: config.orchestratorModel, color: 'text-purple-500' },
+    { key: 'sender', label: 'Sender', modelId: config.senderModel, color: 'text-emerald-500' },
+  ] as const
 
-  const pricing = selectedModelObj.pricing
-
-  const inputBrl = pricing.inputPerMillion * usdToBrlRate
-  const outputBrl = pricing.outputPerMillion * usdToBrlRate
-  const cacheWriteBrl = pricing.cacheWritePerMillion * usdToBrlRate
-  const cacheHitBrl = pricing.cacheHitPerMillion * usdToBrlRate
+  const missingKeys = usedProviderIds.filter((pid) => !keysStatus[pid]?.hasKey)
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {toast && (
         <div
           className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
@@ -392,20 +154,13 @@ export const ConfigView: React.FC = () => {
         </div>
       )}
 
-      <PageHeader
-        icon={<Sliders className="w-5 h-5" />}
-        title={t('title')}
-        subtitle={t('subtitle')}
-      />
+      <PageHeader icon={<Sliders className="w-5 h-5" />} title={t('title')} subtitle={t('subtitle')} />
 
       <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Assistant Name */}
             <div>
-              <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
-                {t('assistantName')}
-              </label>
+              <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">{t('assistantName')}</label>
               <input
                 type="text"
                 className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
@@ -415,7 +170,6 @@ export const ConfigView: React.FC = () => {
               />
             </div>
 
-            {/* User City, Country & Timezone (100% i18n) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
@@ -430,7 +184,6 @@ export const ConfigView: React.FC = () => {
                   placeholder={t('cityPlaceholder')}
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-amber-500" />
@@ -444,7 +197,6 @@ export const ConfigView: React.FC = () => {
                   placeholder={t('countryPlaceholder')}
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
@@ -460,238 +212,140 @@ export const ConfigView: React.FC = () => {
               </div>
             </div>
 
-            {/* Provider Selector */}
-            <div>
-              <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
-                {t('provider')}
-              </label>
-              <select
-                className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer font-mono"
-                value={config.provider}
-                onChange={(e) => handleProviderChange(e.target.value)}
-              >
-                {Object.entries(PROVIDERS_META).map(([key, meta]) => (
-                  <option key={key} value={key}>
-                    {meta.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Multi-Agent Role Model Routing Section */}
+            {/* Roteamento por papel — cada modelo é independente */}
             <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 space-y-4">
               <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-sky-500" />
                 <span className="text-xs font-bold text-[var(--text-main)]">
-                  Roteamento de Modelos por Papel no Sistema Multi-Agente
+                  Roteamento de modelos por papel
                 </span>
               </div>
+              <p className="text-[10px] text-[var(--text-dim)] -mt-2">
+                Cada papel pode usar um modelo (e provider) diferente. O catálogo vem de Modelos LLM.
+              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* 1. Orchestrator Model */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
-                    Modelo do Orquestrador (Triagem & Raciocínio)
+                    Worker (execução & tools)
                   </label>
-                  <select
+                  <ModelSelect
+                    providers={providers}
+                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    value={config.model}
+                    onChange={(model) => setConfig({ ...config, model })}
+                    disabled={isLoadingModels}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                    Orquestrador (triagem)
+                  </label>
+                  <ModelSelect
+                    providers={providers}
                     className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
                     value={config.orchestratorModel}
-                    onChange={(e) => setConfig({ ...config, orchestratorModel: e.target.value })}
-                  >
-                    {Object.entries(PROVIDERS_META).map(([pKey, pMeta]) => (
-                      <optgroup key={pKey} label={pMeta.name}>
-                        {pMeta.models.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  <span className="text-[10px] text-[var(--text-dim)] mt-1 block">
-                    Ideal: modelos ultra-rápidos para triage, deconstrução e fast-path.
-                  </span>
+                    onChange={(orchestratorModel) => setConfig({ ...config, orchestratorModel })}
+                    disabled={isLoadingModels}
+                  />
                 </div>
-
-                {/* 2. Sender Model */}
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
-                    Modelo do Sender (Persona & Alma do Barão)
+                    Sender (persona & resposta)
                   </label>
-                  <select
+                  <ModelSelect
+                    providers={providers}
                     className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
                     value={config.senderModel}
-                    onChange={(e) => setConfig({ ...config, senderModel: e.target.value })}
-                  >
-                    {Object.entries(PROVIDERS_META).map(([pKey, pMeta]) => (
-                      <optgroup key={pKey} label={pMeta.name}>
-                        {pMeta.models.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  <span className="text-[10px] text-[var(--text-dim)] mt-1 block">
-                    Ideal: modelos com alta expressividade, tom de voz e síntese executiva.
-                  </span>
+                    onChange={(senderModel) => setConfig({ ...config, senderModel })}
+                    disabled={isLoadingModels}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Live Token Pricing & Cache Parameters Panel */}
+            {/* Status de credenciais (somente leitura) */}
+            <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-[var(--text-main)]">{t('credentialsTitle')}</span>
+                </div>
+                <a
+                  href="#models"
+                  className="text-[10px] font-bold text-sky-500 hover:text-sky-400 flex items-center gap-1"
+                >
+                  {t('manageKeys')}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <p className="text-[10px] text-[var(--text-dim)]">{t('credentialsHint')}</p>
+              <div className="flex flex-wrap gap-2">
+                {usedProviderIds.map((pid) => {
+                  const meta = providers[pid]
+                  const keyInfo = keysStatus[pid] || { hasKey: false, masked: '' }
+                  return (
+                    <div
+                      key={pid}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)]"
+                    >
+                      <span className="text-xs font-medium text-[var(--text-main)]">{meta?.name || pid}</span>
+                      {keyInfo.hasKey ? (
+                        <Badge variant="success" className="text-[9px]">
+                          <Check className="w-2.5 h-2.5" />
+                          {t('keyOk')}
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" className="text-[9px] bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300">
+                          <AlertCircle className="w-2.5 h-2.5" />
+                          {t('keyMissing')}
+                        </Badge>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {missingKeys.length > 0 && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                  Providers sem chave: {missingKeys.map((id) => providers[id]?.name || id).join(', ')}. Configure em
+                  Modelos LLM antes de usar esses modelos.
+                </p>
+              )}
+            </div>
+
+            {/* Custos por papel */}
             <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-bold text-[var(--text-main)]">
-                    Parâmetros de Tokens & Custos ({selectedModelObj.label.split(' ')[0]})
-                  </span>
+                  <span className="text-xs font-bold text-[var(--text-main)]">Custos por papel (referência)</span>
                 </div>
                 <span className="text-[10px] font-mono text-[var(--text-dim)]">
-                  Câmbio ref: 1 USD = R$ {usdToBrlRate.toFixed(2)}
+                  1 USD = R$ {usdToBrlRate.toFixed(2)}
                 </span>
               </div>
-
-              {/* 4 Metrics Grid: Token In, Token Out, Cache In / Write, Cache Out / Read */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* 1. Token In */}
-                <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400 mb-1">
-                    <ArrowDownToLine className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Token In</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-[var(--text-main)] font-mono">
-                      ${pricing.inputPerMillion.toFixed(3)}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {roleModels.map((role) => {
+                  const modelObj = findModelInProviders(providers, role.modelId)
+                  const pricing = modelObj?.pricing || DEFAULT_PRICING
+                  return (
+                    <div
+                      key={role.key}
+                      className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl space-y-1"
+                    >
+                      <div className={`text-[10px] font-bold uppercase tracking-wider ${role.color}`}>{role.label}</div>
+                      <div className="text-[10px] font-mono text-[var(--text-dim)] truncate">{role.modelId}</div>
+                      <div className="text-xs font-mono text-[var(--text-main)]">
+                        in ${pricing.inputPerMillion.toFixed(3)} · out ${pricing.outputPerMillion.toFixed(3)}
+                      </div>
+                      <div className="text-[10px] text-[var(--text-dim)] font-mono">
+                        ~R$ {(pricing.inputPerMillion * usdToBrlRate).toFixed(2)} / R${' '}
+                        {(pricing.outputPerMillion * usdToBrlRate).toFixed(2)} por 1M
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                      ~R$ {inputBrl.toFixed(2)} / 1M
-                    </div>
-                  </div>
-                  <span className="text-[9px] text-[var(--text-dim)] mt-1.5 block border-t border-[var(--border-main)] pt-1">
-                    Entrada s/ cache
-                  </span>
-                </div>
-
-                {/* 2. Token Out */}
-                <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 mb-1">
-                    <ArrowUpFromLine className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Token Out</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-[var(--text-main)] font-mono">
-                      ${pricing.outputPerMillion.toFixed(3)}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                      ~R$ {outputBrl.toFixed(2)} / 1M
-                    </div>
-                  </div>
-                  <span className="text-[9px] text-[var(--text-dim)] mt-1.5 block border-t border-[var(--border-main)] pt-1">
-                    Geração resposta
-                  </span>
-                </div>
-
-                {/* 3. Cache In / Write */}
-                <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
-                    <Database className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Cache In</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-[var(--text-main)] font-mono">
-                      ${pricing.cacheWritePerMillion.toFixed(3)}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                      ~R$ {cacheWriteBrl.toFixed(2)} / 1M
-                    </div>
-                  </div>
-                  <span className="text-[9px] text-[var(--text-dim)] mt-1.5 block border-t border-[var(--border-main)] pt-1">
-                    Gravação / Write
-                  </span>
-                </div>
-
-                {/* 4. Cache Out / Read (Hit) */}
-                <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl flex flex-col justify-between ring-1 ring-emerald-500/20">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
-                    <Target className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Cache Out</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300 font-mono">
-                      ${pricing.cacheHitPerMillion.toFixed(3)}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-mono">
-                      ~R$ {cacheHitBrl.toFixed(2)} / 1M
-                    </div>
-                  </div>
-                  <span className="text-[9px] text-emerald-800 dark:text-emerald-300 font-bold mt-1.5 block border-t border-[var(--border-main)] pt-1">
-                    {pricing.savingsPct ? `-${pricing.savingsPct}% desconto` : 'Leitura / Hit'}
-                  </span>
-                </div>
+                  )
+                })}
               </div>
-            </div>
-
-            {/* API Key Input */}
-            <div>
-              <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
-                {t('apiKeyStatus')}
-              </label>
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                {activeKeyInfo.hasKey ? (
-                  <>
-                    <Badge variant="success">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>{t('keyConfigured')}</span>
-                    </Badge>
-                    <code className="text-xs font-mono text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded border border-[var(--accent-border)] font-bold">
-                      {activeKeyInfo.masked}
-                    </code>
-                  </>
-                ) : (
-                  <Badge variant="warning" className="bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>Nenhuma chave configurada para {currentProviderMeta.name}</span>
-                  </Badge>
-                )}
-              </div>
-              <input
-                type="password"
-                className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] font-mono focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder={t('keyPlaceholder')}
-                autoComplete="off"
-              />
-            </div>
-
-            {/* Advanced Base URL Toggle (Automated by default) */}
-            <div className="pt-2 border-t border-[var(--border-main)]">
-              <button
-                type="button"
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-1.5 cursor-pointer font-medium"
-                onClick={() => setShowAdvancedUrl(!showAdvancedUrl)}
-              >
-                {showAdvancedUrl ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                <span>Endpoint de API ({config.baseUrl})</span>
-              </button>
-
-              {showAdvancedUrl && (
-                <div className="mt-3 animate-in fade-in">
-                  <label className="block text-[11px] font-bold text-[var(--text-dim)] mb-1">
-                    Custom Base URL (Preenchido automaticamente)
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3.5 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] font-mono focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    value={config.baseUrl}
-                    onChange={(e) => setConfig({ ...config, baseUrl: e.target.value })}
-                    placeholder={currentProviderMeta.defaultBaseUrl}
-                  />
-                </div>
-              )}
             </div>
 
             <Button type="submit" disabled={isSaving} className="mt-2 gap-2 h-10 px-6 font-bold shadow-xs cursor-pointer">

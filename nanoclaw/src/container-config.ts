@@ -14,6 +14,7 @@ import path from 'path';
 import { GROUPS_DIR, TIMEZONE } from './config.js';
 import { getContainerConfig } from './db/container-configs.js';
 import { getAgentGroup } from './db/agent-groups.js';
+import { readMaterializedLlmRegistry, materializeLlmModelsJson } from './llm-models-materialize.js';
 import { isValidTimezone } from './timezone.js';
 import { log } from './log.js';
 import type { AgentGroup, ContainerConfigRow } from './types.js';
@@ -250,6 +251,8 @@ export interface ContainerConfig {
   model?: string;
   effort?: string;
   timezone?: string;
+  orchestratorModel?: string;
+  senderModel?: string;
 }
 
 /**
@@ -330,6 +333,8 @@ export function configFromDb(row: ContainerConfigRow, group: AgentGroup): Contai
     model: row.model ?? undefined,
     effort: row.effort ?? undefined,
     timezone: row.timezone && isValidTimezone(row.timezone) ? row.timezone : undefined,
+    orchestratorModel: row.orchestrator_model ?? undefined,
+    senderModel: row.sender_model ?? undefined,
   };
 }
 
@@ -351,6 +356,14 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
   const dir = path.dirname(p);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(p, JSON.stringify(config, null, 2) + '\n');
+
+  try {
+    const registry = readMaterializedLlmRegistry() ?? materializeLlmModelsJson();
+    const modelsPath = path.join(GROUPS_DIR, group.folder, 'llm-models.json');
+    fs.writeFileSync(modelsPath, JSON.stringify(registry, null, 2) + '\n');
+  } catch {
+    // Non-fatal — container falls back to last-known registry file if present
+  }
 
   return config;
 }

@@ -20,6 +20,9 @@ import { migration018 } from './018-approvals-approver-user-id.js';
 import { migration019 } from './019-wiring-threads.js';
 import { migration020 } from './020-container-config-timezone.js';
 import { migration021 } from './021-approval-question.js';
+import { migration022 } from './022-container-config-role-models.js';
+import { migration023 } from './023-llm-models-registry.js';
+import { migration024 } from './024-llm-inference-config.js';
 
 export interface Migration {
   version: number;
@@ -64,6 +67,9 @@ export const migrations: Migration[] = [
   migration019,
   migration020,
   migration021,
+  migration022,
+  migration023,
+  migration024,
 ];
 
 /**

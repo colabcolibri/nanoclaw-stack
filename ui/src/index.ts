@@ -19,13 +19,25 @@ serve({
     let filePath = path.join(PUBLIC_DIR, url.pathname === "/" ? "index.html" : url.pathname);
 
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      return new Response(Bun.file(filePath));
+      const isHtml = filePath.endsWith("index.html");
+      const isHashedAsset = /\/assets\/.*\.[a-f0-9]+\.(js|css)$/.test(filePath);
+      return new Response(Bun.file(filePath), {
+        headers: {
+          "Cache-Control": isHtml
+            ? "no-cache, no-store, must-revalidate"
+            : isHashedAsset
+              ? "public, max-age=31536000, immutable"
+              : "public, max-age=3600",
+        },
+      });
     }
 
     // SPA Fallback
     const indexFile = path.join(PUBLIC_DIR, "index.html");
     if (fs.existsSync(indexFile)) {
-      return new Response(Bun.file(indexFile));
+      return new Response(Bun.file(indexFile), {
+        headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+      });
     }
 
     return new Response("Not Found", { status: 404 });

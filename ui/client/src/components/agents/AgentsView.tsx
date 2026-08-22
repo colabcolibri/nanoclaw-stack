@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react'
 import { ApiClient, type AgentItem, type DepartmentItem, type SkillItem } from '@/api/client'
+import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AgentDetailsDrawer } from './AgentDetailsDrawer'
@@ -136,42 +137,26 @@ export const AgentsView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-5 w-full text-[var(--text-main)] flex-1">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-main)] pb-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 flex items-center justify-center shadow-xs">
-              <Bot className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Agentes & Departamentos</h1>
-              <p className="text-xs text-[var(--text-muted)]">
-                Estrutura modular multi-agente: o Orquestrador raciocina por departamento e delega a especialistas com skills isoladas.
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="flex flex-col gap-5 w-full text-[var(--text-main)] flex-1 min-h-0">
+      <PageHeader
+        icon={<Bot className="w-5 h-5" />}
+        title="Agentes & departamentos"
+        subtitle="Estrutura modular multi-agente: o orquestrador raciocina por departamento e delega a especialistas com skills isoladas."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="text-xs h-8">
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button variant="default" size="sm" onClick={() => setIsCreateModalOpen(true)} className="text-xs h-8">
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Novo agente
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="text-xs h-8">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-sky-600 hover:bg-sky-700 text-white text-xs h-8"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Novo Agente
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Two-Column Master-Detail Layout */}
-      <div className="flex flex-col md:flex-row items-start gap-6 flex-1 min-h-[520px]">
+      <div className="flex flex-col md:flex-row items-start gap-5 flex-1 min-h-0">
         {/* Left Column: Lateral Department Menu */}
         <div className="w-full md:w-72 shrink-0 flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
