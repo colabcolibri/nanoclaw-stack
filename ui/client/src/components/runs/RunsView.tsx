@@ -144,7 +144,7 @@ export const RunsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        title="Execuções & histórico de runs"
+        view="runs"
         subtitle="Auditoria completa e telemetria de disparos de cron, execuções de ferramentas e turnos do assistente."
         actions={
           <Button

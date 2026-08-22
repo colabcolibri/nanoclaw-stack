@@ -183,11 +183,11 @@ export async function performBrowseUrl(targetUrl: string): Promise<string> {
 export const webSearchTool: AgentTool = {
   domain: 'web_research',
   definition: WEB_SEARCH_TOOL,
-  execute: async (args: any) => performWebSearch(args.query, args.max_results),
+  execute: async (args: any, _cwd: string) => performWebSearch(args.query, args.max_results),
 };
 
 export const browseUrlTool: AgentTool = {
   domain: 'web_research',
   definition: BROWSE_URL_TOOL,
-  execute: async (args: any) => performBrowseUrl(args.url),
+  execute: async (args: any, _cwd: string) => performBrowseUrl(args.url),
 };

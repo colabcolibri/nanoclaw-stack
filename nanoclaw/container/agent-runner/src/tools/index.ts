@@ -30,13 +30,13 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   web_research: {
     domain: 'web_research',
     definition: WEB_RESEARCH_TOOL,
-    execute: async (args: any) => webSearchTool.execute(args),
+    execute: async (args: any, cwd: string) => webSearchTool.execute(args, cwd),
   },
   browse_url: browseUrlTool,
   retrieve_message_context: {
     domain: 'runtime_meta',
     definition: RETRIEVE_MESSAGE_CONTEXT_TOOL,
-    execute: async (args: any) => handleRetrieveMessageContext(args),
+    execute: async (args: any, _cwd: string) => handleRetrieveMessageContext(args),
   },
   load_skill: {
     domain: 'runtime_meta',

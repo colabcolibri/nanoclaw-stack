@@ -31,6 +31,7 @@
     --shadow-card: none;
     --radius-card: 0.75rem;
     --sidebar-width: 17.5rem;
+    --sidebar-width-collapsed: 4rem;
     --topbar-height: 3.5rem;
     --content-max: 80rem;
     --terminal-bg: #f1f5f9;

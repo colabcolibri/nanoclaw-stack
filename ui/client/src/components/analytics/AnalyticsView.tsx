@@ -101,7 +101,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     <div className="flex flex-col gap-6 relative w-full">
       {/* Standard PageHeader */}
       <PageHeader
-        title="Extrato & consumo de tokens"
+        view="usage"
         subtitle="Monitore a telemetria em tempo real, tokens de entrada/saída, modelos utilizados e custos discriminados."
         actions={
           <Button

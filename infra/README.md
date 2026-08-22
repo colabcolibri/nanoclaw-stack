@@ -12,6 +12,8 @@ This directory contains system-level operational playbooks, architecture specifi
 | **[MACOS_INTEGRATION.md](file:///opt/nanoclaw-stack/infra/MACOS_INTEGRATION.md)** | Apple Shortcuts setup, global keyboard hotkeys, Siri integration, and SQLite channel isolation. |
 | **[SERVICES.md](file:///opt/nanoclaw-stack/infra/SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
 | **[MAINTENANCE.md](file:///opt/nanoclaw-stack/infra/MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
+| **[DEV-LOCAL.md](../docs/DEV-LOCAL.md)** | Desenvolvimento local (UI/motor), quando o Docker é obrigatório. |
+| **[DEPLOY.md](../docs/DEPLOY.md)** | Deploy automático (GitHub Actions → SSH), Docker no Hostinger, secrets. |
 | **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, TurnOrchestrator architecture, and response normalization. |
 | **[WHISPER.md](file:///opt/nanoclaw-stack/infra/WHISPER.md)** | Self-hosted audio transcription service configuration and media pipeline. |
 

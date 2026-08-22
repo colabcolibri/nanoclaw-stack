@@ -39,7 +39,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       {/* Reusable PageHeader Template */}
       <PageHeader
         title={t('title')}
-        subtitle="Histórico ordenado das interações com o Barão (mais recentes no topo)."
+        subtitle={t('subtitle')}
         actions={
           <>
             <ChannelFilterBar

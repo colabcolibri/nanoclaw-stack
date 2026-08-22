@@ -133,7 +133,7 @@ export const SchedulesView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
-        title="Agendamentos & rotinas ativas"
+        view="schedules"
         subtitle="Gerenciamento de rotinas recorrentes (cron), watchdogs periódicos e tarefas autônomas ativas."
         actions={
           <Button

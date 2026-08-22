@@ -35,6 +35,8 @@ ui/
 
 ## 🚀 Running Locally or in Production
 
+Guia completo (Docker, `NANOCLAW_PATH`, deploy): [docs/DEV-LOCAL.md](../docs/DEV-LOCAL.md)
+
 ```bash
 # 1. Install dependencies
 bun install

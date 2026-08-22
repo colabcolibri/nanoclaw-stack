@@ -65,7 +65,13 @@ nanoclaw-stack/
     ├── MACOS_INTEGRATION.md       # Apple Shortcuts, Siri, and macOS channel guide
     ├── DEEPSEEK.md                # Model connector & orchestrator specs
     ├── SERVICES.md                # Service topologies and port mappings
-    └── MAINTENANCE.md             # Backup strategies and update workflows
+    ├── MAINTENANCE.md             # Backup strategies and update workflows
+    ├── scripts/                   # deploy-stack.sh, ensure-docker.sh, build-agent-image-if-needed.sh
+    └── systemd/                   # Reference unit files (nanoclaw.service)
+
+docs/                 # Operator guides (not application code)
+├── DEV-LOCAL.md        # Mac dev: UI, motor, when Docker is required
+└── DEPLOY.md           # Production deploy: GitHub Actions secrets, Hostinger, Docker
 ```
 
 ---
@@ -102,6 +108,8 @@ User Message (Text or Voice)
 
 ## 🚀 Quick Start
 
+> **Dev local:** [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) · **Deploy produção:** [docs/DEPLOY.md](docs/DEPLOY.md)
+
 ### 1. Launch Edge Routing & Microservices
 ```bash
 # Start Traefik (SSL) & Whisper (Audio Transcription)
@@ -125,9 +133,21 @@ pnpm start
 
 ---
 
+## 📚 Documentação
+
+| Guia | Conteúdo |
+| :--- | :--- |
+| [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) | Rodar UI e motor no Mac; quando precisa de Docker |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy automático (GitHub Actions → SSH → Hostinger); configurar secrets **no GitHub**, nunca no código |
+| [infra/MAINTENANCE.md](infra/MAINTENANCE.md) | Backup, logs, restart de serviços no servidor |
+
+**Segredos:** chaves de API, tokens OAuth, `.env` e `groups/` ficam só na máquina/servidor — estão no `.gitignore`. O repositório referencia nomes de variáveis (`DEPLOY_HOST`, `ALLOWED_EMAIL`, etc.), nunca valores reais.
+
+---
+
 ## 🔒 Privacy & Security
 
-* **Zero-Secret Commits**: All credentials, OAuth tokens (`google_tokens.json`, `notion_tokens.json`, `yampi_tokens.json`), databases (`v2.db`), and `.env` files are strictly isolated locally and guarded by comprehensive `.gitignore` rules.
+* **Zero-Secret Commits**: All credentials, OAuth tokens (`google_tokens.json`, `notion_tokens.json`, `yampi_tokens.json`), databases (`v2.db`), and `.env` files are strictly isolated locally and guarded by comprehensive `.gitignore` rules. GitHub Actions deploy uses **repository secrets** (`DEPLOY_HOST`, `DEPLOY_SSH_KEY`, etc.) configured in the GitHub UI — not committed to git.
 * **Sandboxed Execution**: Agent sessions run inside ephemeral, isolated Docker containers with strictly scoped filesystem boundaries.
 * **Payload Hygiene**: The `PayloadSanitizer` automatically purges base64 blobs, raw HTML, and transport headers before persisting execution state.
 

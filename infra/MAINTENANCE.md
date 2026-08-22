@@ -34,6 +34,8 @@ docker logs whisper-asr -f --tail 30
 
 ## 2. Safe Git Update Procedures
 
+> Desenvolvimento local: [docs/DEV-LOCAL.md](../docs/DEV-LOCAL.md) · Deploy automático: [docs/DEPLOY.md](../docs/DEPLOY.md)
+
 The infrastructure is designed so that your local configurations, state databases, and agent definitions are completely isolated from upstream repository updates:
 
 * **Protected Local Paths (Excluded from Git / Never Overwritten):**
@@ -43,12 +45,34 @@ The infrastructure is designed so that your local configurations, state database
   * `infra/` (Operational playbooks)
   * Local auxiliary services
 
-### Update Procedure:
+### Update Procedure (stack completo em `/opt/nanoclaw-stack`):
+
+**Automático:** push em `main` dispara GitHub Actions → SSH → `deploy-stack.sh`. Ver [docs/DEPLOY.md](../docs/DEPLOY.md).
+
+**Manual:**
+
 ```bash
+# No Mac (após commit local):
+./scripts/deploy.sh
+
+# Ou manualmente no servidor:
+cd /opt/nanoclaw-stack
+bash infra/scripts/deploy-stack.sh
+```
+
+O script no servidor faz `git reset --hard origin/main` (código = GitHub). Dados locais (`.env`, `data/`, `groups/`) não são tocados.
+
+### Componentes (se precisar só de um):
+
+```bash
+# Só motor
 cd /opt/nanoclaw-stack/nanoclaw
-git pull
 pnpm install
 systemctl restart nanoclaw.service
+
+# Só painel (com rebuild do client)
+cd /opt/nanoclaw-stack/ui/client && bun run build
+systemctl restart nanoclaw-uai.service
 ```
 
 ---

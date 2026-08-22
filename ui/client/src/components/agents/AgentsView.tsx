@@ -141,7 +141,7 @@ export const AgentsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 w-full text-[var(--text-main)] flex-1 min-h-0">
       <PageHeader
-        title="Agentes & departamentos"
+        view="agents"
         subtitle="Estrutura modular multi-agente: o orquestrador raciocina por departamento e delega a especialistas com skills isoladas."
         actions={
           <>

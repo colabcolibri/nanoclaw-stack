@@ -222,7 +222,6 @@ function AppContent() {
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Topbar
-          activeView={activeView}
           agentName={stats?.agentName || 'Barão'}
           isOnline={stats?.serviceStatus === 'Online'}
           isSidebarOpen={isSidebarOpen}

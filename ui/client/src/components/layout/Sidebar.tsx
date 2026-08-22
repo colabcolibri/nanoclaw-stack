@@ -55,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation('common')
+  const isCollapsed = !isOpen && !isMobile
 
   const navGroups: NavGroup[] = [
     {
@@ -93,22 +94,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        'flex h-screen flex-col border-r border-[var(--border-main)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-out',
-        'fixed inset-y-0 left-0 z-40 w-[var(--sidebar-width)] md:relative md:z-30 md:shrink-0',
-        isOpen
-          ? 'translate-x-0 md:w-[var(--sidebar-width)]'
-          : '-translate-x-full md:w-0 md:translate-x-0 md:border-r-0 md:overflow-hidden'
+        'fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[var(--border-main)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-out md:relative md:z-30 md:shrink-0',
+        isMobile
+          ? isOpen
+            ? 'w-[var(--sidebar-width)] translate-x-0'
+            : 'w-[var(--sidebar-width)] -translate-x-full'
+          : isOpen
+            ? 'w-[var(--sidebar-width)] translate-x-0'
+            : 'w-[var(--sidebar-width-collapsed)] translate-x-0'
       )}
     >
-      <div className="flex h-[var(--topbar-height)] shrink-0 items-center justify-between border-b border-[var(--border-main)] px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <div
+        className={cn(
+          'flex h-[var(--topbar-height)] shrink-0 items-center border-b border-[var(--border-main)]',
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        )}
+      >
+        <div className={cn('flex min-w-0 items-center', isCollapsed ? 'justify-center' : 'gap-3')}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]">
             <Zap className="h-4 w-4" />
           </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-[var(--text-main)]">{t('appName')}</div>
-            <div className="truncate text-[11px] text-[var(--text-dim)]">{t('appSubtitle')}</div>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-[var(--text-main)]">{t('appName')}</div>
+              <div className="truncate text-[11px] text-[var(--text-dim)]">{t('appSubtitle')}</div>
+            </div>
+          )}
         </div>
         {isMobile && isOpen && onClose && (
           <button
@@ -122,30 +133,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-6 overflow-y-auto p-3 w-[var(--sidebar-width)]">
+      <nav
+        className={cn(
+          'flex flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden p-2',
+          isCollapsed ? 'items-center' : 'gap-6 p-3'
+        )}
+      >
         {navGroups.map((group) => (
-          <div key={group.titleKey} className="flex flex-col gap-1">
-            <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
-              {t(group.titleKey)}
-            </div>
+          <div key={group.titleKey} className={cn('flex w-full flex-col gap-1', isCollapsed && 'items-center')}>
+            {!isCollapsed && (
+              <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
+                {t(group.titleKey)}
+              </div>
+            )}
             {group.items.map((item) => {
               const isActive = activeView === item.id
+              const label = t(item.labelKey)
               return (
                 <button
                   key={item.id}
                   type="button"
+                  title={isCollapsed ? label : undefined}
+                  aria-label={label}
                   onClick={() => onSelectView(item.id)}
                   className={cn(
-                    'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors',
+                    'flex items-center rounded-lg text-sm font-medium transition-colors',
+                    isCollapsed
+                      ? 'h-9 w-9 justify-center'
+                      : 'w-full gap-2.5 px-2.5 py-2 text-left',
                     isActive
                       ? 'bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]'
                       : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]'
                   )}
                 >
-                  <span className={isActive ? 'text-[var(--nav-active-text)]' : 'text-[var(--text-dim)]'}>
+                  <span
+                    className={cn(
+                      'shrink-0',
+                      isActive ? 'text-[var(--nav-active-text)]' : 'text-[var(--text-dim)]'
+                    )}
+                  >
                     {item.icon}
                   </span>
-                  <span className="truncate">{t(item.labelKey)}</span>
+                  {!isCollapsed && <span className="truncate">{label}</span>}
                 </button>
               )
             })}
@@ -153,11 +182,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      <div className="flex shrink-0 items-center justify-between border-t border-[var(--border-main)] px-4 py-3 text-[11px] text-[var(--text-dim)] w-[var(--sidebar-width)]">
-        <span className="font-mono">v2.0</span>
-        <span className="flex items-center gap-1.5">
+      <div
+        className={cn(
+          'flex shrink-0 items-center border-t border-[var(--border-main)] py-3 text-[11px] text-[var(--text-dim)]',
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        )}
+      >
+        {!isCollapsed && <span className="font-mono">v2.0</span>}
+        <span className="flex items-center gap-1.5" title="Sistema online">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          online
+          {!isCollapsed && <span>online</span>}
         </span>
       </div>
     </aside>

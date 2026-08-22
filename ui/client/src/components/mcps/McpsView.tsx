@@ -236,7 +236,7 @@ export const McpsView: React.FC = () => {
       )}
 
       <PageHeader
-        title="Contas, Serviços Conectados & Protocolo MCP"
+        view="mcps"
         subtitle="Gerencie as conexões oficiais do seu assistente (Google, Notion, Yampi, macOS, Correios) e servidores MCP."
         actions={
           <Button

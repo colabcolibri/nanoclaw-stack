@@ -139,7 +139,7 @@ export const SkillsView: React.FC = () => {
     <div className="flex flex-col gap-5 w-full flex-1">
       {/* Page Header */}
       <PageHeader
-        title="Ferramentas & habilidades"
+        view="skills"
         subtitle="Skills globais (disponíveis a todos os agentes) e especializadas (atribuídas a um agente específico)."
         actions={
           <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="h-8 text-xs">

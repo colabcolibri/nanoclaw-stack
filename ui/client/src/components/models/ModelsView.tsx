@@ -86,7 +86,7 @@ export const ModelsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 w-full flex-1 min-w-0">
       <PageHeader
-        title="Catálogo de modelos LLM"
+        view="models"
         subtitle="Catálogo versionado no código (nanoclaw/src/llm/catalog.ts). Aqui você só gerencia credenciais."
         actions={
           <Button variant="outline" size="sm" onClick={refreshRegistry} disabled={isLoading}>

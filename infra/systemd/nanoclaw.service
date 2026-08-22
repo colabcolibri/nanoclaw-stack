@@ -1,0 +1,21 @@
+[Unit]
+Description=NanoClaw Personal AI Assistant
+Documentation=file:///opt/nanoclaw-stack/infra/SERVICES.md
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nanoclaw-stack/nanoclaw
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/docker info
+ExecStart=/opt/nanoclaw-stack/nanoclaw/node_modules/.bin/tsx src/index.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
