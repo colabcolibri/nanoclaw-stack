@@ -4,21 +4,24 @@ import { ExecutionScratchpad } from "../src/orchestrator/scratchpad.js";
 import { PayloadSanitizer } from "../src/orchestrator/payload-sanitizer.js";
 import type { LLMResponse } from "../src/orchestrator/types.js";
 
-describe("TurnOrchestrator Two-Stage Pipeline & Execution Memory", () => {
-  test("Executes tool in Stage 1 and applies Persona in Stage 2 synthesis with ExecutionScratchpad", async () => {
+describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
+  test("Executes specialist worker in Stage 1 and applies Persona exclusively in Sender Agent with ExecutionScratchpad", async () => {
     let stage1ToolsPassed: any = null;
+    let stage1HadTechnicalPrompt = false;
     let stage2PersonaPresent: boolean = false;
     let stage2ReceivedFindings = false;
     let callCount = 0;
 
-    const mockComplete = async (messages: any[], enableTools: any): Promise<LLMResponse> => {
+    const mockComplete = async (messages: any[], enableTools: any, options: any): Promise<LLMResponse> => {
       callCount++;
 
       if (callCount === 1) {
-        // Stage 1 - tool execution
+        // Stage 1 - Specialist worker execution
         stage1ToolsPassed = enableTools;
         const sys = messages.find((m) => m.role === "system")?.content || "";
-        expect(sys).toContain("Mineiro Sarcástico");
+        if (sys.includes("agente especialista")) {
+          stage1HadTechnicalPrompt = true;
+        }
 
         return {
           content: "Vou verificar seus e-mails.",
@@ -36,20 +39,20 @@ describe("TurnOrchestrator Two-Stage Pipeline & Execution Memory", () => {
       }
 
       if (callCount === 2) {
-        // Stage 1 - loop iteration after tool run (concludes tools)
+        // Stage 1 - conclusion after tool execution
         return {
           content: "Encontrei os dados.",
         };
       }
 
-      // Stage 2 - Persona synthesis pass
+      // Stage 2 / Sender - Persona synthesis pass
       const sys = messages.find((m) => m.role === "system")?.content || "";
-      if (sys.includes("Mineiro Sarcástico")) {
+      if (sys.includes("Mineiro Sarcástico") || sys.includes("Barão")) {
         stage2PersonaPresent = true;
       }
 
       const userPrompt = messages.find((m) => m.role === "user")?.content || "";
-      if (userPrompt.includes("read_file") || userPrompt.includes("Dados Coletados")) {
+      if (userPrompt.includes("read_file") || userPrompt.includes("Resultados Técnicos")) {
         stage2ReceivedFindings = true;
       }
 
@@ -70,14 +73,15 @@ describe("TurnOrchestrator Two-Stage Pipeline & Execution Memory", () => {
 
     expect(result.toolsExecutedCount).toBe(1);
     expect(Array.isArray(stage1ToolsPassed)).toBe(true);
+    expect(stage1HadTechnicalPrompt).toBe(true);
     expect(stage2PersonaPresent).toBe(true);
     expect(stage2ReceivedFindings).toBe(true);
     expect(result.deliveredText).toContain("Ô sô, olhei o trem aqui");
   });
 
-  test("Direct conversation with zero tools completes in exactly 1 direct pass", async () => {
+  test("Direct conversation with zero tools completes in exactly 1 direct pass through Sender Agent", async () => {
     let directCalls = 0;
-    const mockComplete = async (messages: any[], enableTools: any): Promise<LLMResponse> => {
+    const mockComplete = async (messages: any[], enableTools: any, options: any): Promise<LLMResponse> => {
       directCalls++;
       expect(enableTools).toBe(false);
       return {
