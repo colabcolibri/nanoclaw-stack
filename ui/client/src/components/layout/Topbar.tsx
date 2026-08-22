@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, LogOut, Sun, Moon, PanelLeftClose, PanelLeft, Zap } from 'lucide-react'
+import { Globe, LogOut, Sun, Moon, PanelLeftClose, PanelRightOpen, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,12 +43,12 @@ export const Topbar: React.FC<TopbarProps> = ({
           size="icon"
           onClick={onToggleSidebar}
           className="text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)]"
-          title={isSidebarOpen ? 'Ocultar barra lateral' : 'Expandir barra lateral'}
+          title={isSidebarOpen ? 'Recolher barra lateral' : 'Expandir barra lateral'}
         >
           {isSidebarOpen ? (
             <PanelLeftClose className="w-5 h-5" />
           ) : (
-            <PanelLeft className="w-5 h-5" />
+            <PanelRightOpen className="w-5 h-5" />
           )}
         </Button>
 

@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Inteligência & Agentes',
       items: [
-        { id: 'agents', label: t('nav.agents'), icon: <Bot className="w-4 h-4" />, badge: 'Multi-Agent' },
+        { id: 'agents', label: t('nav.agents'), icon: <Bot className="w-4 h-4" /> },
         { id: 'soul', label: t('nav.soul'), icon: <Brain className="w-4 h-4" /> },
         { id: 'skills', label: t('nav.skills'), icon: <Sparkles className="w-4 h-4" /> },
         { id: 'mcps', label: t('nav.mcps'), icon: <Link2 className="w-4 h-4" /> },
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
     >
       {/* Top Sidebar Header with Branding & Logo */}
-      <div className="h-16 border-b border-[var(--border-main)] px-4 flex items-center justify-between shrink-0 bg-[var(--bg-sidebar)]">
+      <div className="h-16 border-b border-[var(--border-main)] px-4 flex items-center shrink-0 bg-[var(--bg-sidebar)]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 shadow-xs">
             <Zap className="w-4 h-4" />
@@ -109,16 +109,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </div>
         </div>
-
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] transition-colors"
-            title="Recolher barra lateral"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
       {/* Navigation List Grouped */}

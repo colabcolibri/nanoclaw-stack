@@ -60,6 +60,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
       setDescription(agent.description || '')
       setModel(agent.model || 'deepseek-chat')
       setAllowGlobalSkills(agent.allowGlobalSkills !== false)
+      // Normalize stored skill names to match whatever format the skill catalog uses
       setSelectedSkills(agent.skills || [])
       setSystemPrompt(agent.systemPrompt || '')
       setSaveSuccess(false)
@@ -128,7 +129,12 @@ allow_global_skills: ${allowGlobalSkills}
 model: ${model || 'deepseek-chat'}
 ---`
 
-  const assignedSkillObjects = availableSkills.filter((s) => selectedSkills.includes(s.name))
+  // Normalize both sides (agent stores google_gmail, catalog may list google-gmail or vice versa)
+  const norm = (s: string) => s.toLowerCase().replace(/-/g, '_')
+  const selectedNorm = new Set(selectedSkills.map(norm))
+  const isSkillSelected = (skillName: string) =>
+    selectedSkills.includes(skillName) || selectedNorm.has(norm(skillName))
+  const assignedSkillObjects = availableSkills.filter((s) => isSkillSelected(s.name))
 
   return (
     <div
@@ -323,8 +329,10 @@ model: ${model || 'deepseek-chat'}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl">
-                {availableSkills.map((sk) => {
-                  const isChecked = selectedSkills.includes(sk.name)
+                {availableSkills
+                .filter((sk) => !sk.isGlobal)
+                .map((sk) => {
+                  const isChecked = isSkillSelected(sk.name)
                   return (
                     <div
                       key={sk.name}
