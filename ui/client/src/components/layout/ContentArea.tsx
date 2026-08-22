@@ -24,7 +24,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   return (
     <div
       className={cn(
-        'w-full mx-auto flex flex-col flex-1 min-h-0',
+        'w-full mx-auto flex flex-col flex-1 min-h-0 min-w-0 max-w-full overflow-x-hidden',
         widthClasses[width],
         className
       )}

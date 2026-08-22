@@ -232,8 +232,8 @@ function AppContent() {
           showCurrency={showCurrency}
         />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto flex min-h-full max-w-[var(--content-max)] flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <div className="mx-auto flex min-h-full w-full min-w-0 max-w-[var(--content-max)] flex-col gap-6 p-4 sm:p-6 lg:p-8">
             {showStats && <StatsGrid stats={stats} currency={currency} />}
 
             <ContentArea width={getViewContentWidth(activeView)} className="gap-5">
