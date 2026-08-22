@@ -78,6 +78,8 @@ export interface SkillItem {
   name: string
   description: string
   enabled: boolean
+  isGlobal?: boolean
+  usedByAgents?: string[]
   skillMdContent: string
   skillMdChars?: number
   skillMdTokens?: number
@@ -89,6 +91,30 @@ export interface SkillItem {
   scriptsTokens?: number
   totalChars?: number
   totalTokens?: number
+}
+
+export interface DepartmentItem {
+  id: string
+  name: string
+  description: string
+  icon?: string
+}
+
+export interface AgentItem {
+  id: string
+  name: string
+  department: string
+  role: string
+  description: string
+  skills: string[]
+  allowGlobalSkills: boolean
+  model?: string
+  systemPrompt: string
+  systemPromptChars?: number
+  systemPromptTokens?: number
+  rawYaml?: string
+  isCustom?: boolean
+  filePath?: string
 }
 
 export interface ScheduledTask {
@@ -372,6 +398,34 @@ export class ApiClient {
     return this.fetchJson('/api/channels/telegram/pair', {
       method: 'POST',
       body: JSON.stringify({ folder: group }),
+    })
+  }
+
+  static async getDepartmentsAndAgents(group = 'barao'): Promise<{ departments: DepartmentItem[]; agents: AgentItem[] }> {
+    return this.fetchJson(`/api/groups/${group}/agents`)
+  }
+
+  static async getAgent(group = 'barao', agentId: string): Promise<{ agent: AgentItem }> {
+    return this.fetchJson(`/api/groups/${group}/agents/${agentId}`)
+  }
+
+  static async saveAgent(group = 'barao', agentId: string, data: Partial<AgentItem>): Promise<{ success: boolean; agent?: AgentItem }> {
+    return this.fetchJson(`/api/groups/${group}/agents/${agentId}`, {
+      method: 'POST',
+      body: JSON.stringify({ id: agentId, ...data }),
+    })
+  }
+
+  static async createAgent(group = 'barao', data: Partial<AgentItem>): Promise<{ success: boolean; agent?: AgentItem }> {
+    return this.fetchJson(`/api/groups/${group}/agents`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  static async deleteAgent(group = 'barao', agentId: string): Promise<{ success: boolean }> {
+    return this.fetchJson(`/api/groups/${group}/agents/${agentId}`, {
+      method: 'DELETE',
     })
   }
 }

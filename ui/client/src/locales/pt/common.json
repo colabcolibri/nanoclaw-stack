@@ -29,7 +29,8 @@
   "nav": {
     "chat": "Conversas (Chat)",
     "usage": "Extrato & Consumo",
-    "soul": "Alma & Memória (Soul)",
+    "agents": "Agentes & Departamentos",
+    "soul": "Alma do Sender (Soul)",
     "skills": "Habilidades (Skills)",
     "mcps": "Integrações (MCP/OAuth)",
     "schedules": "Agendamentos (Cron)",

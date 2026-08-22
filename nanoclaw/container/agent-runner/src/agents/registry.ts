@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import type { Department, SpecialistAgent } from './types.js';
 import { ALL_TOOLS } from '../tools/index.js';
 import type { ToolDefinition } from '../tools/types.js';
@@ -5,6 +7,8 @@ import type { ToolDefinition } from '../tools/types.js';
 export class AgentRegistry {
   private static departments: Map<string, Department> = new Map();
   private static agents: Map<string, SpecialistAgent> = new Map();
+  private static lastScanTime = 0;
+  private static CACHE_TTL_MS = 10000;
 
   public static readonly GLOBAL_SKILLS: string[] = [
     'retrieve_message_context',
@@ -16,6 +20,7 @@ export class AgentRegistry {
 
   static {
     this.initializeDefaults();
+    this.discoverAgents();
   }
 
   static initializeDefaults(): void {
@@ -35,33 +40,6 @@ export class AgentRegistry {
       agentIds: ['productivity_attendant', 'notion_architect'],
     });
 
-    this.registerAgent({
-      id: 'productivity_attendant',
-      name: 'Atendente de Produtividade & Google Suite',
-      departmentId: 'productivity',
-      role: 'Especialista em e-mails (Gmail), reuniões e agendamentos de calendário (Google Calendar).',
-      description: 'Consulta, filtra e redige e-mails no Gmail e gerencia eventos na agenda do Google com precisão técnica.',
-      systemPrompt: `Você é um agente especialista em comunicação e produtividade executiva (Gmail & Google Calendar).
-Sua responsabilidade é consultar, processar e estruturar informações de e-mails e reuniões.
-Seja preciso, execute as ferramentas necessárias com os parâmetros corretos e colete os dados solicitados.
-Responda de forma técnica e estruturada com os dados encontrados. Não inclua cumprimentos vazios.`,
-      agentSkills: ['google_gmail', 'google_calendar', 'schedule_followup'],
-      allowGlobalSkills: true,
-    });
-
-    this.registerAgent({
-      id: 'notion_architect',
-      name: 'Especialista em Notion & Documentação',
-      departmentId: 'productivity',
-      role: 'Especialista em consultar e atualizar páginas, bancos de dados e tarefas no Notion.',
-      description: 'Busca notas, atualiza status de projetos e cadastra registros no Notion.',
-      systemPrompt: `Você é um agente especialista em Notion e gestão de conhecimento.
-Sua responsabilidade é interagir com as bases de dados e páginas do Notion para recuperar ou registrar informações.
-Retorne dados estruturados em JSON ou tabelas markdown limpas.`,
-      agentSkills: ['notion'],
-      allowGlobalSkills: true,
-    });
-
     // 2. Commerce & Logistics Department
     this.registerDepartment({
       id: 'commerce',
@@ -73,31 +51,6 @@ Retorne dados estruturados em JSON ou tabelas markdown limpas.`,
         'frete', 'correios', 'cep', 'sedex', 'pac', 'entrega', 'rastreio', 'envio', 'prazo',
       ],
       agentIds: ['store_attendant', 'pricing_logistics_agent'],
-    });
-
-    this.registerAgent({
-      id: 'store_attendant',
-      name: 'Atendente de E-Commerce Yampi',
-      departmentId: 'commerce',
-      role: 'Especialista em pedidos, clientes, status de transações e catálogo da loja Yampi.',
-      description: 'Consulta pedidos por número, nome de cliente ou status na plataforma Yampi.',
-      systemPrompt: `Você é um agente técnico especialista na plataforma de e-commerce Yampi.
-Consulte pedidos, valores, itens e status de rastreamento com total fidelidade aos dados da API.
-Forneça os relatórios brutos e estruturados sem suposições.`,
-      agentSkills: ['yampi_store'],
-      allowGlobalSkills: true,
-    });
-
-    this.registerAgent({
-      id: 'pricing_logistics_agent',
-      name: 'Calculador de Preços & Fretes',
-      departmentId: 'commerce',
-      role: 'Especialista em tabela de preços de revenda (Grok) e cálculo de frete oficial Correios.',
-      description: 'Calcula orçamentos com margens de revenda/atacado e calcula prazos/valores de frete SEDEX/PAC.',
-      systemPrompt: `Você é um agente analista de preços e logística de fretes.
-Utilize as tabelas oficiais de revenda e as cotações dos Correios para responder a cotações com exatidão matemática.`,
-      agentSkills: ['resale_pricing', 'correios_shipping'],
-      allowGlobalSkills: true,
     });
 
     // 3. Research & Intelligence Department
@@ -112,30 +65,6 @@ Utilize as tabelas oficiais de revenda e as cotações dos Correios para respond
       agentIds: ['web_researcher', 'system_metrics_agent'],
     });
 
-    this.registerAgent({
-      id: 'web_researcher',
-      name: 'Pesquisador Web & Fontes',
-      departmentId: 'research_intel',
-      role: 'Especialista em pesquisas na internet, sintetização de artigos e verificação de fontes.',
-      description: 'Executa buscas online e lê o conteúdo de URLs para responder com dados atualizados do mundo real.',
-      systemPrompt: `Você é um agente pesquisador especializado em varredura de informações online.
-Execute buscas direcionadas, acesse as URLs mais relevantes e resuma os fatos técnicos com citação de fontes.`,
-      agentSkills: ['web_search', 'web_research', 'browse_url'],
-      allowGlobalSkills: true,
-    });
-
-    this.registerAgent({
-      id: 'system_metrics_agent',
-      name: 'Monitor de Métricas & Custos',
-      departmentId: 'research_intel',
-      role: 'Especialista em auditoria de consumo de tokens, custos em BRL/USD e métricas do sistema.',
-      description: 'Consulta o livro-razão de tokens (TokenLedger) e relata os custos e taxas do modelo.',
-      systemPrompt: `Você é um agente auditor de telemetria e custos de IA.
-Consulte o TokenLedger para relatar o gasto de tokens e valores financeiros consolidados.`,
-      agentSkills: ['token_usage'],
-      allowGlobalSkills: true,
-    });
-
     // 4. General / Operations Department
     this.registerDepartment({
       id: 'operations',
@@ -146,18 +75,109 @@ Consulte o TokenLedger para relatar o gasto de tokens e valores financeiros cons
       ],
       agentIds: ['system_operator'],
     });
+  }
 
-    this.registerAgent({
-      id: 'system_operator',
-      name: 'Operador de Sistema & Arquivos',
-      departmentId: 'operations',
-      role: 'Especialista em inspeção de arquivos, diretórios e manutenção de memória contextual.',
-      description: 'Lê arquivos no ambiente local, gerencia itens na memória permanente e executa operações seguras.',
-      systemPrompt: `Você é um operador técnico de sistema.
-Execute leituras e manutenções de forma concisa e segura.`,
-      agentSkills: ['read_file', 'run_command', 'manage_memory'],
-      allowGlobalSkills: true,
-    });
+  /**
+   * Discovers and parses AGENT.md files from standard filesystem locations.
+   */
+  static discoverAgents(cwd?: string): SpecialistAgent[] {
+    const now = Date.now();
+    if (this.agents.size > 0 && now - this.lastScanTime < this.CACHE_TTL_MS && !cwd) {
+      return Array.from(this.agents.values());
+    }
+
+    const candidateDirs = [
+      '/app/agents',
+      path.join(process.cwd(), 'agents'),
+      path.join(process.cwd(), 'container', 'agents'),
+      path.join(process.cwd(), '..', 'container', 'agents'),
+      '/opt/nanoclaw-stack/nanoclaw/container/agents',
+    ];
+
+    if (cwd) {
+      candidateDirs.unshift(path.join(cwd, 'agents'));
+      candidateDirs.unshift('/workspace/agent/agents');
+    }
+
+    for (const baseDir of candidateDirs) {
+      try {
+        if (!fs.existsSync(baseDir)) continue;
+        const entries = fs.readdirSync(baseDir);
+
+        for (const entry of entries) {
+          const agentDir = path.join(baseDir, entry);
+          const stat = fs.statSync(agentDir);
+          if (!stat.isDirectory()) continue;
+
+          const agentMdPath = path.join(agentDir, 'AGENT.md');
+          if (fs.existsSync(agentMdPath)) {
+            const parsed = this.parseAgentFile(agentMdPath);
+            if (parsed) {
+              this.registerAgent(parsed);
+            }
+          }
+        }
+      } catch {}
+    }
+
+    this.lastScanTime = now;
+    return Array.from(this.agents.values());
+  }
+
+  /**
+   * Parses an AGENT.md file with YAML frontmatter + prompt body.
+   */
+  static parseAgentFile(filePath: string): SpecialistAgent | null {
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+
+      if (!frontmatterMatch) {
+        return null;
+      }
+
+      const rawYaml = frontmatterMatch[1];
+      const body = frontmatterMatch[2].trim();
+
+      const parseYamlField = (fieldName: string): string | undefined => {
+        const m = rawYaml.match(new RegExp(`^${fieldName}:\\s*(.+)$`, 'm'));
+        return m ? m[1].trim().replace(/^['"]|['"]$/g, '') : undefined;
+      };
+
+      const id = parseYamlField('id') || path.basename(path.dirname(filePath));
+      const name = parseYamlField('name') || id;
+      const departmentId = parseYamlField('department') || parseYamlField('departmentId') || 'general';
+      const role = parseYamlField('role') || 'Agente Especialista';
+      const description = parseYamlField('description') || role;
+      const model = parseYamlField('model');
+      const allowGlobalStr = parseYamlField('allow_global_skills');
+      const allowGlobalSkills = allowGlobalStr !== undefined ? allowGlobalStr === 'true' : true;
+
+      // Parse skills list
+      const skills: string[] = [];
+      const skillsSection = rawYaml.match(/skills:\s*\n((?:\s*-\s*.+\n?)+)/);
+      if (skillsSection && skillsSection[1]) {
+        const lines = skillsSection[1].split('\n');
+        for (const line of lines) {
+          const item = line.replace(/^\s*-\s*/, '').trim().replace(/^['"]|['"]$/g, '');
+          if (item) skills.push(item);
+        }
+      }
+
+      return {
+        id,
+        name,
+        departmentId,
+        role,
+        description,
+        systemPrompt: body,
+        agentSkills: skills,
+        allowGlobalSkills,
+        model,
+      };
+    } catch {
+      return null;
+    }
   }
 
   static registerDepartment(dept: Department): void {
@@ -166,21 +186,35 @@ Execute leituras e manutenções de forma concisa e segura.`,
 
   static registerAgent(agent: SpecialistAgent): void {
     this.agents.set(agent.id, agent);
-    const dept = this.departments.get(agent.departmentId);
-    if (dept && !dept.agentIds.includes(agent.id)) {
+    let dept = this.departments.get(agent.departmentId);
+    if (!dept) {
+      // Auto-create department if not yet defined
+      dept = {
+        id: agent.departmentId,
+        name: agent.departmentId.toUpperCase(),
+        description: `Departamento ${agent.departmentId}`,
+        keywords: [agent.departmentId],
+        agentIds: [],
+      };
+      this.departments.set(agent.departmentId, dept);
+    }
+    if (!dept.agentIds.includes(agent.id)) {
       dept.agentIds.push(agent.id);
     }
   }
 
-  static getDepartments(): Department[] {
+  static getDepartments(cwd?: string): Department[] {
+    this.discoverAgents(cwd);
     return Array.from(this.departments.values());
   }
 
-  static getDepartment(id: string): Department | null {
+  static getDepartment(id: string, cwd?: string): Department | null {
+    this.discoverAgents(cwd);
     return this.departments.get(id) || null;
   }
 
-  static getAgentsInDepartment(deptId: string): SpecialistAgent[] {
+  static getAgentsInDepartment(deptId: string, cwd?: string): SpecialistAgent[] {
+    this.discoverAgents(cwd);
     const dept = this.departments.get(deptId);
     if (!dept) return [];
     return dept.agentIds
@@ -188,11 +222,13 @@ Execute leituras e manutenções de forma concisa e segura.`,
       .filter((a): a is SpecialistAgent => Boolean(a));
   }
 
-  static getAgent(id: string): SpecialistAgent | null {
+  static getAgent(id: string, cwd?: string): SpecialistAgent | null {
+    this.discoverAgents(cwd);
     return this.agents.get(id) || null;
   }
 
-  static getAllAgents(): SpecialistAgent[] {
+  static getAllAgents(cwd?: string): SpecialistAgent[] {
+    this.discoverAgents(cwd);
     return Array.from(this.agents.values());
   }
 
@@ -200,8 +236,8 @@ Execute leituras e manutenções de forma concisa e segura.`,
    * Resolves the available tool definitions for a specific specialist agent.
    * Encapsulates agent-specific skills and selectively attaches global utility skills.
    */
-  static getToolsForAgent(agentId: string): ToolDefinition[] {
-    const agent = this.agents.get(agentId);
+  static getToolsForAgent(agentId: string, cwd?: string): ToolDefinition[] {
+    const agent = this.getAgent(agentId, cwd);
     if (!agent) return [];
 
     const allowedToolNames = new Set<string>(agent.agentSkills);
@@ -220,13 +256,8 @@ Execute leituras e manutenções de forma concisa e segura.`,
     return tools;
   }
 
-  /**
-   * Generates a compact Department Summary Prompt (~60 tokens)
-   * The Orchestrator receives ONLY department summaries instead of dozens of agents,
-   * keeping the top-level reasoning scalable and token-efficient.
-   */
-  static getDepartmentCatalogPrompt(): string {
-    const depts = this.getDepartments();
+  static getDepartmentCatalogPrompt(cwd?: string): string {
+    const depts = this.getDepartments(cwd);
     const lines = ['## Departamentos Especializados Disponíveis:'];
     for (const d of depts) {
       lines.push(`- **[${d.id}]** ${d.name}: ${d.description}`);
@@ -234,11 +265,8 @@ Execute leituras e manutenções de forma concisa e segura.`,
     return lines.join('\n');
   }
 
-  /**
-   * Generates a compact summary of the agents within a specific department (~40 tokens).
-   */
-  static getAgentsInDepartmentPrompt(deptId: string): string {
-    const agents = this.getAgentsInDepartment(deptId);
+  static getAgentsInDepartmentPrompt(deptId: string, cwd?: string): string {
+    const agents = this.getAgentsInDepartment(deptId, cwd);
     if (agents.length === 0) return 'Nenhum agente registrado neste departamento.';
     const lines = [`## Especialistas no Departamento [${deptId}]:`];
     for (const a of agents) {

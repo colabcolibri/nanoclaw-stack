@@ -26,4 +26,7 @@ export const CONFIG = {
   get SKILLS_PATH() {
     return path.join(this.NANOCLAW_PATH, "container", "skills");
   },
+  get AGENTS_PATH() {
+    return path.join(this.NANOCLAW_PATH, "container", "agents");
+  },
 };

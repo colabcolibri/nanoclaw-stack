@@ -27,9 +27,10 @@
   "status": "Status",
   "author": "Author",
   "nav": {
-    "chat": "Conversations (Chat)",
-    "usage": "Usage & Analytics",
-    "soul": "Soul & Memory",
+    "chat": "Chat & Messages",
+    "usage": "Token Ledger & Cost",
+    "agents": "Agents & Departments",
+    "soul": "Sender Soul & Persona",
     "skills": "Skills & Capabilities",
     "mcps": "Integrations (MCP/OAuth)",
     "schedules": "Schedules (Cron)",

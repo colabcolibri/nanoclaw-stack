@@ -227,6 +227,15 @@ export const SkillsView: React.FC = () => {
                         <CardTitle className="text-xs font-bold text-[var(--text-main)] font-mono">
                           {skill.name}
                         </CardTitle>
+                        {skill.isGlobal ? (
+                          <Badge variant="default" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-mono">
+                            Global
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] font-mono text-[var(--text-dim)]">
+                            Especializada
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Metrics and Files Badges */}

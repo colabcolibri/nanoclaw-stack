@@ -235,6 +235,36 @@ export class ApiRouter {
       return jsonResponse({ success: true });
     }
 
+    // Agents & Departments
+    const agentsMatch = url.pathname.match(/^\/api\/groups\/([^\/]+)\/agents$/);
+    if (agentsMatch && method === "GET") {
+      return jsonResponse(GroupManager.getDepartmentsAndAgents(agentsMatch[1]));
+    }
+    if (agentsMatch && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as any;
+      if (!body.id || !body.name) {
+        return jsonResponse({ error: "id e name são obrigatórios" }, 400);
+      }
+      GroupManager.saveAgent(agentsMatch[1], body.id, body);
+      return jsonResponse({ success: true, agent: GroupManager.getAgent(agentsMatch[1], body.id) });
+    }
+
+    const agentDetailMatch = url.pathname.match(/^\/api\/groups\/([^\/]+)\/agents\/([^\/]+)$/);
+    if (agentDetailMatch && method === "GET") {
+      const agent = GroupManager.getAgent(agentDetailMatch[1], agentDetailMatch[2]);
+      if (!agent) return jsonResponse({ error: "Agente não encontrado" }, 404);
+      return jsonResponse({ agent });
+    }
+    if (agentDetailMatch && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as any;
+      GroupManager.saveAgent(agentDetailMatch[1], agentDetailMatch[2], body);
+      return jsonResponse({ success: true, agent: GroupManager.getAgent(agentDetailMatch[1], agentDetailMatch[2]) });
+    }
+    if (agentDetailMatch && method === "DELETE") {
+      const deleted = GroupManager.deleteAgent(agentDetailMatch[1], agentDetailMatch[2]);
+      return jsonResponse({ success: deleted });
+    }
+
     // Skills
     const skillsMatch = url.pathname.match(/^\/api\/groups\/([^\/]+)\/skills$/);
     if (skillsMatch && method === "GET") {

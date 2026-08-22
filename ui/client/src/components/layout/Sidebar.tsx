@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   MessageSquare,
   BarChart3,
+  Bot,
   Brain,
   Sparkles,
   Link2,
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils'
 export type ViewType =
   | 'chat'
   | 'usage'
+  | 'agents'
   | 'soul'
   | 'skills'
   | 'mcps'
@@ -44,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: { id: ViewType; label: string; icon: React.ReactNode }[] = [
     { id: 'chat', label: t('nav.chat'), icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'usage', label: t('nav.usage'), icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'agents', label: t('nav.agents'), icon: <Bot className="w-4 h-4" /> },
     { id: 'soul', label: t('nav.soul'), icon: <Brain className="w-4 h-4" /> },
     { id: 'skills', label: t('nav.skills'), icon: <Sparkles className="w-4 h-4" /> },
     { id: 'mcps', label: t('nav.mcps'), icon: <Link2 className="w-4 h-4" /> },

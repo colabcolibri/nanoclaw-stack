@@ -485,6 +485,17 @@ export class GroupManager {
             } catch {}
           }
 
+          const GLOBAL_SKILLS_LIST = [
+            'retrieve_message_context',
+            'manage_memory',
+            'run_command',
+            'read_file',
+            'load_skill',
+          ];
+
+          const isGlobal = GLOBAL_SKILLS_LIST.includes(ent.name) ||
+            GLOBAL_SKILLS_LIST.some((g) => g.replace(/_/g, '-') === ent.name);
+
           // Scripts are local executables executed on-demand via bash, NOT loaded into the LLM context prompt
           const totalChars = skillMdChars + referencesChars;
           const totalTokens = skillMdTokens + referencesTokens;
@@ -492,6 +503,7 @@ export class GroupManager {
           skills.push({
             name: ent.name,
             description,
+            isGlobal,
             enabled: isAll || enabledList.includes(ent.name),
             skillMdContent,
             skillMdChars,
@@ -510,6 +522,180 @@ export class GroupManager {
     }
 
     return { skills, mode: isAll ? "all" : "custom" };
+  }
+
+  static getDepartmentsAndAgents(folder: string) {
+    const DEFAULT_DEPARTMENTS: Array<{ id: string; name: string; description: string; icon?: string }> = [
+      { id: "productivity", name: "Produtividade & Comunicação", description: "E-mails Gmail, Agenda Google Calendar, Notion e Tarefas", icon: "Calendar" },
+      { id: "commerce", name: "Comércio, Logística & Revenda", description: "Loja Yampi, Tabela Grok, Preços de Revenda e Fretes Correios", icon: "ShoppingBag" },
+      { id: "research_intel", name: "Pesquisa, Inteligência & Web", description: "Varredura web em tempo real, URLs e Métricas de Tokens", icon: "Globe" },
+      { id: "operations", name: "Operações & Sistema", description: "Operações em arquivos, comandos de terminal e memória", icon: "Server" },
+    ];
+
+    const agents: Array<{
+      id: string;
+      name: string;
+      department: string;
+      role: string;
+      description: string;
+      skills: string[];
+      allowGlobalSkills: boolean;
+      model?: string;
+      systemPrompt: string;
+      systemPromptChars: number;
+      systemPromptTokens: number;
+      rawYaml: string;
+      isCustom: boolean;
+      filePath: string;
+    }> = [];
+
+    const candidateDirs = [
+      { dir: CONFIG.AGENTS_PATH, isCustom: false },
+      { dir: path.join(CONFIG.GROUPS_PATH, path.basename(folder), "agents"), isCustom: true },
+    ];
+
+    const discoveredIds = new Set<string>();
+
+    for (const { dir, isCustom } of candidateDirs) {
+      if (!fs.existsSync(dir)) continue;
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const ent of entries) {
+          if (!ent.isDirectory()) continue;
+          const agentMdPath = path.join(dir, ent.name, "AGENT.md");
+          if (!fs.existsSync(agentMdPath)) continue;
+
+          try {
+            const content = fs.readFileSync(agentMdPath, "utf-8");
+            const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+            if (!frontmatterMatch) continue;
+
+            const rawYaml = frontmatterMatch[1];
+            const systemPrompt = frontmatterMatch[2].trim();
+
+            const parseField = (f: string) => {
+              const m = rawYaml.match(new RegExp(`^${f}:\\s*(.+)$`, "m"));
+              return m ? m[1].trim().replace(/^['"]|['"]$/g, "") : "";
+            };
+
+            const id = parseField("id") || ent.name;
+            const name = parseField("name") || id;
+            const department = parseField("department") || parseField("departmentId") || "general";
+            const role = parseField("role") || "Agente Especialista";
+            const description = parseField("description") || role;
+            const model = parseField("model") || undefined;
+            const allowGlobalStr = parseField("allow_global_skills");
+            const allowGlobalSkills = allowGlobalStr !== "" ? allowGlobalStr === "true" : true;
+
+            const skills: string[] = [];
+            const skillsSection = rawYaml.match(/skills:\s*\n((?:\s*-\s*.+\n?)+)/);
+            if (skillsSection && skillsSection[1]) {
+              const lines = skillsSection[1].split("\n");
+              for (const line of lines) {
+                const item = line.replace(/^\s*-\s*/, "").trim().replace(/^['"]|['"]$/g, "");
+                if (item) skills.push(item);
+              }
+            }
+
+            discoveredIds.add(id);
+            agents.push({
+              id,
+              name,
+              department,
+              role,
+              description,
+              skills,
+              allowGlobalSkills,
+              model,
+              systemPrompt,
+              systemPromptChars: systemPrompt.length,
+              systemPromptTokens: Math.ceil(systemPrompt.length / 3.8),
+              rawYaml,
+              isCustom,
+              filePath: agentMdPath,
+            });
+          } catch {}
+        }
+      } catch {}
+    }
+
+    // Collect all departments from agents
+    const departmentsMap = new Map<string, { id: string; name: string; description: string; icon?: string }>();
+    for (const d of DEFAULT_DEPARTMENTS) {
+      departmentsMap.set(d.id, d);
+    }
+    for (const ag of agents) {
+      if (!departmentsMap.has(ag.department)) {
+        departmentsMap.set(ag.department, {
+          id: ag.department,
+          name: ag.department.toUpperCase(),
+          description: `Departamento ${ag.department}`,
+          icon: "Folder",
+        });
+      }
+    }
+
+    return {
+      departments: Array.from(departmentsMap.values()),
+      agents,
+    };
+  }
+
+  static getAgent(folder: string, agentId: string) {
+    const { agents } = this.getDepartmentsAndAgents(folder);
+    return agents.find((a) => a.id === agentId) || null;
+  }
+
+  static saveAgent(
+    folder: string,
+    agentId: string,
+    data: {
+      name: string;
+      department: string;
+      role: string;
+      description?: string;
+      skills: string[];
+      allowGlobalSkills?: boolean;
+      model?: string;
+      systemPrompt: string;
+    }
+  ): boolean {
+    const safeId = agentId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+    const groupAgentsDir = path.join(CONFIG.GROUPS_PATH, path.basename(folder), "agents", safeId);
+    fs.mkdirSync(groupAgentsDir, { recursive: true });
+
+    const agentMdPath = path.join(groupAgentsDir, "AGENT.md");
+
+    const skillsYaml = data.skills.length > 0
+      ? `skills:\n${data.skills.map((s) => `  - ${s}`).join("\n")}`
+      : "skills: []";
+
+    const content = `---
+id: ${safeId}
+name: "${data.name.replace(/"/g, '\\"')}"
+department: ${data.department}
+role: "${data.role.replace(/"/g, '\\"')}"
+description: "${(data.description || data.role).replace(/"/g, '\\"')}"
+${skillsYaml}
+allow_global_skills: ${data.allowGlobalSkills !== false}
+${data.model ? `model: ${data.model}` : ""}
+---
+
+${data.systemPrompt.trim()}
+`;
+
+    fs.writeFileSync(agentMdPath, content.trimEnd() + "\n", "utf-8");
+    return true;
+  }
+
+  static deleteAgent(folder: string, agentId: string): boolean {
+    const safeId = agentId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+    const groupAgentDir = path.join(CONFIG.GROUPS_PATH, path.basename(folder), "agents", safeId);
+    if (fs.existsSync(groupAgentDir)) {
+      fs.rmSync(groupAgentDir, { recursive: true, force: true });
+      return true;
+    }
+    return false;
   }
 
   static saveSkills(folder: string, mode: "all" | "custom", selectedSkills: string[]): boolean {

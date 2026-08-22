@@ -13,6 +13,7 @@ import { RunsView } from '@/components/runs/RunsView'
 import { SecurityView } from '@/components/security/SecurityView'
 import { LogsView } from '@/components/logs/LogsView'
 import { SkillsView } from '@/components/skills/SkillsView'
+import { AgentsView } from '@/components/agents/AgentsView'
 import { McpsView } from '@/components/mcps/McpsView'
 import { ServiceView } from '@/components/service/ServiceView'
 import { InspectorSheet } from '@/components/chat/InspectorSheet'
@@ -21,6 +22,7 @@ import { AuthView } from '@/components/auth/AuthView'
 const VALID_VIEWS: ViewType[] = [
   'chat',
   'usage',
+  'agents',
   'soul',
   'skills',
   'mcps',
@@ -216,6 +218,7 @@ function AppContent() {
             )}
 
             {activeView === 'usage' && <AnalyticsView currency={currency} onToggleCurrency={setCurrency} />}
+            {activeView === 'agents' && <AgentsView />}
             {activeView === 'soul' && <SoulView />}
             {activeView === 'skills' && <SkillsView />}
             {activeView === 'mcps' && <McpsView />}
