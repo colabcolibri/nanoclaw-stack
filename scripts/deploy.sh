@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Deploy local → GitHub → Hostinger
-# Uso (na raiz do repo): ./scripts/deploy.sh
-# Opções:
-#   SKIP_PUSH=1 ./scripts/deploy.sh   — só atualiza o servidor (já fez push)
+# Deploy: push no GitHub + atualiza o servidor Hostinger.
+#
+# Uso (na raiz do repo):
+#   ./scripts/deploy.sh
+#   SKIP_PUSH=1 ./scripts/deploy.sh    # já fez push
 #   DEPLOY_HOST=hostinger ./scripts/deploy.sh
 
 set -euo pipefail

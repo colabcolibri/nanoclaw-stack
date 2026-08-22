@@ -138,16 +138,16 @@ pnpm start
 | Guia | Conteúdo |
 | :--- | :--- |
 | [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) | Rodar UI e motor no Mac; quando precisa de Docker |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy automático (GitHub Actions → SSH → Hostinger); configurar secrets **no GitHub**, nunca no código |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy em produção: `./scripts/deploy.sh` (push + SSH) |
 | [infra/MAINTENANCE.md](infra/MAINTENANCE.md) | Backup, logs, restart de serviços no servidor |
 
-**Segredos:** chaves de API, tokens OAuth, `.env` e `groups/` ficam só na máquina/servidor — estão no `.gitignore`. O repositório referencia nomes de variáveis (`DEPLOY_HOST`, `ALLOWED_EMAIL`, etc.), nunca valores reais.
+**Segredos:** `.env`, `groups/` e `data/` ficam só na máquina/servidor (`.gitignore`). Nada de API keys no git.
 
 ---
 
 ## 🔒 Privacy & Security
 
-* **Zero-Secret Commits**: All credentials, OAuth tokens (`google_tokens.json`, `notion_tokens.json`, `yampi_tokens.json`), databases (`v2.db`), and `.env` files are strictly isolated locally and guarded by comprehensive `.gitignore` rules. GitHub Actions deploy uses **repository secrets** (`DEPLOY_HOST`, `DEPLOY_SSH_KEY`, etc.) configured in the GitHub UI — not committed to git.
+* **Zero-Secret Commits**: credentials, OAuth tokens, databases, and `.env` files stay local (`.gitignore`). Deploy is `./scripts/deploy.sh` from your Mac — no secrets in the repository.
 * **Sandboxed Execution**: Agent sessions run inside ephemeral, isolated Docker containers with strictly scoped filesystem boundaries.
 * **Payload Hygiene**: The `PayloadSanitizer` automatically purges base64 blobs, raw HTML, and transport headers before persisting execution state.
 

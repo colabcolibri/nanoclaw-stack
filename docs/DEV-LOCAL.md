@@ -85,32 +85,20 @@ Arquivos locais **nunca vão pro git**: `.env`, `data/`, `groups/`, tokens OAuth
 
 ---
 
-## deploy no servidor (sem Mutagen)
+## deploy no servidor
 
-Fluxo automático no push em `main`: **GitHub Actions → SSH → deploy**. Guia completo: [docs/DEPLOY.md](DEPLOY.md)
+Guia completo: [docs/DEPLOY.md](DEPLOY.md)
 
 ```bash
-# deploy manual (push + SSH)
 ./scripts/deploy.sh
 ```
 
-Opções:
-
 ```bash
-SKIP_PUSH=1 ./scripts/deploy.sh          # só atualiza o servidor (push já feito)
+SKIP_PUSH=1 ./scripts/deploy.sh
 DEPLOY_HOST=hostinger ./scripts/deploy.sh
 ```
 
-No servidor, o script `infra/scripts/deploy-stack.sh` faz:
-
-1. `git pull --ff-only origin main`
-2. `pnpm install` em `nanoclaw/`
-3. `bun install` + `bun run build` em `ui/client`
-4. `systemctl restart nanoclaw.service` e `nanoclaw-uai.service`
-
-Deploy manual equivalente: ver [infra/MAINTENANCE.md](../infra/MAINTENANCE.md).
-
-**Mutagen não faz parte do fluxo.** Foi removido do servidor; o código de verdade é o que está no git em `/opt/nanoclaw-stack`.
+No servidor, `deploy-stack.sh` faz: `git pull` → deps → build UI → rebuild imagem do agente (se precisar) → restart.
 
 ---
 
@@ -120,8 +108,8 @@ Deploy manual equivalente: ver [infra/MAINTENANCE.md](../infra/MAINTENANCE.md).
 | :--- | :--- | :--- |
 | UI | `bun run dev` | `nanoclaw-uai.service` |
 | motor | `pnpm dev` | `nanoclaw.service` |
-| agent-runner | Docker Desktop | Docker Engine (systemd) |
-| deploy | `git push` → GitHub Actions (automático) ou `./scripts/deploy.sh` | `deploy-stack.sh` via SSH |
+| agent-runner | Docker Desktop | Docker Engine |
+| deploy | `./scripts/deploy.sh` | mesmo script via SSH |
 
 ---
 

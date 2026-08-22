@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Roda NO SERVIDOR (Hostinger) após push no GitHub.
-# Chamado por: GitHub Actions (SSH) ou ./scripts/deploy.sh no Mac.
+# Roda NO SERVIDOR após git pull.
+# Chamado por: ./scripts/deploy.sh (Mac → SSH) ou direto no VPS.
 #
 # Uso: bash /opt/nanoclaw-stack/infra/scripts/deploy-stack.sh
 

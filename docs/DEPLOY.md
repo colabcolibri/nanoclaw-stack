@@ -1,118 +1,106 @@
-# deploy em produção (Hostinger)
+# deploy em produção
 
-Como o código chega no servidor, como o Docker entra no fluxo e o que configurar no GitHub.
-
----
-
-## fluxo automático (jeito certo)
-
-```text
-Você faz push em main
-        │
-        ▼
-GitHub Actions (.github/workflows/deploy-production.yml)
-        │
-        │  SSH no Hostinger
-        ▼
-infra/scripts/deploy-stack.sh
-        ├─ ensure-docker.sh      → docker ativo
-        ├─ git reset --hard      → código = origin/main
-        ├─ pnpm install          → motor
-        ├─ build-agent-image-if-needed.sh → imagem Docker do agente (se bun.lock mudou)
-        ├─ bun build             → painel React
-        └─ systemctl restart     → nanoclaw + nanoclaw-uai
-```
-
-O GitHub **não copia arquivos** sozinho. O workflow **entra no servidor por SSH** e roda o script de deploy, que faz `git pull` (via `reset --hard`) e rebuild.
+Um comando do Mac atualiza o servidor. GitHub é só o repositório — sem Actions, sem secrets, sem runner.
 
 ---
 
-## configurar GitHub (uma vez)
-
-No repositório, vá em **Settings → Secrets and variables → Actions** e crie os secrets abaixo.  
-**Nunca** coloque IP, chave SSH ou API keys em arquivos do repositório — só nos secrets do GitHub.
-
-| secret | valor |
-| :--- | :--- |
-| `DEPLOY_HOST` | IP ou hostname do VPS (ex.: `123.45.67.89`) |
-| `DEPLOY_USER` | `root` (ou usuário com sudo/systemctl) |
-| `DEPLOY_SSH_KEY` | chave privada SSH (conteúdo do arquivo, não o caminho) |
-| `DEPLOY_SSH_PORT` | opcional, padrão `22` |
-
-### gerar chave só para deploy
-
-No Mac:
+## fluxo (use isso)
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/nanoclaw-deploy -N "" -C "github-actions-deploy"
-cat ~/.ssh/nanoclaw-deploy.pub
-```
-
-No servidor, adicione a chave pública em `/root/.ssh/authorized_keys`.
-
-Copie a chave **privada** (`~/.ssh/nanoclaw-deploy`) inteira para o secret `DEPLOY_SSH_KEY` no GitHub.
-
-### testar manualmente (sem Actions)
-
-```bash
-# na raiz do repo
+# na raiz do repo, após commit:
 ./scripts/deploy.sh
 ```
 
-Isso faz `git push` + SSH + `deploy-stack.sh` — o mesmo script que o GitHub Actions executa.
+Isso faz:
+
+```text
+git push origin main
+    → ssh hostinger
+    → bash /opt/nanoclaw-stack/infra/scripts/deploy-stack.sh
+```
+
+Opções:
+
+```bash
+SKIP_PUSH=1 ./scripts/deploy.sh     # push já feito
+DEPLOY_HOST=hostinger ./scripts/deploy.sh   # host do ~/.ssh/config (padrão)
+```
+
+Só no servidor (sem Mac):
+
+```bash
+ssh hostinger 'bash /opt/nanoclaw-stack/infra/scripts/deploy-stack.sh'
+```
 
 ---
 
-## docker no Hostinger
+## o que o deploy faz no servidor
 
-| componente | como roda |
+```text
+deploy-stack.sh
+  ├─ ensure-docker.sh                 → Docker ativo
+  ├─ git fetch + reset --hard main  → código = GitHub
+  ├─ pnpm install (nanoclaw/)       → deps do motor (rápido se nada mudou)
+  ├─ build-agent-image-if-needed.sh → imagem Docker do agente (só se bun.lock mudou)
+  ├─ bun build (ui/client)          → painel React
+  └─ systemctl restart              → nanoclaw + nanoclaw-uai
+```
+
+**Não é reinstalar tudo.** Na maioria dos deploys: código novo + restart + build do painel.
+
+---
+
+## o que roda onde (por que não é “só docker compose”)
+
+| peça | onde roda | no deploy |
+| :--- | :--- | :--- |
+| **motor** (`nanoclaw`) | host (systemd) | `git pull` + restart |
+| **painel** (`ui`) | host (systemd) | `bun build` + restart |
+| **agente** (por mensagem) | container Docker efêmero | código via bind-mount; rebuild de imagem raro |
+| whisper / traefik | Docker Compose | quase nunca no deploy do app |
+
+O motor **fica no host** por design do NanoClaw (Telegram, SQLite central, spawn de containers). Só a execução do agente é Docker.
+
+---
+
+## docker no servidor
+
+| componente | papel |
 | :--- | :--- |
-| `docker.service` | systemd, `enabled` no boot |
-| `nanoclaw.service` | `Requires=docker.service` — motor só sobe se Docker OK |
-| `whisper-asr`, `traefik` | containers Docker separados |
-| agent-runner | imagem `nanoclaw-agent-v2-<slug>:latest`, spawnada por mensagem |
+| `docker.service` | deve estar `active` no boot |
+| `nanoclaw.service` | `Requires=docker.service` |
+| imagem do agente | `nanoclaw-agent-v2-<slug>:latest` |
 
-O código TypeScript do agente (`container/agent-runner/src`) é **bind-mount** no container — mudanças de código sobem no deploy sem rebuild. Rebuild da imagem só quando:
-
-- `bun.lock` do agent-runner mudou
-- imagem não existe
-- `DEPLOY_FORCE_AGENT_BUILD=1`
-
-Forçar rebuild no servidor:
+Rebuild forçado da imagem:
 
 ```bash
 DEPLOY_FORCE_AGENT_BUILD=1 bash /opt/nanoclaw-stack/infra/scripts/build-agent-image-if-needed.sh
 ```
 
-Unit de referência: [infra/systemd/nanoclaw.service](../infra/systemd/nanoclaw.service)
-
 ---
 
-## o que o servidor guarda fora do git
+## dados que o deploy nunca apaga
 
-Nunca sobrescritos pelo deploy (`git reset --hard`):
-
-- `nanoclaw/.env` — chaves e tokens
-- `nanoclaw/data/` — SQLite e sessões
-- `nanoclaw/groups/` — personas e memórias
-- `ui/.env` — login do painel
+- `nanoclaw/.env`, `ui/.env`
+- `nanoclaw/data/`, `nanoclaw/groups/`
 
 ---
 
 ## troubleshooting
 
 ```bash
-# docker
-systemctl status docker
-docker info
-docker images | grep nanoclaw-agent
+# deploy manual no servidor
+cd /opt/nanoclaw-stack && bash infra/scripts/deploy-stack.sh
 
 # motor
 journalctl -u nanoclaw.service -f
 
-# deploy manual
-cd /opt/nanoclaw-stack && bash infra/scripts/deploy-stack.sh
-
-# último workflow
-gh run list --workflow=deploy-production.yml
+# docker
+docker info && docker images | grep nanoclaw-agent
 ```
+
+| problema | solução |
+| :--- | :--- |
+| `ssh: Could not resolve hostname` | configure `Host hostinger` em `~/.ssh/config` ou use `DEPLOY_HOST=ip` |
+| agente não responde | `systemctl status docker` + imagem existe? |
+| painel antigo | conferir bundle em `ui/src/public/index.html` após deploy |

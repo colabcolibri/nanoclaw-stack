@@ -34,7 +34,7 @@ docker logs whisper-asr -f --tail 30
 
 ## 2. Safe Git Update Procedures
 
-> Desenvolvimento local: [docs/DEV-LOCAL.md](../docs/DEV-LOCAL.md) · Deploy automático: [docs/DEPLOY.md](../docs/DEPLOY.md)
+> Desenvolvimento local: [docs/DEV-LOCAL.md](../docs/DEV-LOCAL.md) · Deploy: [docs/DEPLOY.md](../docs/DEPLOY.md) (`./scripts/deploy.sh`)
 
 The infrastructure is designed so that your local configurations, state databases, and agent definitions are completely isolated from upstream repository updates:
 
@@ -45,22 +45,17 @@ The infrastructure is designed so that your local configurations, state database
   * `infra/` (Operational playbooks)
   * Local auxiliary services
 
-### Update Procedure (stack completo em `/opt/nanoclaw-stack`):
-
-**Automático:** push em `main` dispara GitHub Actions → SSH → `deploy-stack.sh`. Ver [docs/DEPLOY.md](../docs/DEPLOY.md).
-
-**Manual:**
+### Update Procedure (stack em `/opt/nanoclaw-stack`):
 
 ```bash
-# No Mac (após commit local):
+# No Mac (recomendado):
 ./scripts/deploy.sh
 
-# Ou manualmente no servidor:
-cd /opt/nanoclaw-stack
-bash infra/scripts/deploy-stack.sh
+# Só no servidor:
+bash /opt/nanoclaw-stack/infra/scripts/deploy-stack.sh
 ```
 
-O script no servidor faz `git reset --hard origin/main` (código = GitHub). Dados locais (`.env`, `data/`, `groups/`) não são tocados.
+Ver [docs/DEPLOY.md](../docs/DEPLOY.md).
 
 ### Componentes (se precisar só de um):
 
