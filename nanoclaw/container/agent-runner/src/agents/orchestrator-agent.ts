@@ -1,5 +1,4 @@
 import { AgentRegistry } from './registry.js';
-import { WorkerAgentRunner } from './worker-agent.js';
 import { SenderAgent } from './sender-agent.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { MemoService } from '../services/memo-service.js';
@@ -8,11 +7,11 @@ import { PromptLoader } from '../services/prompt-loader.js';
 import {
   ContextPack,
   DEFAULT_FAST_CONTEXT_PLAN,
-  DEFAULT_SYNTHESIS_CONTEXT_PLAN,
   type ContextPlan,
 } from '../services/context-pack.js';
-import type { MultiAgentTurnOptions, HandoverPackage, RoutingDecision, SpecialistAgent } from './types.js';
+import type { MultiAgentTurnOptions, HandoverPackage, RoutingDecision } from './types.js';
 import type { LLMCompletionFn, OrchestratorResult, ConversationMemoEntry } from '../orchestrator/types.js';
+import { TurnSupervisor } from '../orchestrator/turn-supervisor.js';
 
 function parseContextPlan(raw: unknown): ContextPlan | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
@@ -62,7 +61,14 @@ export class OrchestratorAgent {
     );
     const senderModel = ModelRegistry.requireModelId(options.senderModel, 'senderModel', options.cwd);
 
-    const routing = await this.resolveRouting(complete, prompt, orchestratorModel, options.cwd, onActivity);
+    const routing = await this.resolveRouting(
+      complete,
+      prompt,
+      orchestratorModel,
+      options.cwd,
+      options.messageId ?? options.inboundMessageIds?.[0],
+      onActivity
+    );
 
     if (routing.type === 'fast_path') {
       const handover: HandoverPackage = {
@@ -92,89 +98,32 @@ export class OrchestratorAgent {
     }
 
     const selectedDeptId = routing.departmentId;
-    const departments = AgentRegistry.getDepartments();
+    const departments = AgentRegistry.getDepartments(options.cwd);
     const dept = departments.find((d) => d.id === selectedDeptId) || departments[0];
 
     AgentAuditLogger.record(options.cwd, {
       step: 'department_routing',
       agent: 'orchestrator',
       department: selectedDeptId,
+      messageId: options.messageId ?? options.inboundMessageIds?.[0],
       purpose: `LLM routing to department: ${dept?.name || selectedDeptId}`,
       latencyMs: 0,
       promptPreview: prompt.slice(0, 100),
       timestamp: new Date().toISOString(),
     });
 
-    const deptAgents = AgentRegistry.getAgentsInDepartment(selectedDeptId);
-    let selectedAgent: SpecialistAgent | undefined =
-      (routing.agentId ? AgentRegistry.getAgent(routing.agentId) : null) ||
-      deptAgents[0] ||
-      AgentRegistry.getAllAgents()[0];
-
-    if (!selectedAgent) {
-      const handover: HandoverPackage = {
-        userGoal: prompt,
-        technicalFindings: '(Nenhum agente especialista registrado no sistema)',
-        guidanceForSender: 'Informe ao usuário que não há especialistas disponíveis no momento.',
-        isFastPath: true,
-        contextPlan: routing.contextPlan ?? DEFAULT_FAST_CONTEXT_PLAN,
-      };
-      const { deliveredText, rawContent } = await SenderAgent.deliver(
-        handover,
-        buildSenderContext(options, temporalContext, senderModel, prompt),
-        complete,
-        onActivity
-      );
-      return this.finalizeTurnResult({
-        prompt,
-        deliveredText,
-        rawContent,
-        options,
-        senderModel,
-        complete,
-        toolsExecutedCount: 0,
-      });
-    }
-
-    AgentAuditLogger.record(options.cwd, {
-      step: 'agent_selection',
-      agent: selectedAgent.id,
-      department: selectedDeptId,
-      purpose: `Selected specialist: ${selectedAgent.id} (${selectedAgent.name})`,
-      latencyMs: 0,
-      promptPreview: prompt.slice(0, 100),
-      timestamp: new Date().toISOString(),
-    });
-
-    const workerResult = await WorkerAgentRunner.execute(
-      selectedAgent,
-      routing.taskDescription || prompt,
-      complete,
-      options.cwd,
-      {
-        maxIterations: options.maxWorkerIterations || 6,
-        onActivity,
-        history: options.history,
-        defaultModel: options.defaultModel,
-      }
-    );
-
-    const handover: HandoverPackage = {
+    const { handover, toolsExecutedCount } = await TurnSupervisor.runDelegation({
       userGoal: prompt,
-      technicalFindings: workerResult.rawFindingsReport,
-      workerSummary: workerResult.summary,
-      guidanceForSender: `O especialista [${selectedAgent.name}] concluiu a busca técnica. Sintetize as informações com clareza.`,
-      isFastPath: false,
-      contextPlan: routing.contextPlan ?? DEFAULT_SYNTHESIS_CONTEXT_PLAN,
-    };
-
-    AgentAuditLogger.record(options.cwd, {
-      step: 'orchestrator_evaluation',
-      agent: 'orchestrator',
-      purpose: `Quality gate passed. ${workerResult.findings.length} findings gathered by ${selectedAgent.id}.`,
-      latencyMs: 0,
-      responsePreview: workerResult.summary.slice(0, 100),
-      timestamp: new Date().toISOString(),
+      cwd: options.cwd,
+      complete,
+      orchestratorModel,
+      routing,
+      maxSupervisorSteps: options.maxSupervisorSteps,
+      maxWorkerIterations: options.maxWorkerIterations,
+      defaultModel: options.defaultModel,
+      history: options.history,
+      messageId: options.messageId ?? options.inboundMessageIds?.[0],
+      onActivity,
     });
 
     const { deliveredText, rawContent } = await SenderAgent.deliver(
@@ -191,7 +140,7 @@ export class OrchestratorAgent {
       options,
       senderModel,
       complete,
-      toolsExecutedCount: workerResult.findings.length,
+      toolsExecutedCount,
     });
   }
 
@@ -261,10 +210,10 @@ export class OrchestratorAgent {
     };
   }
 
-  private static buildCompactCatalog(): string {
-    return AgentRegistry.getDepartments()
+  private static buildCompactCatalog(cwd?: string): string {
+    return AgentRegistry.getDepartments(cwd)
       .map((dept) => {
-        const agents = AgentRegistry.getAgentsInDepartment(dept.id);
+        const agents = AgentRegistry.getAgentsInDepartment(dept.id, cwd);
         const agentIds = agents.map((a) => a.id).join(', ') || '(none)';
         const keywords = dept.keywords.slice(0, 6).join(', ');
         return `- ${dept.id}: [${keywords}] → ${agentIds}`;
@@ -309,9 +258,10 @@ export class OrchestratorAgent {
     prompt: string,
     orchestratorModel: string,
     cwd: string,
+    messageId: string | undefined,
     onActivity?: () => void
   ): Promise<RoutingDecision & { taskDescription?: string }> {
-    const catalog = this.buildCompactCatalog();
+    const catalog = this.buildCompactCatalog(cwd);
     const memoIndex = ContextPack.formatMemoIndex(8);
 
     const systemPrompt =
@@ -335,6 +285,7 @@ export class OrchestratorAgent {
             purpose: 'orchestrator_triage',
             agent: 'orchestrator',
             model: orchestratorModel,
+            messageId,
             triageAttempt: attempt + 1,
           }
         );
@@ -347,6 +298,7 @@ export class OrchestratorAgent {
           AgentAuditLogger.record(cwd, {
             step: 'orchestrator_triage',
             agent: 'orchestrator',
+            messageId,
             purpose: `LLM triage (${orchestratorModel}): ${routing.type}`,
             latencyMs,
             responsePreview: routing.reasoning?.slice(0, 100),
@@ -365,6 +317,7 @@ export class OrchestratorAgent {
     AgentAuditLogger.record(cwd, {
       step: 'orchestrator_triage',
       agent: 'orchestrator',
+      messageId,
       purpose: `LLM triage fallback: fast_path (parse failed)`,
       latencyMs: Date.now() - startTime,
       responsePreview: 'Triage inconclusive — safe route to sender',

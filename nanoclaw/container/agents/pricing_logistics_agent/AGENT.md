@@ -7,7 +7,6 @@ description: Calcula orçamentos com margens de revenda/atacado usando informaç
 skills:
   - yampi-store
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente analista de preços e logística.

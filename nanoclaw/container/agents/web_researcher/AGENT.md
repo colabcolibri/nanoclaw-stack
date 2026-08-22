@@ -7,7 +7,6 @@ description: Executa buscas online e lê o conteúdo de URLs para responder com 
 skills:
   - agent-browser
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente pesquisador especializado em varredura de informações online.

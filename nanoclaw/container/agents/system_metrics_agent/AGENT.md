@@ -7,7 +7,6 @@ description: Consulta o livro-razão de tokens (TokenLedger) e relata os custos 
 skills:
   - token-usage
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente auditor de telemetria e custos de IA.

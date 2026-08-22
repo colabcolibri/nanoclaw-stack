@@ -70,6 +70,13 @@ export interface IntermediateRunItem {
   shortLabel?: string;
 }
 
+import {
+  parseAgentAuditJsonl,
+  type AgentAuditTraceItem,
+} from "./audit-traces.js";
+
+export type { AgentAuditTraceItem };
+
 export interface SecurityOverview {
   users: { id: string; type: string; name: string | null; createdAt: string }[];
   pendingApprovals: { id: string; type: string; payload: string; createdAt: string }[];
@@ -130,6 +137,15 @@ export class DatabaseService {
   }
 
   static updateContainerConfig(agentGroupId: string, config: any) {
+    this.updateContainerConfigFields(agentGroupId, config, { syncContainerJson: true });
+  }
+
+  /** Atualiza container_configs; opcionalmente sincroniza container.json (use false quando o caller já gravou modelos efetivos). */
+  static updateContainerConfigFields(
+    agentGroupId: string,
+    config: any,
+    opts?: { syncContainerJson?: boolean },
+  ) {
     if (!fs.existsSync(CONFIG.DB_PATH)) return;
     const db = new Database(CONFIG.DB_PATH);
     try {
@@ -177,7 +193,7 @@ export class DatabaseService {
 
       // Also sync to container.json for container runtime access
       const groupFolder = this.resolveGroupFolderByAgentGroupId(agentGroupId);
-      if (groupFolder) {
+      if (opts?.syncContainerJson !== false && groupFolder) {
         const groupContainer = path.join(CONFIG.GROUPS_PATH, groupFolder, "container.json");
         if (fs.existsSync(groupContainer)) {
           try {
@@ -720,6 +736,28 @@ export class DatabaseService {
     }
 
     return runs.slice(0, limit);
+  }
+
+  /** Traces estruturados de agent_audit.jsonl (supervisor, workers, triagem, sender). */
+  static getAgentAuditTraces(limit = 300, groupFolder?: string): AgentAuditTraceItem[] {
+    const traces: AgentAuditTraceItem[] = [];
+
+    const auditFiles = groupFolder
+      ? [path.join(CONFIG.GROUPS_PATH, groupFolder, "logs", "agent_audit.jsonl")].filter((f) =>
+          fs.existsSync(f)
+        )
+      : glob.sync(`${CONFIG.GROUPS_PATH}/**/logs/agent_audit.jsonl`);
+
+    for (const file of auditFiles) {
+      try {
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        traces.push(...parseAgentAuditJsonl(lines, traces.length));
+      } catch {}
+    }
+
+    traces.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return traces.slice(0, limit);
   }
 
   static getScheduledTasks() {

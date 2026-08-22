@@ -375,6 +375,12 @@ export function buildMounts(
     mounts.push({ hostPath: skillsSrc, containerPath: '/app/skills', readonly: true });
   }
 
+  // Shared specialist agents — read-only; AgentRegistry discovers AGENT.md here.
+  const agentsSrc = path.join(projectRoot, 'container', 'agents');
+  if (fs.existsSync(agentsSrc)) {
+    mounts.push({ hostPath: agentsSrc, containerPath: '/app/agents', readonly: true });
+  }
+
   // Additional mounts from container config
   if (containerConfig.additionalMounts && containerConfig.additionalMounts.length > 0) {
     const validated = validateAdditionalMounts(containerConfig.additionalMounts, agentGroup.name);

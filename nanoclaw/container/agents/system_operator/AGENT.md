@@ -7,7 +7,6 @@ description: Lê arquivos no ambiente local, gera briefings executivos e gerenci
 skills:
   - executive-briefing
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um operador técnico de sistema.

@@ -64,7 +64,19 @@ flowchart TD
 - Catálogo `{CATALOG}` é montado em runtime de `AgentRegistry` (departamentos + agentes) — **não** está hardcoded no prompt.
 - Decisão JSON:
   - **`fast_path`**: só conversa; sender sem tools.
-  - **`department_delegation`**: escolhe `departmentId` / `agentId` do catálogo; `taskDescription` = pedido do usuário.
+  - **`department_delegation`**: entra no **supervisor loop** (não é mais 1 worker fixo).
+
+### 3b. Supervisor loop (delegação multi-passo)
+
+- Arquivo: `prompts/orchestrator.supervisor.md`
+- Classe: `TurnSupervisor` + `TurnPlanState`
+- Após triagem `department_delegation`:
+  1. Supervisor decide: `delegate` (agentId + task) **ou** `finish` (guidance pro sender)
+  2. Worker executa tools (loop interno, como antes)
+  3. Resultado entra no `TurnPlanState`
+  4. Volta ao passo 1 até `finish` ou `SUPERVISOR_MAX_STEPS` (padrão **4**)
+- Exemplo: e-mails → analisa resumo → delega agenda com contexto do passo 1 → `finish` → sender
+- **Compatível:** 1 delegação + finish = mesmo comportamento de antes
 
 ### 4. Worker (se delegou)
 
@@ -142,3 +154,39 @@ flowchart TD
 Ver também [DEV-LOCAL.md](DEV-LOCAL.md).
 
 Logs de um turn: `nanoclaw/groups/<agente>/logs/groq_activity.log`, `agent_audit.jsonl`, `token_ledger.jsonl`.
+
+---
+
+## Auditoria (runs + passos intermediários)
+
+Cada turn gera **dois** registros complementares:
+
+| Destino | Conteúdo |
+|---------|----------|
+| `token_ledger.jsonl` / `.db` | Toda chamada LLM (triagem, supervisor, worker, sender, memo) com `purpose`, tokens, custo, `messageId` |
+| `agent_audit.jsonl` | Passos estruturados do pipeline multi-agente |
+
+### Steps em `agent_audit.jsonl`
+
+| `step` | Quando |
+|--------|--------|
+| `orchestrator_triage` | Decisão fast_path vs delegação |
+| `department_routing` | Departamento escolhido |
+| `supervisor_turn_start` | Início do loop supervisor |
+| `orchestrator_supervisor` | Cada decisão LLM `delegate` \| `finish` |
+| `supervisor_delegate` | Delegação a um worker (antes da execução) |
+| `supervisor_finish` | Supervisor encerrou com `finish` |
+| `agent_selection` | Worker selecionado |
+| `worker_execution` | Cada iteração do worker (tools) |
+| `orchestrator_evaluation` | Pós-worker (findings) |
+| `supervisor_turn_summary` | Snapshot JSON do turn (`metadata.steps`, tools, contagens) |
+| `sender_synthesis` | Síntese final |
+| `semantic_memo` | Geração de memo |
+
+Todos os traces podem incluir `messageId` (mensagem inbound) e `supervisorStep` para correlacionar com a UI.
+
+### Painel (Execuções)
+
+- **Runs** (`/api/runs`): ledger LLM — triagem, supervisor, ferramentas, síntese, memo.
+- **Passos** (`/api/audit-traces`): leitura de `agent_audit.jsonl` — timeline completa do turn.
+- **Analytics**: `subRuns` por mensagem outbound (ledger filtrado por `messageId` + janela temporal).

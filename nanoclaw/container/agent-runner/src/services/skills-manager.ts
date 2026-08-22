@@ -1,6 +1,15 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { ToolRouter } from '../tools/router.js';
+
+const REPO_CONTAINER_SKILLS_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'skills',
+);
 
 export interface DiscoveredSkill {
   name: string;
@@ -30,6 +39,7 @@ export class SkillsManager {
 
     const candidateDirs = [
       '/app/skills',
+      REPO_CONTAINER_SKILLS_DIR,
       path.join(process.cwd(), 'skills'),
       path.join(process.cwd(), 'container', 'skills'),
     ];

@@ -8,6 +8,9 @@ interface ModelSelectProps {
   className?: string
   id?: string
   disabled?: boolean
+  /** Quando true, primeira opção = padrão do catálogo (value ""). */
+  allowDefault?: boolean
+  defaultLabel?: string
 }
 
 /** Select de modelos alimentado pelo registry do banco (via API). */
@@ -18,6 +21,8 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
   className,
   id,
   disabled,
+  allowDefault = false,
+  defaultLabel = 'Padrão (catálogo)',
 }) => {
   const entries = Object.entries(providers)
 
@@ -37,6 +42,7 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
       className={className}
       disabled={disabled}
     >
+      {allowDefault && <option value="">{defaultLabel}</option>}
       {entries.map(([pKey, pMeta]) => (
         <optgroup key={pKey} label={pMeta.name}>
           {pMeta.models.map((m) => (

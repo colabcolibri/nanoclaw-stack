@@ -188,6 +188,22 @@ export interface IntermediateRunItem {
   shortLabel?: string
 }
 
+export interface AgentAuditTraceItem {
+  id: string
+  step: string
+  agent?: string
+  department?: string
+  purpose: string
+  latencyMs: number
+  timestamp: string
+  messageId?: string
+  supervisorStep?: number
+  decision?: string
+  promptPreview?: string
+  responsePreview?: string
+  metadata?: Record<string, unknown>
+}
+
 export class ApiClient {
   private static async fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(url, {
@@ -256,6 +272,12 @@ export class ApiClient {
 
   static async getRuns(limit = 150): Promise<{ runs: IntermediateRunItem[] }> {
     return this.fetchJson(`/api/runs?limit=${limit}`)
+  }
+
+  static async getAuditTraces(limit = 300, group?: string): Promise<{ traces: AgentAuditTraceItem[] }> {
+    const qs = new URLSearchParams({ limit: String(limit) })
+    if (group) qs.set('group', group)
+    return this.fetchJson(`/api/audit-traces?${qs}`)
   }
 
   static async getDocs(group: string): Promise<{ docs: MarkdownDoc[] }> {

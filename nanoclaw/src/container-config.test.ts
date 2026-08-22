@@ -13,6 +13,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TIMEZONE } from './config.js';
 import {
   CONTAINER_PLUGINS_DIR,
+  alignRoleModelsWithProvider,
   configFromDb,
   parseMcpServerConfig,
   resolveGroupTimezone,
@@ -224,6 +225,157 @@ describe('validateMcpServerName', () => {
  * are duplicated in container/agent-runner/src/mcp-tools/self-mod.ts. Pin
  * the copies byte-identical so drift fails a test instead of shipping.
  */
+describe('alignRoleModelsWithProvider', () => {
+  const registry = {
+    updatedAt: new Date().toISOString(),
+    providers: {
+      groq: {
+        name: 'Groq',
+        defaultBaseUrl: 'https://api.groq.com/openai/v1',
+        completionUrl: 'https://api.groq.com/openai/v1/chat/completions',
+        keyEnvName: 'GROQ_API_KEY',
+        baseUrlEnvName: 'GROQ_BASE_URL',
+        defaultModel: 'openai/gpt-oss-20b',
+        protocol: 'openai-compatible',
+        defaultParams: {},
+        models: [
+          {
+            id: 'openai/gpt-oss-20b',
+            label: 'Grok 20B',
+            recommended: true,
+            recommendedRole: 'orchestrator',
+            pricing: {
+              inputPerMillion: 0,
+              outputPerMillion: 0,
+              cacheWritePerMillion: 0,
+              cacheHitPerMillion: 0,
+              contextWindow: '128k',
+            },
+          },
+          {
+            id: 'llama-3.3-70b-versatile',
+            label: 'Llama 70B',
+            recommendedRole: 'worker',
+            pricing: {
+              inputPerMillion: 0,
+              outputPerMillion: 0,
+              cacheWritePerMillion: 0,
+              cacheHitPerMillion: 0,
+              contextWindow: '128k',
+            },
+          },
+        ],
+      },
+    },
+    modelsById: {
+      'deepseek-v4-flash': {
+        id: 'deepseek-v4-flash',
+        providerId: 'deepseek',
+        displayName: 'DeepSeek V4',
+        completionUrl: 'https://api.deepseek.com/chat/completions',
+        keyEnvName: 'DEEPSEEK_API_KEY',
+        protocol: 'openai-compatible',
+        inferenceParams: {},
+        pricing: {
+          inputPerMillion: 0,
+          outputPerMillion: 0,
+          cacheWritePerMillion: 0,
+          cacheHitPerMillion: 0,
+          contextWindow: '128k',
+        },
+      },
+      'openai/gpt-oss-20b': {
+        id: 'openai/gpt-oss-20b',
+        providerId: 'groq',
+        displayName: 'Grok 20B',
+        completionUrl: 'https://api.groq.com/openai/v1/chat/completions',
+        keyEnvName: 'GROQ_API_KEY',
+        protocol: 'openai-compatible',
+        inferenceParams: {},
+        pricing: {
+          inputPerMillion: 0,
+          outputPerMillion: 0,
+          cacheWritePerMillion: 0,
+          cacheHitPerMillion: 0,
+          contextWindow: '128k',
+        },
+      },
+      'llama-3.3-70b-versatile': {
+        id: 'llama-3.3-70b-versatile',
+        providerId: 'groq',
+        displayName: 'Llama 70B',
+        completionUrl: 'https://api.groq.com/openai/v1/chat/completions',
+        keyEnvName: 'GROQ_API_KEY',
+        protocol: 'openai-compatible',
+        inferenceParams: {},
+        pricing: {
+          inputPerMillion: 0,
+          outputPerMillion: 0,
+          cacheWritePerMillion: 0,
+          cacheHitPerMillion: 0,
+          contextWindow: '128k',
+        },
+      },
+    },
+  };
+
+  it('empty role models resolve to catalog defaults for provider', () => {
+    const aligned = alignRoleModelsWithProvider(
+      {
+        mcpServers: {},
+        packages: { apt: [], npm: [] },
+        additionalMounts: [],
+        skills: [],
+        provider: 'groq',
+      },
+      registry,
+    );
+
+    expect(aligned.model).toBe('llama-3.3-70b-versatile');
+    expect(aligned.orchestratorModel).toBe('openai/gpt-oss-20b');
+  });
+
+  it('realigns deepseek models when group provider is groq', () => {
+    const aligned = alignRoleModelsWithProvider(
+      {
+        mcpServers: {},
+        packages: { apt: [], npm: [] },
+        additionalMounts: [],
+        skills: [],
+        provider: 'groq',
+        orchestratorModel: 'deepseek-v4-flash',
+        senderModel: 'deepseek-v4-flash',
+        model: 'deepseek-v4-flash',
+      },
+      registry,
+    );
+
+    expect(aligned.orchestratorModel).toBe('openai/gpt-oss-20b');
+    expect(aligned.senderModel).toBe('openai/gpt-oss-20b');
+    expect(aligned.model).toBe('llama-3.3-70b-versatile');
+  });
+
+  it('keeps groq models when already aligned with provider', () => {
+    const aligned = alignRoleModelsWithProvider(
+      {
+        mcpServers: {},
+        packages: { apt: [], npm: [] },
+        additionalMounts: [],
+        skills: [],
+        provider: 'groq',
+        orchestratorModel: 'openai/gpt-oss-20b',
+        senderModel: 'openai/gpt-oss-20b',
+        model: 'llama-3.3-70b-versatile',
+      },
+      registry,
+    );
+
+    expect(aligned.orchestratorModel).toBe('openai/gpt-oss-20b');
+    expect(aligned.senderModel).toBe('openai/gpt-oss-20b');
+    expect(aligned.model).toBe('llama-3.3-70b-versatile');
+  });
+});
+
 describe('host/container validation parity', () => {
   it('keeps the duplicated regex literals identical', () => {
     const read = (p: string): string => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');

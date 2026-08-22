@@ -22,10 +22,19 @@ describe('llm-call-purpose', () => {
     expect(buildLedgerPreview('orchestrator_triage', '{"type":"fast_path"}')).toBe(
       'Triagem: {"type":"fast_path"}',
     );
+    expect(buildLedgerPreview('orchestrator_supervisor', '{"action":"delegate"}')).toBe(
+      'Supervisor: {"action":"delegate"}',
+    );
   });
 
   test('labels are stable and not persona-specific', () => {
     expect(formatPurposeLabel('stage2_synthesis')).toBe('Síntese persona (sender)');
+    expect(formatPurposeLabel('orchestrator_supervisor')).toBe('Supervisor do orquestrador');
     expect(getPurposeMeta('fast_path_direct').shortLabel).toBe('Conversa');
+    expect(getPurposeMeta('orchestrator_supervisor').runsFilterKind).toBe('supervisor');
+  });
+
+  test('inferPurposeFromPreview resolves supervisor prefix', () => {
+    expect(resolvePurpose({ preview: 'Supervisor: done' })).toBe('orchestrator_supervisor');
   });
 });

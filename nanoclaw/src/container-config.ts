@@ -14,7 +14,11 @@ import path from 'path';
 import { GROUPS_DIR, TIMEZONE } from './config.js';
 import { getContainerConfig } from './db/container-configs.js';
 import { getAgentGroup } from './db/agent-groups.js';
-import { readMaterializedLlmRegistry, materializeLlmModelsJson } from './llm-models-materialize.js';
+import { readMaterializedLlmRegistry, materializeLlmModelsJson, type MaterializedLlmRegistry } from './llm-models-materialize.js';
+import {
+  resolveRoleModels,
+  type RoleModelRegistry,
+} from '../container/agent-runner/src/services/role-models.js';
 import { isValidTimezone } from './timezone.js';
 import { log } from './log.js';
 import type { AgentGroup, ContainerConfigRow } from './types.js';
@@ -256,6 +260,23 @@ export interface ContainerConfig {
 }
 
 /**
+ * Preenche modelos vazios com defaults do catálogo e realinha modelos de outro provider.
+ */
+export function alignRoleModelsWithProvider(
+  config: ContainerConfig,
+  registry: MaterializedLlmRegistry,
+): ContainerConfig {
+  const providerId = (config.provider || 'claude').toLowerCase();
+  const resolved = resolveRoleModels(providerId, registry as RoleModelRegistry, {
+    model: config.model,
+    orchestratorModel: config.orchestratorModel,
+    senderModel: config.senderModel,
+  });
+  if (!resolved) return config;
+  return { ...config, ...resolved };
+}
+
+/**
  * Effective timezone for an agent group: per-group override → install global.
  * The ncl write path validates, but a hand-edited DB value must not silently
  * flip scheduling to UTC — an invalid override falls back to the global tz,
@@ -350,7 +371,8 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
   const row = getContainerConfig(agentGroupId);
   if (!row) throw new Error(`Container config not found for agent group: ${agentGroupId}`);
 
-  const config = configFromDb(row, group);
+  const registry = readMaterializedLlmRegistry() ?? materializeLlmModelsJson();
+  const config = alignRoleModelsWithProvider(configFromDb(row, group), registry);
 
   const p = path.join(GROUPS_DIR, group.folder, 'container.json');
   const dir = path.dirname(p);
@@ -358,7 +380,6 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
   fs.writeFileSync(p, JSON.stringify(config, null, 2) + '\n');
 
   try {
-    const registry = readMaterializedLlmRegistry() ?? materializeLlmModelsJson();
     const modelsPath = path.join(GROUPS_DIR, group.folder, 'llm-models.json');
     fs.writeFileSync(modelsPath, JSON.stringify(registry, null, 2) + '\n');
   } catch {

@@ -8,7 +8,6 @@ skills:
   - gmail-inbox
   - autonomous-scheduler
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente especialista em comunicação e produtividade executiva (Gmail).

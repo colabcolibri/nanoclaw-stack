@@ -578,6 +578,14 @@ export class ApiRouter {
       });
     }
 
+    if (url.pathname === "/api/audit-traces" && method === "GET") {
+      const limit = parseInt(url.searchParams.get("limit") || "300", 10);
+      const group = url.searchParams.get("group") || undefined;
+      return jsonResponse({
+        traces: DatabaseService.getAgentAuditTraces(limit, group),
+      });
+    }
+
     // Security & Users
     if (url.pathname === "/api/security" && method === "GET") {
       return jsonResponse(DatabaseService.getSecurityData());

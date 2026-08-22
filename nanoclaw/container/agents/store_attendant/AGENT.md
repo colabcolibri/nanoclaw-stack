@@ -8,7 +8,6 @@ skills:
   - yampi-store
   - store-email-attendant
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente técnico especialista na plataforma de e-commerce Yampi.

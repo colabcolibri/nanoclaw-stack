@@ -1,8 +1,19 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import type { Department, SpecialistAgent } from './types.js';
 import { ALL_TOOLS } from '../tools/index.js';
 import type { ToolDefinition } from '../tools/types.js';
+import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
+import { SkillsManager } from '../services/skills-manager.js';
+
+const REPO_CONTAINER_AGENTS_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'agents',
+);
 
 export class AgentRegistry {
   private static departments: Map<string, Department> = new Map();
@@ -88,13 +99,14 @@ export class AgentRegistry {
 
     const candidateDirs = [
       '/app/agents',
+      path.join(CONTAINER_AGENT_DIR, 'agents'),
+      REPO_CONTAINER_AGENTS_DIR,
       path.join(process.cwd(), 'agents'),
       path.join(process.cwd(), 'container', 'agents'),
     ];
 
     if (cwd) {
       candidateDirs.unshift(path.join(cwd, 'agents'));
-      candidateDirs.unshift('/workspace/agent/agents');
     }
 
     for (const baseDir of candidateDirs) {
@@ -230,6 +242,44 @@ export class AgentRegistry {
     return Array.from(this.agents.values());
   }
 
+  private static resolveToolName(name: string): string {
+    return name.toLowerCase().replace(/-/g, '_');
+  }
+
+  private static addResolvedToolName(allowedToolNames: Set<string>, name: string): void {
+    const normalized = this.resolveToolName(name);
+    if (ALL_TOOLS[name] || ALL_TOOLS[normalized]) {
+      allowedToolNames.add(normalized);
+    }
+  }
+
+  /**
+   * Resolves skill slugs from AGENT.md into concrete tool names via SKILL.md frontmatter.
+   */
+  static resolveToolNamesForAgent(agent: SpecialistAgent, cwd?: string): string[] {
+    const allowedToolNames = new Set<string>();
+
+    for (const skillName of agent.agentSkills) {
+      const skill = SkillsManager.getSkillByName(skillName, cwd);
+      if (skill?.tools?.length) {
+        for (const toolName of skill.tools) {
+          this.addResolvedToolName(allowedToolNames, toolName);
+        }
+        continue;
+      }
+
+      this.addResolvedToolName(allowedToolNames, skillName);
+    }
+
+    if (agent.allowGlobalSkills !== false) {
+      for (const globalSkill of this.GLOBAL_SKILLS) {
+        this.addResolvedToolName(allowedToolNames, globalSkill);
+      }
+    }
+
+    return [...allowedToolNames];
+  }
+
   /**
    * Resolves the available tool definitions for a specific specialist agent.
    * Encapsulates agent-specific skills and selectively attaches global utility skills.
@@ -238,13 +288,13 @@ export class AgentRegistry {
     const agent = this.getAgent(agentId, cwd);
     if (!agent) return [];
 
-    const allowedToolNames = new Set<string>(agent.agentSkills);
-    if (agent.allowGlobalSkills !== false) {
-      this.GLOBAL_SKILLS.forEach((s) => allowedToolNames.add(s));
-    }
-
     const tools: ToolDefinition[] = [];
-    for (const toolName of allowedToolNames) {
+    const seen = new Set<string>();
+
+    for (const toolName of this.resolveToolNamesForAgent(agent, cwd)) {
+      if (seen.has(toolName)) continue;
+      seen.add(toolName);
+
       const toolObj = ALL_TOOLS[toolName];
       if (toolObj?.definition) {
         tools.push(toolObj.definition);

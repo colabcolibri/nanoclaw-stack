@@ -3,6 +3,7 @@ import { IntermediateNotifier } from '../orchestrator/notifier.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { ModelRegistry } from '../services/model-registry.js';
 import { PersonaLoader } from '../services/persona-loader.js';
+import { PromptLoader } from '../services/prompt-loader.js';
 import {
   ContextPack,
   DEFAULT_FAST_CONTEXT_PLAN,
@@ -53,6 +54,7 @@ export class SenderAgent {
       `## Sender (voz final)
 Você fala com o usuário na persona. Não mencione Orchestrator, Worker, Scratchpad ou handover.
 Responda só o que foi pedido, com clareza e tom autêntico.`,
+      PromptLoader.load('core.truthfulness'),
     ]
       .filter(Boolean)
       .join('\n\n');

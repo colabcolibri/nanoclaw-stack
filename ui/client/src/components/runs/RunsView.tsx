@@ -21,7 +21,7 @@ import {
   SlidersHorizontal,
   Zap,
 } from 'lucide-react'
-import { ApiClient, type CronExecutionLog, type IntermediateRunItem } from '@/api/client'
+import { ApiClient, type CronExecutionLog, type IntermediateRunItem, type AgentAuditTraceItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -32,8 +32,11 @@ import { Card, CardContent } from '@/components/ui/card'
 export const RunsView: React.FC = () => {
   const [cronLogs, setCronLogs] = useState<CronExecutionLog[]>([])
   const [detailedRuns, setDetailedRuns] = useState<IntermediateRunItem[]>([])
+  const [auditTraces, setAuditTraces] = useState<AgentAuditTraceItem[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [filterType, setFilterType] = useState<'all' | 'cron' | 'tools' | 'synthesis' | 'memo'>('all')
+  const [filterType, setFilterType] = useState<
+    'all' | 'cron' | 'tools' | 'triage' | 'supervisor' | 'synthesis' | 'memo' | 'audit'
+  >('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
@@ -48,12 +51,14 @@ export const RunsView: React.FC = () => {
   const loadRunsData = async () => {
     setIsLoading(true)
     try {
-      const [cronRes, runsRes] = await Promise.all([
+      const [cronRes, runsRes, auditRes] = await Promise.all([
         ApiClient.getCronLogs().catch(() => ({ logs: [] })),
         ApiClient.getRuns(150).catch(() => ({ runs: [] })),
+        ApiClient.getAuditTraces(300).catch(() => ({ traces: [] })),
       ])
       setCronLogs(cronRes.logs || [])
       setDetailedRuns(runsRes.runs || [])
+      setAuditTraces(auditRes.traces || [])
     } catch {
     } finally {
       setIsLoading(false)
@@ -96,13 +101,15 @@ export const RunsView: React.FC = () => {
           ? 'memo'
           : r.purpose === 'orchestrator_triage'
             ? 'triage'
-            : r.purpose === 'stage2_synthesis'
-              ? 'synthesis'
-              : r.purpose === 'fast_path_direct'
-                ? 'fast'
-                : isTool
-                  ? 'tools'
-                  : 'model_turn'
+            : r.purpose === 'orchestrator_supervisor'
+              ? 'supervisor'
+              : r.purpose === 'stage2_synthesis'
+                ? 'synthesis'
+                : r.purpose === 'fast_path_direct'
+                  ? 'fast'
+                  : isTool
+                    ? 'tools'
+                    : 'model_turn'
       const category = r.label || r.shortLabel || 'Execução de modelo'
 
       list.push({
@@ -118,8 +125,44 @@ export const RunsView: React.FC = () => {
         costUsd: r.costUsd,
         costBrl: r.costBrl,
         latencyMs: r.latencyMs,
+        messageId: r.messageId,
         prompt: r.preview || r.rawContent || '',
         output: r.rawContent || r.preview,
+      })
+    })
+
+    const auditStepLabels: Record<string, string> = {
+      orchestrator_triage: 'Triagem',
+      orchestrator_supervisor: 'Supervisor (LLM)',
+      supervisor_turn_start: 'Supervisor — início do turn',
+      supervisor_delegate: 'Supervisor — delegação',
+      supervisor_finish: 'Supervisor — finish',
+      supervisor_turn_summary: 'Supervisor — resumo do turn',
+      department_routing: 'Roteamento',
+      agent_selection: 'Seleção de agente',
+      worker_execution: 'Worker',
+      orchestrator_evaluation: 'Pós-worker',
+      sender_synthesis: 'Síntese sender',
+      semantic_memo: 'Memo semântico',
+    }
+
+    auditTraces.forEach((t) => {
+      const stepLabel = auditStepLabels[t.step] || t.step
+      list.push({
+        id: t.id,
+        kind: 'audit',
+        category: stepLabel,
+        timestamp: t.timestamp,
+        status: 'completed',
+        latencyMs: t.latencyMs,
+        messageId: t.messageId,
+        agent: t.agent,
+        department: t.department,
+        supervisorStep: t.supervisorStep,
+        decision: t.decision,
+        prompt: t.promptPreview || t.purpose,
+        output: t.responsePreview || (t.metadata ? JSON.stringify(t.metadata, null, 2) : ''),
+        auditMetadata: t.metadata,
       })
     })
 
@@ -139,7 +182,7 @@ export const RunsView: React.FC = () => {
       }
       return true
     })
-  }, [cronLogs, detailedRuns, filterType, searchQuery])
+  }, [cronLogs, detailedRuns, auditTraces, filterType, searchQuery])
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
@@ -183,6 +226,36 @@ export const RunsView: React.FC = () => {
             }`}
           >
             Crons Periódicas ({cronLogs.length})
+          </button>
+          <button
+            onClick={() => setFilterType('triage')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              filterType === 'triage'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+            }`}
+          >
+            Triagem
+          </button>
+          <button
+            onClick={() => setFilterType('supervisor')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              filterType === 'supervisor'
+                ? 'bg-violet-600 text-white shadow-xs'
+                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+            }`}
+          >
+            Supervisor
+          </button>
+          <button
+            onClick={() => setFilterType('audit')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              filterType === 'audit'
+                ? 'bg-slate-600 text-white shadow-xs'
+                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+            }`}
+          >
+            Passos ({auditTraces.length})
           </button>
           <button
             onClick={() => setFilterType('tools')}
@@ -248,6 +321,12 @@ export const RunsView: React.FC = () => {
               } else if (run.kind === 'memo') {
                 badgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                 icon = <Brain className="w-4 h-4" />
+              } else if (run.kind === 'triage' || run.kind === 'supervisor') {
+                badgeColor = 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20'
+                icon = <Brain className="w-4 h-4" />
+              } else if (run.kind === 'audit') {
+                badgeColor = 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
+                icon = <SlidersHorizontal className="w-4 h-4" />
               }
 
               return (

@@ -68,6 +68,11 @@ export interface HandoverPackage {
 export interface AgentAuditTrace {
   step:
     | 'orchestrator_triage'
+    | 'orchestrator_supervisor'
+    | 'supervisor_turn_start'
+    | 'supervisor_delegate'
+    | 'supervisor_finish'
+    | 'supervisor_turn_summary'
     | 'department_routing'
     | 'agent_selection'
     | 'worker_execution'
@@ -86,12 +91,22 @@ export interface AgentAuditTrace {
   promptPreview?: string;
   responsePreview?: string;
   timestamp: string;
+  /** ID da mensagem inbound que disparou o turn (correlação UI / ledger). */
+  messageId?: string;
+  /** Índice 1-based do passo do supervisor neste turn. */
+  supervisorStep?: number;
+  /** Decisão do supervisor neste passo. */
+  decision?: 'delegate' | 'finish';
+  /** Payload estruturado para replay / auditoria (steps, findings, etc.). */
+  metadata?: Record<string, unknown>;
 }
 
 export interface MultiAgentTurnOptions {
   prompt: string;
   cwd: string;
   chatJid?: string;
+  /** Mensagem inbound principal (correlação ledger + auditoria). */
+  messageId?: string;
   /** IDs das mensagens inbound deste turn (para gravar memo semântico no SQLite). */
   inboundMessageIds?: string[];
   history: Array<{ role: string; memo?: string; content?: string; [key: string]: any }>;
@@ -100,6 +115,7 @@ export interface MultiAgentTurnOptions {
   systemInstructions?: string;
   historyLimit?: number;
   maxWorkerIterations?: number;
+  maxSupervisorSteps?: number;
   orchestratorModel?: string;
   senderModel?: string;
   defaultModel?: string;

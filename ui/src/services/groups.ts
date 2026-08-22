@@ -4,6 +4,46 @@ import { CONFIG } from "../config.js";
 import { DatabaseService } from "./db.js";
 import { LlmCredentialsService } from "./llm-credentials.js";
 import { LlmModelService } from "./llm-models.js";
+import { alignRoleModelsWithProvider } from "../../../nanoclaw/src/container-config.js";
+import type { MaterializedLlmRegistry } from "../../../nanoclaw/src/llm-models-materialize.js";
+
+function loadMaterializedRegistry(): MaterializedLlmRegistry | null {
+  const registryPath = path.join(CONFIG.DATA_PATH, "llm-models.json");
+  if (!fs.existsSync(registryPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(registryPath, "utf-8")) as MaterializedLlmRegistry;
+  } catch {
+    return null;
+  }
+}
+
+function resolveEffectiveRoleModels(
+  provider: string | null,
+  overrides: { model?: string; orchestratorModel?: string; senderModel?: string },
+): { model: string; orchestratorModel: string; senderModel: string } | null {
+  if (!provider) return null;
+  const registry = loadMaterializedRegistry();
+  if (!registry) return null;
+  const aligned = alignRoleModelsWithProvider(
+    {
+      mcpServers: {},
+      packages: { apt: [], npm: [] },
+      additionalMounts: [],
+      skills: [],
+      provider,
+      model: overrides.model,
+      orchestratorModel: overrides.orchestratorModel,
+      senderModel: overrides.senderModel,
+    },
+    registry,
+  );
+  if (!aligned.model || !aligned.orchestratorModel || !aligned.senderModel) return null;
+  return {
+    model: aligned.model,
+    orchestratorModel: aligned.orchestratorModel,
+    senderModel: aligned.senderModel,
+  };
+}
 
 function resolveProviderForModel(modelId: string): string | null {
   if (!modelId) return null;
@@ -298,9 +338,17 @@ export class GroupManager {
 
     const dbRow = DatabaseService.getContainerConfigByFolder(safeFolder);
     const envMap = this.readNanoClawEnv();
-    const workerModel = containerCfg.model ?? dbRow?.model ?? "";
-    const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
-    const activeProvider = derivedProvider ?? containerCfg.provider ?? dbRow?.provider ?? null;
+    const storedModel = dbRow?.model ?? containerCfg.model ?? "";
+    const storedOrchestrator = dbRow?.orchestrator_model ?? containerCfg.orchestratorModel ?? "";
+    const storedSender = dbRow?.sender_model ?? containerCfg.senderModel ?? "";
+    const derivedProvider = storedModel ? resolveProviderForModel(storedModel) : null;
+    const activeProvider = containerCfg.provider ?? dbRow?.provider ?? derivedProvider ?? null;
+
+    const effective = resolveEffectiveRoleModels(activeProvider, {
+      model: storedModel,
+      orchestratorModel: storedOrchestrator,
+      senderModel: storedSender,
+    });
 
     const locationFields = parseLocationFields({
       city: containerCfg.city || dbRow?.city,
@@ -312,9 +360,15 @@ export class GroupManager {
       ...containerCfg,
       agentGroupId: containerCfg.agentGroupId || dbRow?.agent_group_id,
       provider: activeProvider,
-      model: workerModel,
-      orchestratorModel: containerCfg.orchestratorModel ?? dbRow?.orchestrator_model ?? "",
-      senderModel: containerCfg.senderModel ?? dbRow?.sender_model ?? "",
+      model: storedModel,
+      orchestratorModel: storedOrchestrator,
+      senderModel: storedSender,
+      effectiveModels: effective ?? undefined,
+      modelUsesDefault: {
+        worker: !storedModel.trim(),
+        orchestrator: !storedOrchestrator.trim(),
+        sender: !storedSender.trim(),
+      },
       assistantName:
         containerCfg.assistantName ||
         containerCfg.groupName ||
@@ -360,32 +414,51 @@ export class GroupManager {
       ...current,
       assistantName: newConfig.name ?? newConfig.assistantName ?? current.assistantName,
       name: newConfig.name ?? current.name,
-      model: newConfig.model ?? current.model,
-      orchestratorModel: newConfig.orchestratorModel ?? current.orchestratorModel,
-      senderModel: newConfig.senderModel ?? current.senderModel,
+      model: newConfig.model !== undefined ? newConfig.model : (current.model ?? ""),
+      orchestratorModel:
+        newConfig.orchestratorModel !== undefined
+          ? newConfig.orchestratorModel
+          : (current.orchestratorModel ?? ""),
+      senderModel: newConfig.senderModel !== undefined ? newConfig.senderModel : (current.senderModel ?? ""),
       city,
       country,
       location,
       timezone: newConfig.timezone || current.timezone || "Europe/Brussels",
     };
 
-    const workerModel = merged.model;
-    const derivedProvider = workerModel ? resolveProviderForModel(workerModel) : null;
-    if (derivedProvider) {
-      merged.provider = derivedProvider;
-    } else if (newConfig.provider || current.provider) {
-      merged.provider = newConfig.provider || current.provider;
-    }
+    const derivedProvider = merged.model ? resolveProviderForModel(merged.model) : null;
+    merged.provider =
+      newConfig.provider || current.provider || derivedProvider || merged.provider || null;
 
-    fs.writeFileSync(configFile, JSON.stringify(merged, null, 2) + "\n", "utf-8");
-
-    // Sync SQLite table container_configs in central DB (Primary source of truth for NanoClaw)
-    if (merged.agentGroupId) {
-      DatabaseService.updateContainerConfig(merged.agentGroupId, merged);
-    }
+    const effective = resolveEffectiveRoleModels(merged.provider, {
+      model: merged.model,
+      orchestratorModel: merged.orchestratorModel,
+      senderModel: merged.senderModel,
+    });
 
     if (!merged.provider) {
-      throw new Error("provider não configurado — selecione um modelo válido no catálogo");
+      throw new Error("provider não configurado — defina o provider do grupo ou selecione um modelo válido");
+    }
+    if (!effective) {
+      throw new Error("não foi possível resolver modelos padrão — verifique llm-models.json e o provider do grupo");
+    }
+
+    const containerRuntime = {
+      ...merged,
+      model: effective.model,
+      orchestratorModel: effective.orchestratorModel,
+      senderModel: effective.senderModel,
+    };
+
+    fs.writeFileSync(configFile, JSON.stringify(containerRuntime, null, 2) + "\n", "utf-8");
+
+    if (merged.agentGroupId) {
+      DatabaseService.updateContainerConfigFields(merged.agentGroupId, {
+        ...merged,
+        model: merged.model || null,
+        orchestratorModel: merged.orchestratorModel || null,
+        senderModel: merged.senderModel || null,
+      }, { syncContainerJson: false });
     }
 
     return true;

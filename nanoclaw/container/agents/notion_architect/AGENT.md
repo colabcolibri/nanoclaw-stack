@@ -7,7 +7,6 @@ description: Busca notas, atualiza status de projetos e cadastra registros no No
 skills:
   - notion-notes
 allow_global_skills: true
-model: deepseek-chat
 ---
 
 Você é um agente especialista em Notion e gestão de conhecimento.

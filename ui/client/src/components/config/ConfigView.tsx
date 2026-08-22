@@ -47,6 +47,11 @@ export const ConfigView: React.FC = () => {
   })
   const [usdToBrlRate, setUsdToBrlRate] = useState<number>(5.5)
   const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [effectiveModels, setEffectiveModels] = useState<{
+    model?: string
+    orchestratorModel?: string
+    senderModel?: string
+  }>({})
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
@@ -101,17 +106,13 @@ export const ConfigView: React.FC = () => {
           country,
           timezone: data.config.timezone || 'Europe/Brussels',
         })
+        setEffectiveModels(data.config.effectiveModels ?? {})
       }
     } catch {}
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!config.model || !config.orchestratorModel || !config.senderModel) {
-      setToast({ text: t('modelRequired') || 'Selecione os três modelos (worker, orchestrator, sender).', type: 'error' })
-      setTimeout(() => setToast(null), 3000)
-      return
-    }
     setIsSaving(true)
     try {
       await ApiClient.saveConfig(group, {
@@ -136,9 +137,21 @@ export const ConfigView: React.FC = () => {
   }
 
   const roleModels = [
-    { key: 'worker', label: 'Worker', modelId: config.model, color: 'text-sky-500' },
-    { key: 'orchestrator', label: 'Orquestrador', modelId: config.orchestratorModel, color: 'text-purple-500' },
-    { key: 'sender', label: 'Sender', modelId: config.senderModel, color: 'text-emerald-500' },
+    { key: 'worker', label: 'Worker', modelId: config.model, effectiveId: effectiveModels.model, color: 'text-sky-500' },
+    {
+      key: 'orchestrator',
+      label: 'Orquestrador',
+      modelId: config.orchestratorModel,
+      effectiveId: effectiveModels.orchestratorModel,
+      color: 'text-purple-500',
+    },
+    {
+      key: 'sender',
+      label: 'Sender',
+      modelId: config.senderModel,
+      effectiveId: effectiveModels.senderModel,
+      color: 'text-emerald-500',
+    },
   ] as const
 
   return (
@@ -220,7 +233,7 @@ export const ConfigView: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-[var(--text-dim)] -mt-2">
-                Cada papel pode usar um modelo (e provider) diferente.
+                Deixe em &quot;Padrão&quot; para usar o modelo recomendado do provider do grupo. Override só quando quiser outro modelo.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -234,6 +247,8 @@ export const ConfigView: React.FC = () => {
                     value={config.model}
                     onChange={(model) => setConfig({ ...config, model })}
                     disabled={isLoadingModels}
+                    allowDefault
+                    defaultLabel="Padrão (worker — catálogo)"
                   />
                 </div>
                 <div>
@@ -246,6 +261,8 @@ export const ConfigView: React.FC = () => {
                     value={config.orchestratorModel}
                     onChange={(orchestratorModel) => setConfig({ ...config, orchestratorModel })}
                     disabled={isLoadingModels}
+                    allowDefault
+                    defaultLabel="Padrão (orquestrador)"
                   />
                 </div>
                 <div>
@@ -258,6 +275,8 @@ export const ConfigView: React.FC = () => {
                     value={config.senderModel}
                     onChange={(senderModel) => setConfig({ ...config, senderModel })}
                     disabled={isLoadingModels}
+                    allowDefault
+                    defaultLabel="Padrão (sender)"
                   />
                 </div>
               </div>
@@ -276,7 +295,8 @@ export const ConfigView: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {roleModels.map((role) => {
-                  const modelObj = findModelInProviders(providers, role.modelId)
+                  const displayId = role.modelId || role.effectiveId || ''
+                  const modelObj = findModelInProviders(providers, displayId)
                   const pricing = modelObj?.pricing || DEFAULT_PRICING
                   return (
                     <div
@@ -284,7 +304,9 @@ export const ConfigView: React.FC = () => {
                       className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl space-y-1"
                     >
                       <div className={`text-[10px] font-bold uppercase tracking-wider ${role.color}`}>{role.label}</div>
-                      <div className="text-[10px] font-mono text-[var(--text-dim)] truncate">{role.modelId}</div>
+                      <div className="text-[10px] font-mono text-[var(--text-dim)] truncate">
+                        {role.modelId ? role.modelId : `Padrão → ${role.effectiveId || '…'}`}
+                      </div>
                       <div className="text-xs font-mono text-[var(--text-main)]">
                         in ${pricing.inputPerMillion.toFixed(3)} · out ${pricing.outputPerMillion.toFixed(3)}
                       </div>

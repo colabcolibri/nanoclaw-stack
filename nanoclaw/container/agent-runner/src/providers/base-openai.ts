@@ -7,6 +7,7 @@ import { TokenLedger } from '../services/token-ledger.js';
 import { ModelRegistry } from '../services/model-registry.js';
 import { PersonaLoader } from '../services/persona-loader.js';
 import { buildLedgerPreview, resolvePurpose } from '../services/llm-call-purpose.js';
+import { resolveContainerRoleModels } from '../services/role-models.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type {
   AgentProvider,
@@ -91,10 +92,11 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     const technicalDirectives = input.systemContext?.instructions || '';
     const coreMemory = MemoryManager.loadCoreMemory(input.cwd) || '';
 
-    // Load role models from container.json (obrigatórios para multi-agente)
+    // Load role models from container.json (defaults do catálogo quando vazio)
     let workerModel: string | undefined;
     let orchestratorModel: string | undefined;
     let senderModel: string | undefined;
+    let containerProvider: string | undefined;
     const containerJsonCandidates = [
       path.join(input.cwd, 'container.json'),
       '/workspace/agent/container.json',
@@ -104,9 +106,27 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       try {
         if (fs.existsSync(cfgPath)) {
           const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-          workerModel = cfg.model;
-          orchestratorModel = cfg.orchestratorModel;
-          senderModel = cfg.senderModel;
+          containerProvider = cfg.provider;
+          const catalogProviderId = (this as { catalogProviderId?: string }).catalogProviderId;
+          const providerId = containerProvider || catalogProviderId;
+          const resolved = resolveContainerRoleModels(
+            providerId,
+            {
+              model: cfg.model,
+              orchestratorModel: cfg.orchestratorModel,
+              senderModel: cfg.senderModel,
+            },
+            input.cwd,
+          );
+          if (resolved) {
+            workerModel = resolved.model;
+            orchestratorModel = resolved.orchestratorModel;
+            senderModel = resolved.senderModel;
+          } else {
+            workerModel = cfg.model;
+            orchestratorModel = cfg.orchestratorModel;
+            senderModel = cfg.senderModel;
+          }
           break;
         }
       } catch {}
@@ -146,7 +166,8 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
           const callApiKey = process.env[invocation.keyEnvName]?.trim();
           if (!callApiKey) {
             throw new Error(
-              `API key ausente (${invocation.keyEnvName}). Configure em Credenciais LLM no painel.`,
+              `API key ausente (${invocation.keyEnvName}) para o modelo "${targetModel}" (provider ${invocation.providerId}). ` +
+                `O grupo usa o driver "${providerName}" — configure a chave em Credenciais LLM e use modelos do mesmo provider em container.json.`,
             );
           }
 
@@ -261,7 +282,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
               toolCallsCount: msg.tool_calls?.length || 0,
               latencyMs,
               preview: buildLedgerPreview(purpose, msg.content, msg.tool_calls),
-              messageId: input.messageId,
+              messageId: options?.messageId ?? input.messageId,
               purpose,
             });
           } catch {}
@@ -302,6 +323,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             cwd: input.cwd,
             chatJid: (input as any).chatJid,
             inboundMessageIds: input.inboundMessageIds,
+            messageId: input.messageId ?? input.inboundMessageIds?.[0],
             history,
             systemInstructions: technicalDirectives,
             personaInstructions,

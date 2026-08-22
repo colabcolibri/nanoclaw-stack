@@ -57,12 +57,19 @@ describe('Multi-Agent & Department Architecture', () => {
     expect(gmailAgent?.agentSkills).toContain('gmail-inbox');
     expect(gmailAgent?.agentSkills).toContain('autonomous-scheduler');
 
-    // Tool isolation: Productivity agent only gets its specific tools + global tools
+    // Tool isolation: Productivity agent gets domain tools from skills + global utilities
     const tools = AgentRegistry.getToolsForAgent('productivity_attendant');
     const toolNames = tools.map((t) => t.function.name);
-    expect(toolNames).toContain('retrieve_message_context'); // global tool
-    expect(toolNames).not.toContain('yampi_store'); // E-commerce tool MUST NOT leak here!
-    expect(toolNames).not.toContain('resale_pricing'); // Pricing tool MUST NOT leak here!
+    expect(toolNames).toContain('google_gmail');
+    expect(toolNames).toContain('schedule_followup');
+    expect(toolNames).toContain('retrieve_message_context');
+    expect(toolNames).not.toContain('yampi_store');
+    expect(toolNames).not.toContain('resale_pricing');
+
+    const storeToolNames = AgentRegistry.getToolsForAgent('store_attendant').map((t) => t.function.name);
+    expect(storeToolNames).toContain('yampi_store');
+    expect(storeToolNames).toContain('google_gmail');
+    expect(storeToolNames).not.toContain('notion');
   });
 
   test('WorkerAgentRunner executes specialist in isolated sandbox and records audit trace', async () => {

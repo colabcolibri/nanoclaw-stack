@@ -10,12 +10,15 @@ export interface TurnOptions {
   prompt: string;
   cwd: string;
   chatJid?: string;
+  messageId?: string;
+  inboundMessageIds?: string[];
   history: Array<{ role: string; content?: string; [key: string]: any }>;
   systemInstructions: string;
   personaInstructions?: string;
   coreMemory?: string;
   historyLimit?: number;
   maxIterations?: number;
+  maxSupervisorSteps?: number;
   orchestratorModel?: string;
   senderModel?: string;
   defaultModel?: string;
@@ -27,6 +30,7 @@ export type LLMCallPurpose =
   | 'semantic_memo'      // Pós-Turno: Geração de Resumo Semântico
   | 'fast_path_direct'   // Conversação direta (sem ferramentas)
   | 'orchestrator_triage' // Triagem e roteamento multi-agente
+  | 'orchestrator_supervisor' // Loop supervisor: delegate | finish
   | 'skill_evaluation'   // Avaliação de Skills
   | 'system_diagnostics';// Diagnósticos / Testes
 

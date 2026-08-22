@@ -4,6 +4,8 @@ import { ExecutionScratchpad } from '../orchestrator/scratchpad.js';
 import { ResponseParser } from '../orchestrator/parser.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { ModelRegistry } from '../services/model-registry.js';
+import { PromptLoader } from '../services/prompt-loader.js';
+import { resolveWorkerModel } from '../services/role-models.js';
 import type { SpecialistAgent, WorkerResult, ToolFinding } from './types.js';
 import type { LLMCompletionFn } from '../orchestrator/types.js';
 
@@ -22,6 +24,8 @@ export class WorkerAgentRunner {
       onActivity?: () => void;
       history?: any[];
       defaultModel?: string;
+      messageId?: string;
+      supervisorStep?: number;
     } = {}
   ): Promise<WorkerResult> {
     const maxIterations = Math.max(1, options.maxIterations || 6);
@@ -31,10 +35,13 @@ export class WorkerAgentRunner {
 
     const systemPrompt = [
       agent.systemPrompt,
+      PromptLoader.load('core.truthfulness'),
       '## Diretriz Técnica de Execução',
       'Execute as ferramentas com precisão máxima.',
-      'Quando tiver coletado todas as informações ou completado a ação, responda apenas com "DONE" ou um breve resumo dos dados.',
-    ].join('\n\n');
+      'Quando tiver coletado todas as informações ou completado a ação, responda apenas com "DONE" ou um breve resumo dos dados retornados pelas ferramentas.',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
     let iterationsRun = 0;
     let finalSummary = '';
@@ -47,8 +54,8 @@ export class WorkerAgentRunner {
       const startTime = Date.now();
 
       const resolvedModel = ModelRegistry.requireModelId(
-        agent.model ?? options.defaultModel,
-        agent.model ? `agents.${agent.id}.model` : 'model',
+        resolveWorkerModel(options.defaultModel, agent.model),
+        'model',
         cwd,
       );
 
@@ -58,20 +65,26 @@ export class WorkerAgentRunner {
         department: agent.departmentId,
         iteration: iter + 1,
         model: resolvedModel,
+        messageId: options.messageId,
+        supervisorStep: options.supervisorStep,
       });
 
       const latencyMs = Date.now() - startTime;
       const toolCalls = ResponseParser.extractToolCalls(response);
 
-      AgentAuditLogger.record(cwd, {
+      AgentAuditLogger.recordStep(cwd, {
         step: 'worker_execution',
         agent: agent.id,
         department: agent.departmentId,
-        purpose: `Worker iteration ${iter + 1}`,
+        messageId: options.messageId,
+        supervisorStep: options.supervisorStep,
+        purpose: `Worker iteration ${iter + 1}${options.supervisorStep ? ` (supervisor step ${options.supervisorStep})` : ''}`,
         latencyMs,
         promptPreview: taskDescription.slice(0, 100),
         responsePreview: response.content ? response.content.slice(0, 100) : `Tool: ${toolCalls[0]?.name}`,
-        timestamp: new Date().toISOString(),
+        metadata: toolCalls.length
+          ? { tools: toolCalls.map((c) => c.name), iteration: iter + 1 }
+          : { iteration: iter + 1, done: true },
       });
 
       if (toolCalls.length > 0) {

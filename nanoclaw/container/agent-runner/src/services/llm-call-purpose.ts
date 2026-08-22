@@ -9,6 +9,7 @@ export type LlmCallPurpose =
   | 'semantic_memo'
   | 'fast_path_direct'
   | 'orchestrator_triage'
+  | 'orchestrator_supervisor'
   | 'skill_evaluation'
   | 'system_diagnostics'
   | 'unknown';
@@ -24,10 +25,11 @@ export interface LlmCallPurposeMeta {
     | 'tool_execution'
     | 'memo_generation'
     | 'orchestrator_triage'
+    | 'orchestrator_supervisor'
     | 'persona_synthesis'
     | 'fast_path'
     | 'model_turn';
-  runsFilterKind: 'tools' | 'memo' | 'triage' | 'synthesis' | 'fast' | 'model_turn';
+  runsFilterKind: 'tools' | 'memo' | 'triage' | 'supervisor' | 'synthesis' | 'fast' | 'model_turn';
 }
 
 const PURPOSE_CATALOG: Record<Exclude<LlmCallPurpose, 'unknown'>, LlmCallPurposeMeta> = {
@@ -38,6 +40,14 @@ const PURPOSE_CATALOG: Record<Exclude<LlmCallPurpose, 'unknown'>, LlmCallPurpose
     previewPrefix: 'Triagem: ',
     uiType: 'orchestrator_triage',
     runsFilterKind: 'triage',
+  },
+  orchestrator_supervisor: {
+    purpose: 'orchestrator_supervisor',
+    label: 'Supervisor do orquestrador',
+    shortLabel: 'Supervisor',
+    previewPrefix: 'Supervisor: ',
+    uiType: 'orchestrator_supervisor',
+    runsFilterKind: 'supervisor',
   },
   fast_path_direct: {
     purpose: 'fast_path_direct',
@@ -100,6 +110,7 @@ const UNKNOWN_META: LlmCallPurposeMeta = {
 
 const PREVIEW_PREFIX_ORDER: Array<{ prefix: string; purpose: Exclude<LlmCallPurpose, 'unknown'> }> = [
   { prefix: 'Triagem: ', purpose: 'orchestrator_triage' },
+  { prefix: 'Supervisor: ', purpose: 'orchestrator_supervisor' },
   { prefix: 'Conversa: ', purpose: 'fast_path_direct' },
   { prefix: 'Síntese: ', purpose: 'stage2_synthesis' },
   { prefix: 'Memo: ', purpose: 'semantic_memo' },
