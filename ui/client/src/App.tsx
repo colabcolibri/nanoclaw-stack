@@ -181,28 +181,30 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-main)] flex flex-col transition-colors">
-      {/* Top Header with Global Currency Selector */}
-      <Topbar
-        agentName={stats?.agentName || 'Barão'}
-        isOnline={stats?.serviceStatus === 'Online'}
-        isSidebarOpen={isSidebarOpen}
+    <div className="h-screen w-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)] flex flex-row transition-colors">
+      {/* Navigation Sidebar (Full Height 100vh) */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        activeView={activeView}
+        onSelectView={handleSelectView}
         onToggleSidebar={toggleSidebar}
-        onLogout={handleLogout}
-        currency={currency}
-        onToggleCurrency={setCurrency}
       />
 
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Navigation Sidebar */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          activeView={activeView}
-          onSelectView={handleSelectView}
+      {/* Right Column: Topbar + Main scrollable view */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Header with Global Currency Selector */}
+        <Topbar
+          agentName={stats?.agentName || 'Barão'}
+          isOnline={stats?.serviceStatus === 'Online'}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={toggleSidebar}
+          onLogout={handleLogout}
+          currency={currency}
+          onToggleCurrency={setCurrency}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-64px)] flex flex-col transition-all duration-300">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col transition-all duration-300">
           {/* Top Metric Cards (Respects Selected Currency) */}
           <StatsGrid stats={stats} currency={currency} />
 
