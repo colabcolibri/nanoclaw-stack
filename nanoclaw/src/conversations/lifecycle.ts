@@ -44,7 +44,7 @@ export function startNewConversation(
 export async function startNewConversationWithResume(
   ctx: CallerContext,
   current: Session,
-  summarizeWithLlm?: SummarizeMessagesFn,
+  summarizeWithLlm: SummarizeMessagesFn,
 ): Promise<{ session: Session; summary: string }> {
   return getConversationBackend().startNewConversationWithResume(ctx, current, summarizeWithLlm);
 }

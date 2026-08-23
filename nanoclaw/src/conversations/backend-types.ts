@@ -23,7 +23,7 @@ export interface ConversationBackend {
   startNewConversationWithResume(
     ctx: CallerContext,
     current: Session,
-    summarizeWithLlm?: SummarizeMessagesFn,
+    summarizeWithLlm: SummarizeMessagesFn,
   ): Promise<{ session: Session; summary: string }>;
   readConversationHistory(agentGroupId: string, sessionId: string, limit?: number): ConversationMessage[];
   initSessionFolder(agentGroupId: string, sessionId: string): void;

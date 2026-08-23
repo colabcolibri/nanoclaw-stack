@@ -116,7 +116,7 @@ export function createNodeConversationBackend(): ConversationBackend {
     async startNewConversationWithResume(
       ctx: CallerContext,
       current: Session,
-      summarizeWithLlm?: SummarizeMessagesFn,
+      summarizeWithLlm: SummarizeMessagesFn,
     ) {
       const history = readHistoryRaw(ctx.agentGroupId, current.id, 50);
       const summary = await summarizeConversation(history, summarizeWithLlm);

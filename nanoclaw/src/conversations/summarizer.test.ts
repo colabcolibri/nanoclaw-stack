@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { buildExtractiveSummary } from './summarizer.js';
+import { buildExtractiveSummary, summarizeConversation } from './summarizer.js';
 
 describe('conversation summarizer', () => {
   it('buildExtractiveSummary truncates long transcripts', () => {
@@ -12,5 +12,19 @@ describe('conversation summarizer', () => {
     const summary = buildExtractiveSummary(messages);
     expect(summary.length).toBeLessThanOrEqual(2000);
     expect(summary).toContain('User:');
+  });
+
+  it('summarizeConversation throws when LLM fails', async () => {
+    const summarizeWithLlm = vi.fn().mockRejectedValue(new Error('provider offline'));
+    await expect(
+      summarizeConversation([{ role: 'user', text: 'oi', timestamp: new Date().toISOString() }], summarizeWithLlm),
+    ).rejects.toThrow(/Falha ao resumir conversa com LLM/);
+  });
+
+  it('summarizeConversation throws when LLM returns empty', async () => {
+    const summarizeWithLlm = vi.fn().mockResolvedValue('   ');
+    await expect(
+      summarizeConversation([{ role: 'user', text: 'oi', timestamp: new Date().toISOString() }], summarizeWithLlm),
+    ).rejects.toThrow(/resumo vazio/);
   });
 });

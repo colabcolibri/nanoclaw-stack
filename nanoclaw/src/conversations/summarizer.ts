@@ -20,28 +20,29 @@ const LLM_SUMMARY_SYSTEM = `You summarize a conversation for handoff to a new se
 Output ONLY the summary (no preamble). Include: key facts, decisions, open tasks, preferences.
 Maximum ${MAX_SUMMARY_CHARS} characters. Use the same language as the conversation.`;
 
-/** Summarize with optional LLM; falls back to extractive summary. */
+/** Summarize with LLM — no extractive fallback. */
 export async function summarizeConversation(
   messages: ConversationMessage[],
-  summarizeWithLlm?: SummarizeMessagesFn,
+  summarizeWithLlm: SummarizeMessagesFn,
 ): Promise<string> {
   const relevant = messages.filter((m) => m.text.trim().length > 0);
   if (relevant.length === 0) {
     return 'No prior messages in this conversation.';
   }
 
-  if (summarizeWithLlm) {
-    try {
-      const summary = await summarizeWithLlm(relevant);
-      if (summary.trim()) {
-        return summary.trim().slice(0, MAX_SUMMARY_CHARS);
-      }
-    } catch {
-      /* fallback */
-    }
+  let summary: string;
+  try {
+    summary = await summarizeWithLlm(relevant);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`Falha ao resumir conversa com LLM: ${detail}`);
   }
 
-  return buildExtractiveSummary(relevant);
+  const trimmed = summary.trim();
+  if (!trimmed) {
+    throw new Error('LLM retornou resumo vazio');
+  }
+  return trimmed.slice(0, MAX_SUMMARY_CHARS);
 }
 
 /** Build LLM summarize fn from an OpenAI-compatible completion function. */
@@ -57,6 +58,10 @@ export function createLlmSummarizeFn(
       { role: 'system', content: LLM_SUMMARY_SYSTEM },
       { role: 'user', content: transcript },
     ]);
-    return result.content?.trim() ?? buildExtractiveSummary(messages);
+    const content = result.content?.trim();
+    if (!content) {
+      throw new Error('LLM retornou resumo vazio');
+    }
+    return content;
   };
 }

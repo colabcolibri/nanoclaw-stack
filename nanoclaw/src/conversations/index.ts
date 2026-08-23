@@ -26,6 +26,7 @@ export {
 } from './lifecycle.js';
 export { clearAllContinuations, getHistoryCutoff, setHistoryCutoff } from './session-state.js';
 export { buildExtractiveSummary, createLlmSummarizeFn, summarizeConversation } from './summarizer.js';
+export { buildConversationSummarizeFn } from './summarize-factory.js';
 export {
   pickDefaultSessionId,
   resolveSelectedSessionId,

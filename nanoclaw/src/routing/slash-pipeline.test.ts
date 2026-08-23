@@ -125,6 +125,7 @@ describe('runSlashPipeline', () => {
       },
     });
     const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+    const summarizeWithLlm = vi.fn().mockResolvedValue('Resumo LLM da conversa anterior.');
     const outcome = await runSlashPipeline({
       content: JSON.stringify({ text: '/new_resume' }),
       caller,
@@ -132,6 +133,7 @@ describe('runSlashPipeline', () => {
       userId: 'telegram:owner',
       agentGroupId: 'ag-1',
       transport: 'channel',
+      summarizeWithLlm,
       denySession: {
         id: 'sess-bootstrap',
         agent_group_id: 'ag-1',

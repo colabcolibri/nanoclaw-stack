@@ -5,6 +5,7 @@
 import { gateCommand } from '../command-gate.js';
 import { executeSlashCommand, parseSlashCommand, unregisteredSlashToken } from '../commands/index.js';
 import type { SlashCommandResult } from '../commands/types.js';
+import { buildConversationSummarizeFn } from '../conversations/summarize-factory.js';
 import type { CallerContext, DeliveryAddress, SummarizeMessagesFn } from '../conversations/types.js';
 import { deliverSessionMessages } from '../delivery.js';
 import { log } from '../log.js';
@@ -59,6 +60,16 @@ function resolveCommand(input: SlashPipelineInput) {
   return parseSlashCommand(input.content);
 }
 
+/** All transports share the same LLM summarize wiring for /new-resume. */
+function resolveSummarizeWithLlm(
+  commandId: string,
+  caller: CallerContext,
+  override?: SummarizeMessagesFn,
+): SummarizeMessagesFn | undefined {
+  if (commandId !== 'new-resume') return undefined;
+  return override ?? buildConversationSummarizeFn(caller.agentGroupId);
+}
+
 export async function runSlashPipeline(input: SlashPipelineInput): Promise<SlashPipelineOutcome> {
   const parsed = resolveCommand(input);
   if (!parsed) {
@@ -104,8 +115,10 @@ export async function runSlashPipeline(input: SlashPipelineInput): Promise<Slash
     }
   }
 
+  const summarizeWithLlm = resolveSummarizeWithLlm(parsed.id, input.caller, input.summarizeWithLlm);
+
   const result = await executeSlashCommand(parsed.id, input.caller, input.delivery, {
-    summarizeWithLlm: input.summarizeWithLlm,
+    summarizeWithLlm,
   });
 
   if (input.transport === 'channel') {

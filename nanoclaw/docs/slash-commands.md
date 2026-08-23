@@ -98,6 +98,10 @@ Telegram bot menus must stay in sync with the same registry:
 
 Platform-only Telegram commands (`/start`, `/help`, …) remain in `FILTERED_COMMANDS` inside `command-gate.ts` — they are not part of our expandable registry.
 
+### `/new-resume` handoff (all transports)
+
+`runSlashPipeline` auto-wires LLM summarize for `new-resume` via `buildConversationSummarizeFn()` (memo role model + OpenAI-compatible stack). Channel (Telegram, etc.) and sync (macOS/iOS) share the same path — no per-transport wiring in `router.ts` or `sync-turn-host.ts`. If the LLM fails or returns empty text, the command errors (no extractive copy fallback).
+
 ---
 
 ## 6. Related docs

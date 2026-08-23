@@ -14,11 +14,8 @@ import {
   readConversationHistory,
   resolveActiveSession,
 } from '../conversations/lifecycle.js';
-import type { SummarizeMessagesFn } from '../conversations/types.js';
-import { createLlmSummarizeFn } from '../conversations/summarizer.js';
 import { loadGroupTurnContext } from './group-turn-context.js';
 import { resolveGroupRoleModels } from '../container-config.js';
-import { createOpenAiCompatibleComplete } from './llm-openai-compatible.js';
 import {
   initSessionFolder,
   writeOutboundDirect,
@@ -52,23 +49,6 @@ function resolveAgentGroupId(groupFolder: string): string {
     throw new Error(`Grupo de agente não encontrado para pasta: ${groupFolder}`);
   }
   return group.id;
-}
-
-function buildSummarizeFn(groupDir: string, defaultModel: string): SummarizeMessagesFn {
-  let completeFn: Awaited<ReturnType<typeof createOpenAiCompatibleComplete>> | null = null;
-  return createLlmSummarizeFn(async (messages) => {
-    if (!completeFn) {
-      completeFn = await createOpenAiCompatibleComplete({
-        groupDir,
-        registryPath: REGISTRY_PATH,
-        projectRoot: PROJECT_ROOT,
-        defaultModel,
-        messageId: `summarize-${Date.now()}`,
-        recordTelemetry: false,
-      });
-    }
-    return completeFn(messages);
-  });
 }
 
 function resolveContainerModels(agentGroupId: string) {
@@ -124,13 +104,6 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
 
   const conversationMode = input.conversationMode ?? (input.resetSession ? 'new' : undefined);
   const parsedSlashEarly = parseSlashCommand(input.prompt);
-  const slashNeedsSummarize =
-    conversationMode === 'new-resume' || parsedSlashEarly?.id === 'new-resume';
-  let summarizeFn: SummarizeMessagesFn | undefined;
-  if (slashNeedsSummarize) {
-    const models = resolveContainerModels(agentGroupId);
-    summarizeFn = buildSummarizeFn(groupDir, models.defaultModel);
-  }
 
   const slashBase = {
     content: input.prompt,
@@ -147,7 +120,6 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     const modeOutcome = await runSlashPipeline({
       ...slashBase,
       explicitCommandId: conversationMode,
-      summarizeWithLlm: conversationMode === 'new-resume' ? summarizeFn : undefined,
     });
     if (modeOutcome.kind !== 'handled') {
       throw new Error(`Falha ao executar comando de conversa: ${conversationMode}`);
@@ -169,7 +141,6 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     if (parsedSlashEarly.id !== conversationMode) {
       const cmdOutcome = await runSlashPipeline({
         ...slashBase,
-        summarizeWithLlm: parsedSlashEarly.id === 'new-resume' ? summarizeFn : undefined,
       });
       if (cmdOutcome.kind === 'handled') {
         return {
@@ -274,12 +245,6 @@ export async function resetSyncSession(
     userId,
   };
   const delivery = { channelType: channel, platformId: threadId, threadId };
-  const groupDir = path.join(GROUPS_DIR, groupFolder);
-  let summarizeFn: SummarizeMessagesFn | undefined;
-  if (mode === 'new-resume') {
-    const models = resolveContainerModels(agentGroupId);
-    summarizeFn = buildSummarizeFn(groupDir, models.defaultModel);
-  }
 
   const outcome = await runSlashPipeline({
     content: `/${mode}`,
@@ -289,7 +254,6 @@ export async function resetSyncSession(
     agentGroupId,
     transport: 'sync',
     explicitCommandId: mode,
-    summarizeWithLlm: summarizeFn,
   });
   if (outcome.kind !== 'handled') {
     throw new Error(`Falha ao reiniciar sessão (${mode}).`);
