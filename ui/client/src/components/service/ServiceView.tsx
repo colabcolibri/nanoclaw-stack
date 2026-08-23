@@ -95,7 +95,7 @@ export const ServiceView: React.FC = () => {
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
         view="service"
-        subtitle="Controle de processos em segundo plano, contêineres Docker e autorização de canais."
+        subtitle="Status do daemon, contêineres Docker, pareamento de dispositivos e canais conectados."
         actions={
           <Button
             variant="outline"

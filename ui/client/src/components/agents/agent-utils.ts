@@ -99,9 +99,25 @@ export function buildAgentYamlPreview(fields: AgentYamlFields): string {
     `allow_global_skills: ${fields.allowGlobalSkills}`,
   ]
 
-  if (fields.model) lines.push(`model: ${fields.model}`)
+  if (fields.model?.trim()) lines.push(`model: ${fields.model.trim()}`)
 
   return lines.join('\n')
+}
+
+/** Rótulo do modelo no card/drawer: override explícito ou herança do worker do grupo. */
+export function formatAgentModelLabel(
+  agent: Pick<AgentItem, 'model' | 'effectiveModel'>,
+  groupWorkerModel: string | undefined,
+  labels: { inherited: string; unresolved: string },
+): string {
+  if (agent.model?.trim()) return agent.model.trim()
+  const effective = agent.effectiveModel?.trim() || groupWorkerModel?.trim()
+  if (effective) return labels.inherited.replace('{{model}}', effective)
+  return labels.unresolved
+}
+
+export function isAgentModelInherited(agent: Pick<AgentItem, 'model'>): boolean {
+  return !agent.model?.trim()
 }
 
 export function buildAgentMdPreview(fields: AgentYamlFields, systemPrompt: string): string {

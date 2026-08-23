@@ -29,25 +29,28 @@
   "status": "Status",
   "author": "Autor",
   "nav": {
-    "chat": "Conversas (Chat)",
-    "usage": "Extrato & Consumo",
-    "agents": "Agentes & Departamentos",
-    "soul": "Editor de alma, persona & memória",
-    "skills": "Habilidades (Skills)",
-    "mcps": "Integrações (MCP/OAuth)",
-    "schedules": "Agendamentos (Cron)",
-    "runs": "Execuções (Runs)",
-    "security": "Segurança & Usuários",
-    "logs": "Terminal & Logs",
-    "models": "Modelos LLM",
-    "config": "Parâmetros LLM",
-    "service": "Serviços & Pareamento"
+    "chat": "Conversas",
+    "usage": "Consumo & tokens",
+    "agents": "Agentes",
+    "soul": "Alma & memória",
+    "skills": "Skills",
+    "mcps": "Integrações MCP",
+    "schedules": "Agendamentos",
+    "runs": "Execuções",
+    "security": "Acesso & aprovações",
+    "logs": "Logs do motor",
+    "models": "Catálogo & credenciais",
+    "config": "Config. do grupo",
+    "service": "Motor & canais"
   },
   "navGroups": {
     "communication": "Comunicação",
     "intelligence": "Inteligência & agentes",
-    "automation": "Automação & tarefas",
-    "governance": "Governança & sistema"
+    "automation": "Automação",
+    "models": "Modelos & IA",
+    "monitoring": "Monitoramento",
+    "governance": "Governança",
+    "system": "Sistema"
   },
   "stats": {
     "totalMessages": "Total de Mensagens",

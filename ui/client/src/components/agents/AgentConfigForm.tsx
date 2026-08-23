@@ -30,6 +30,7 @@ interface AgentConfigFormProps {
   form: AgentConfigFormState
   departments: DepartmentItem[]
   providers: Record<string, ProviderMeta>
+  groupWorkerModel?: string
   onChange: (patch: Partial<AgentConfigFormState>) => void
 }
 
@@ -37,6 +38,7 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
   form,
   departments,
   providers,
+  groupWorkerModel,
   onChange,
 }) => {
   const { t } = useTranslation('agents')
@@ -85,14 +87,21 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 sm:col-span-2">
           <Label>{t('dedicatedModel')}</Label>
           <ModelSelect
             providers={providers}
             value={form.model}
             onChange={(v) => onChange({ model: v })}
+            allowDefault
+            defaultLabel={
+              groupWorkerModel
+                ? `${t('modelWorkerDefault')} → ${groupWorkerModel}`
+                : t('modelWorkerDefault')
+            }
             className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 font-mono text-xs text-(--text-main)"
           />
+          <p className="text-[11px] leading-relaxed text-(--text-dim)">{t('dedicatedModelHint')}</p>
         </div>
       </div>
 

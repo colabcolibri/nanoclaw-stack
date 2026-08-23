@@ -36,6 +36,7 @@ export type ViewType =
 
 interface NavGroup {
   titleKey: string
+  separatorBefore?: boolean
   items: { id: ViewType; labelKey: string; icon: React.ReactNode }[]
 }
 
@@ -79,15 +80,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      titleKey: 'navGroups.governance',
+      titleKey: 'navGroups.models',
+      items: [
+        { id: 'models', labelKey: 'nav.models', icon: <Database className="h-4 w-4" /> },
+        { id: 'config', labelKey: 'nav.config', icon: <Sliders className="h-4 w-4" /> },
+      ],
+    },
+    {
+      titleKey: 'navGroups.monitoring',
       items: [
         { id: 'usage', labelKey: 'nav.usage', icon: <BarChart3 className="h-4 w-4" /> },
-        { id: 'models', labelKey: 'nav.models', icon: <Database className="h-4 w-4" /> },
         { id: 'logs', labelKey: 'nav.logs', icon: <Terminal className="h-4 w-4" /> },
-        { id: 'security', labelKey: 'nav.security', icon: <ShieldAlert className="h-4 w-4" /> },
-        { id: 'config', labelKey: 'nav.config', icon: <Sliders className="h-4 w-4" /> },
-        { id: 'service', labelKey: 'nav.service', icon: <Cpu className="h-4 w-4" /> },
       ],
+    },
+    {
+      titleKey: 'navGroups.governance',
+      separatorBefore: true,
+      items: [{ id: 'security', labelKey: 'nav.security', icon: <ShieldAlert className="h-4 w-4" /> }],
+    },
+    {
+      titleKey: 'navGroups.system',
+      items: [{ id: 'service', labelKey: 'nav.service', icon: <Cpu className="h-4 w-4" /> }],
     },
   ]
 
@@ -140,7 +153,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       >
         {navGroups.map((group) => (
-          <div key={group.titleKey} className={cn('flex w-full flex-col gap-1', isCollapsed && 'items-center')}>
+          <div
+            key={group.titleKey}
+            className={cn(
+              'flex w-full flex-col gap-1',
+              isCollapsed && 'items-center',
+              group.separatorBefore && 'border-t border-(--border-main) pt-3',
+            )}
+          >
             {!isCollapsed && (
               <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-(--text-dim)">
                 {t(group.titleKey)}

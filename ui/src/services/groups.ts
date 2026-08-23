@@ -865,6 +865,17 @@ export class GroupManager {
 
     agents.push(...agentsById.values());
 
+    const groupConfig = this.getConfig(folder);
+    const groupWorkerModel =
+      (groupConfig.effectiveModels?.model as string | undefined)?.trim() ||
+      String(groupConfig.model ?? "").trim() ||
+      "";
+
+    const agentsWithEffective = agents.map((ag) => ({
+      ...ag,
+      effectiveModel: ag.model?.trim() || groupWorkerModel || undefined,
+    }));
+
     // Collect all departments from agents
     const departmentsMap = new Map<string, { id: string; name: string; description: string; icon?: string }>();
     for (const d of DEFAULT_DEPARTMENTS) {
@@ -883,13 +894,19 @@ export class GroupManager {
 
     return {
       departments: Array.from(departmentsMap.values()),
-      agents,
+      agents: agentsWithEffective,
+      groupWorkerModel: groupWorkerModel || undefined,
     };
   }
 
   static getAgent(folder: string, agentId: string) {
-    const { agents } = this.getDepartmentsAndAgents(folder);
-    return agents.find((a) => a.id === agentId) || null;
+    const { agents, groupWorkerModel } = this.getDepartmentsAndAgents(folder);
+    const agent = agents.find((a) => a.id === agentId) || null;
+    if (!agent) return null;
+    return {
+      ...agent,
+      effectiveModel: agent.model?.trim() || groupWorkerModel || undefined,
+    };
   }
 
   static saveAgent(
@@ -924,7 +941,7 @@ role: "${data.role.replace(/"/g, '\\"')}"
 description: "${(data.description || data.role).replace(/"/g, '\\"')}"
 ${skillsYaml}
 allow_global_skills: ${data.allowGlobalSkills !== false}
-${data.model ? `model: ${data.model}` : ""}
+${data.model?.trim() ? `model: ${data.model.trim()}` : ""}
 ---
 
 ${data.systemPrompt.trim()}

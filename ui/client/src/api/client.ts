@@ -125,6 +125,8 @@ export interface AgentItem {
   skills: string[]
   allowGlobalSkills: boolean
   model?: string
+  /** Modelo efetivo (override do agente ou worker do grupo). */
+  effectiveModel?: string
   systemPrompt: string
   systemPromptChars?: number
   systemPromptTokens?: number
@@ -540,7 +542,9 @@ export class ApiClient {
     })
   }
 
-  static async getDepartmentsAndAgents(group: string): Promise<{ departments: DepartmentItem[]; agents: AgentItem[] }> {
+  static async getDepartmentsAndAgents(
+    group: string,
+  ): Promise<{ departments: DepartmentItem[]; agents: AgentItem[]; groupWorkerModel?: string }> {
     return this.fetchJson(`/api/groups/${group}/agents`)
   }
 

@@ -2,22 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
   Check,
-  CheckCircle2,
-  Coins,
   Database,
   KeyRound,
   RefreshCw,
-  Server,
 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
-import { ProviderCredentialCard } from '@/components/models/ProviderCredentialCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -34,34 +32,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useLlmRegistry, invalidateLlmRegistryCache } from '@/hooks/useLlmRegistry'
+import type { ModelItem } from '@/lib/model-registry'
 import { cn } from '@/lib/utils'
 
 const ROLE_LABELS: Record<string, string> = {
   orchestrator: 'Orquestrador',
   worker: 'Worker',
   sender: 'Sender',
+  memo: 'Memo',
   all: 'Todos',
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string
-  value: string | number
-  icon: React.ElementType
-}) {
-  return (
-    <div className="min-w-0 rounded-xl border border-(--border-main) bg-(--bg-card) p-4">
-      <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">
-        <Icon className="h-3.5 w-3.5 text-(--accent)" />
-        <span className="truncate">{label}</span>
-      </div>
-      <p className="font-mono text-lg font-semibold text-(--text-main)">{value}</p>
-    </div>
-  )
+function formatUsdPerMillion(value: number): string {
+  if (!value) return '—'
+  return `$${value.toFixed(3)}`
 }
+
+type EnrichedModel = ModelItem & { providerId: string; providerName: string }
 
 export const ModelsView: React.FC = () => {
   const { providers, isLoading, reload } = useLlmRegistry()
@@ -84,7 +71,7 @@ export const ModelsView: React.FC = () => {
       const data = await ApiClient.getLlmKeysStatus()
       setKeysStatus(data.keysStatus ?? {})
     } catch {
-      // status opcional — não bloqueia a tela
+      // status opcional
     }
   }
 
@@ -114,7 +101,7 @@ export const ModelsView: React.FC = () => {
     }
   }
 
-  const allModels = useMemo(
+  const allModels = useMemo<EnrichedModel[]>(
     () =>
       providerEntries.flatMap(([pid, meta]) =>
         meta.models.map((m) => ({ ...m, providerId: pid, providerName: meta.name }))
@@ -126,8 +113,6 @@ export const ModelsView: React.FC = () => {
     () => providerEntries.filter(([id]) => keysStatus[id]?.hasKey).length,
     [providerEntries, keysStatus]
   )
-
-  const missingKeyProviders = providerEntries.length - configuredProviders
 
   const filteredModels = useMemo(() => {
     const q = search.toLowerCase()
@@ -142,21 +127,23 @@ export const ModelsView: React.FC = () => {
     })
   }, [allModels, selectedProvider, search])
 
+  const showProviderColumn = selectedProvider === 'all'
+
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-6">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
       {toast && (
         <div
           className={cn(
-            'flex items-center gap-2 rounded-xl border p-3.5 text-xs font-semibold animate-in fade-in',
+            'flex items-center gap-2 rounded-xl border p-3 text-xs font-semibold animate-in fade-in',
             toast.type === 'success'
               ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-900 dark:text-emerald-300'
               : 'border-red-500/30 bg-red-500/15 text-red-900 dark:text-red-300'
           )}
         >
           {toast.type === 'success' ? (
-            <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <Check className="h-4 w-4 shrink-0" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertCircle className="h-4 w-4 shrink-0" />
           )}
           <span>{toast.text}</span>
         </div>
@@ -164,14 +151,14 @@ export const ModelsView: React.FC = () => {
 
       <PageHeader
         view="models"
-        subtitle="Catálogo versionado no código. Aqui você gerencia credenciais dos providers."
+        subtitle="Catálogo versionado em código. Gerencie credenciais dos providers."
         actions={
           <Button
             variant="outline"
             size="sm"
             onClick={refreshRegistry}
             disabled={isLoading}
-            className="h-9 gap-1.5 text-xs font-semibold"
+            className="h-8 gap-1.5 text-xs font-semibold"
           >
             <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
             Atualizar
@@ -179,67 +166,24 @@ export const ModelsView: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-22 rounded-xl" />
-          ))
-        ) : (
-          <>
-            <StatCard label="Total de modelos" value={allModels.length} icon={Database} />
-            <StatCard label="Providers configurados" value={configuredProviders} icon={CheckCircle2} />
-            <StatCard label="Sem chave" value={missingKeyProviders} icon={KeyRound} />
-            <StatCard label="No catálogo" value={providerEntries.length} icon={Server} />
-          </>
-        )}
-      </div>
+      <Tabs defaultValue="catalog" className="w-full min-w-0">
+        <TabsList>
+          <TabsTrigger value="catalog">Catálogo ({allModels.length})</TabsTrigger>
+          <TabsTrigger value="credentials">
+            Credenciais ({configuredProviders}/{providerEntries.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-(--text-main)">Credenciais por provider</h2>
-          <p className="mt-0.5 text-xs text-(--text-muted)">
-            Configure API keys para cada provider do catálogo. O catálogo em si é definido no código.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-44 rounded-xl" />
-              ))
-            : providerEntries.map(([id, meta]) => {
-                const status = keysStatus[id]
-                return (
-                  <ProviderCredentialCard
-                    key={id}
-                    providerId={id}
-                    name={meta.name}
-                    envName={meta.keyEnvName ?? id}
-                    hasKey={status?.hasKey ?? false}
-                    maskedKey={status?.masked}
-                    newKeyValue={newApiKeys[id] ?? ''}
-                    onNewKeyChange={(value) =>
-                      setNewApiKeys((prev) => ({ ...prev, [id]: value }))
-                    }
-                    onSave={() => handleSaveProviderKey(id)}
-                    isSaving={savingKeyFor === id}
-                  />
-                )
-              })}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-(--text-main)">Modelos disponíveis</h2>
-            <p className="mt-0.5 text-xs text-(--text-muted)">
-              {filteredModels.length} modelo{filteredModels.length !== 1 ? 's' : ''} no catálogo
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <TabsContent value="catalog" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar modelo..."
+              className="w-full sm:max-w-sm"
+            />
             <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-              <SelectTrigger className="w-full sm:w-48 text-xs">
+              <SelectTrigger className="w-full sm:w-52 text-xs">
                 <SelectValue placeholder="Provider" />
               </SelectTrigger>
               <SelectContent>
@@ -251,107 +195,173 @@ export const ModelsView: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Buscar modelo..."
-              className="w-full sm:max-w-xs"
-            />
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setSelectedProvider('all')}
-            className={cn(
-              'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-              selectedProvider === 'all'
-                ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
-                : 'border-(--border-main) bg-(--bg-card) text-(--text-muted) hover:text-(--text-main)'
-            )}
-          >
-            Todos
-          </button>
-          {providerEntries.map(([id, meta]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setSelectedProvider(id)}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                selectedProvider === id
-                  ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
-                  : 'border-(--border-main) bg-(--bg-card) text-(--text-muted) hover:text-(--text-main)'
-              )}
-            >
-              {meta.name}
-            </button>
-          ))}
-        </div>
-
-        {isLoading ? (
-          <Skeleton className="h-64 rounded-xl" />
-        ) : filteredModels.length === 0 ? (
-          <EmptyState
-            icon={<Database className="h-8 w-8 text-(--text-dim)" />}
-            title="Nenhum modelo encontrado"
-            description="Ajuste os filtros ou atualize o catálogo."
-          />
-        ) : (
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-(--bg-input)/50 hover:bg-(--bg-input)/50">
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Papel</TableHead>
-                    <TableHead className="text-right">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        <Coins className="h-3.5 w-3.5" />
-                        Input/M
-                      </span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredModels.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="max-w-45 font-mono text-[11px] text-(--text-muted)">
-                        <span className="truncate block">{m.id}</span>
-                      </TableCell>
-                      <TableCell className="font-medium">{m.label}</TableCell>
-                      <TableCell className="text-(--text-muted)">{m.providerName}</TableCell>
-                      <TableCell>
-                        {m.recommendedRole ? (
-                          <Badge variant="outline" className="text-[10px] font-semibold">
-                            {ROLE_LABELS[m.recommendedRole] ?? m.recommendedRole}
-                          </Badge>
-                        ) : (
-                          <span className="text-(--text-dim)">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs text-(--text-muted)">
-                        ${m.pricing.inputPerMillion.toFixed(3)}
-                      </TableCell>
+          {isLoading ? (
+            <Skeleton className="h-72 rounded-xl" />
+          ) : filteredModels.length === 0 ? (
+            <EmptyState
+              icon={<Database className="h-8 w-8 text-(--text-dim)" />}
+              title="Nenhum modelo encontrado"
+              description="Ajuste os filtros ou atualize o catálogo."
+            />
+          ) : (
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-(--bg-input)/40 hover:bg-(--bg-input)/40">
+                      <TableHead>Modelo</TableHead>
+                      {showProviderColumn && <TableHead>Provider</TableHead>}
+                      <TableHead>Sugestão</TableHead>
+                      <TableHead>Contexto</TableHead>
+                      <TableHead className="text-right">In/M</TableHead>
+                      <TableHead className="text-right">Out/M</TableHead>
+                      <TableHead className="text-right hidden lg:table-cell">Cache W</TableHead>
+                      <TableHead className="text-right hidden lg:table-cell">Cache H</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredModels.map((m) => (
+                      <TableRow key={`${m.providerId}:${m.id}`}>
+                        <TableCell className="min-w-44 max-w-xs">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="truncate font-medium">{m.label}</span>
+                              {m.recommended && (
+                                <Badge variant="default" className="shrink-0 text-[9px] px-1.5 py-0">
+                                  recomendado
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="truncate font-mono text-[10px] text-(--text-dim)">
+                              {m.id}
+                            </span>
+                          </div>
+                        </TableCell>
+                        {showProviderColumn && (
+                          <TableCell className="text-(--text-muted) max-w-32 truncate">
+                            {m.providerName}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          {m.recommendedRole ? (
+                            <span className="text-xs text-(--text-muted)">
+                              {ROLE_LABELS[m.recommendedRole] ?? m.recommendedRole}
+                              <span className="text-(--text-dim)"> · padrão</span>
+                            </span>
+                          ) : (
+                            <span className="text-(--text-dim)">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-(--text-muted)">
+                          {m.pricing.contextWindow || '—'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-(--text-muted)">
+                          {formatUsdPerMillion(m.pricing.inputPerMillion)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-(--text-muted)">
+                          {formatUsdPerMillion(m.pricing.outputPerMillion)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-(--text-muted) hidden lg:table-cell">
+                          {formatUsdPerMillion(m.pricing.cacheWritePerMillion)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-(--text-muted) hidden lg:table-cell">
+                          {formatUsdPerMillion(m.pricing.cacheHitPerMillion)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
-        <p className="text-[11px] leading-relaxed text-(--text-muted)">
-          Para adicionar ou alterar providers e modelos, edite{' '}
-          <code className="rounded bg-(--bg-input) px-1.5 py-0.5 font-mono text-[10px]">
-            nanoclaw/src/llm/catalog.ts
-          </code>{' '}
-          e reinicie o serviço.
-        </p>
-      </div>
+          <p className="text-[11px] leading-relaxed text-(--text-muted)">
+            Preços em USD por 1M tokens. A coluna sugestão indica o papel padrão do catálogo quando a config do grupo
+            está vazia — o que você define em Configurações sempre ganha. Para alterar modelos ou sugestões, edite{' '}
+            <code className="rounded bg-(--bg-input) px-1 py-0.5 font-mono text-[10px]">
+              nanoclaw/src/llm/catalog.ts
+            </code>
+            .
+          </p>
+        </TabsContent>
+
+        <TabsContent value="credentials" className="space-y-4">
+          <p className="text-xs text-(--text-muted)">
+            API keys por provider. O catálogo de modelos é definido no código, não aqui.
+          </p>
+
+          {isLoading ? (
+            <Skeleton className="h-48 rounded-xl" />
+          ) : (
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-(--bg-input)/40 hover:bg-(--bg-input)/40">
+                      <TableHead>Provider</TableHead>
+                      <TableHead>Env var</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Chave atual</TableHead>
+                      <TableHead className="min-w-56">Nova API key</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {providerEntries.map(([id, meta]) => {
+                      const status = keysStatus[id]
+                      const hasKey = status?.hasKey ?? false
+                      return (
+                        <TableRow key={id}>
+                          <TableCell className="font-medium max-w-40 truncate">
+                            {meta.name}
+                          </TableCell>
+                          <TableCell className="font-mono text-[10px] text-(--text-dim) max-w-36 truncate">
+                            {meta.keyEnvName ?? id}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={hasKey ? 'success' : 'outline'}
+                              className="text-[10px] font-semibold"
+                            >
+                              {hasKey ? 'OK' : 'Ausente'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-[10px] text-(--text-muted) max-w-32 truncate">
+                            {hasKey && status?.masked ? status.masked : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex min-w-0 gap-2">
+                              <Input
+                                type="password"
+                                placeholder="sk-..."
+                                value={newApiKeys[id] ?? ''}
+                                onChange={(e) =>
+                                  setNewApiKeys((prev) => ({ ...prev, [id]: e.target.value }))
+                                }
+                                className="min-w-0 h-8 font-mono text-xs"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={!newApiKeys[id]?.trim() || savingKeyFor === id}
+                                onClick={() => handleSaveProviderKey(id)}
+                                className="h-8 shrink-0 text-xs"
+                              >
+                                {savingKeyFor === id ? '...' : 'Salvar'}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

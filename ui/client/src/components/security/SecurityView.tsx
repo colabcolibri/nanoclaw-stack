@@ -31,7 +31,7 @@ export const SecurityView: React.FC = () => {
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
         view="security"
-        subtitle="Gerencie quem tem acesso ao bot e aprove solicitações do agente."
+        subtitle="Quem pode falar com o bot, políticas de remetente e fila de aprovações do agente."
         actions={
           <Button
             variant="outline"

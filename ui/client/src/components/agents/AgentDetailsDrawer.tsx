@@ -3,7 +3,7 @@ import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Check, Save, Trash2, Pencil, Cpu } from 'lucide-react'
 import { type AgentItem, type DepartmentItem, type SkillItem, ApiClient } from '@/api/client'
-import { getAgentIcon, normalizeSkillName } from '@/components/agents/agent-utils'
+import { getAgentIcon, normalizeSkillName, formatAgentModelLabel } from '@/components/agents/agent-utils'
 import { AgentOverviewPanel } from '@/components/agents/AgentOverviewPanel'
 import { AgentConfigForm } from '@/components/agents/AgentConfigForm'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ interface AgentDetailsDrawerProps {
   agent: AgentItem | null
   departments: DepartmentItem[]
   availableSkills: SkillItem[]
+  groupWorkerModel?: string
   onAgentSaved: (updated: AgentItem) => void
   onAgentDeleted?: (agentId: string) => void
 }
@@ -34,6 +35,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   agent,
   departments,
   availableSkills,
+  groupWorkerModel,
   onAgentSaved,
   onAgentDeleted,
 }) => {
@@ -58,7 +60,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
       setDepartment(agent.department || 'productivity')
       setRole(agent.role || '')
       setDescription(agent.description || '')
-      setModel(agent.model || 'deepseek-chat')
+      setModel(agent.model?.trim() || '')
       setAllowGlobalSkills(agent.allowGlobalSkills !== false)
       setSelectedSkills(agent.skills || [])
       setSystemPrompt(agent.systemPrompt || '')
@@ -113,6 +115,12 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
     )
   }
 
+  const modelLabels = {
+    inherited: t('modelInherited'),
+    unresolved: t('modelDefault'),
+  }
+  const modelDisplay = formatAgentModelLabel(overviewAgent, groupWorkerModel, modelLabels)
+
   const handleSave = async () => {
     setIsSaving(true)
     try {
@@ -121,7 +129,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
         department,
         role,
         description,
-        model,
+        model: model.trim() || undefined,
         allowGlobalSkills,
         skills: selectedSkills,
         systemPrompt,
@@ -179,7 +187,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                     <p className="font-mono text-xs text-(--text-dim) break-all">ID: {agent.id}</p>
                     <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-(--accent)">
                       <Cpu className="h-3 w-3 shrink-0" />
-                      <span className="break-all">{model || t('modelDefault')}</span>
+                      <span className="break-all">{modelDisplay}</span>
                     </p>
                   </div>
                 </SheetDescription>
@@ -231,6 +239,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                   assignedSkills={assignedSkillObjects}
                   promptChars={promptChars}
                   promptTokens={promptTokens}
+                  groupWorkerModel={groupWorkerModel}
                 />
                 <div className="mt-6 flex flex-wrap gap-3 border-t border-(--border-main)/50 pt-4">
                   {agent.isCustom && (
@@ -251,6 +260,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                   form={configForm}
                   departments={departments}
                   providers={providers}
+                  groupWorkerModel={groupWorkerModel}
                   onChange={(patch) => {
                     if (patch.name !== undefined) setName(patch.name)
                     if (patch.department !== undefined) setDepartment(patch.department)

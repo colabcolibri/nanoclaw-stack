@@ -1,5 +1,6 @@
 import { type AgentItem, type DepartmentItem, type SkillItem } from '@/api/client'
 import {
+  formatAgentModelLabel,
   getAgentFileLabel,
   getDepartmentIcon,
   normalizeSkillName
@@ -16,6 +17,7 @@ interface AgentOverviewPanelProps {
   assignedSkills: SkillItem[]
   promptChars: number
   promptTokens: number
+  groupWorkerModel?: string
 }
 
 export const AgentOverviewPanel: React.FC<AgentOverviewPanelProps> = ({
@@ -24,10 +26,15 @@ export const AgentOverviewPanel: React.FC<AgentOverviewPanelProps> = ({
   assignedSkills,
   promptChars,
   promptTokens,
+  groupWorkerModel,
 }) => {
   const { t } = useTranslation('agents')
   const DeptIcon = getDepartmentIcon(agent.department)
   const fileLabel = getAgentFileLabel(agent.filePath, agent.id)
+  const modelDisplay = formatAgentModelLabel(agent, groupWorkerModel, {
+    inherited: t('modelInherited'),
+    unresolved: t('modelDefault'),
+  })
 
   return (
     <div className="space-y-6">
@@ -38,7 +45,7 @@ export const AgentOverviewPanel: React.FC<AgentOverviewPanelProps> = ({
             {t('baseModel')}
           </span>
           <p className="font-mono text-sm text-(--text-main) wrap-break-word">
-            {agent.model || t('modelDefault')}
+            {modelDisplay}
           </p>
         </div>
 

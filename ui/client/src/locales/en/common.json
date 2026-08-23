@@ -29,25 +29,28 @@
   "status": "Status",
   "author": "Author",
   "nav": {
-    "chat": "Chat & Messages",
-    "usage": "Token Ledger & Cost",
-    "agents": "Agents & Departments",
-    "soul": "Soul editor, persona & memory",
-    "skills": "Skills & Capabilities",
-    "mcps": "Integrations (MCP/OAuth)",
-    "schedules": "Schedules (Cron)",
-    "runs": "Executions (Runs)",
-    "security": "Security & Users",
-    "logs": "Terminal & Logs",
-    "models": "LLM Models",
-    "config": "LLM Settings",
-    "service": "Daemons & Pairing"
+    "chat": "Chat",
+    "usage": "Usage & tokens",
+    "agents": "Agents",
+    "soul": "Soul & memory",
+    "skills": "Skills",
+    "mcps": "MCP integrations",
+    "schedules": "Schedules",
+    "runs": "Runs",
+    "security": "Access & approvals",
+    "logs": "Engine logs",
+    "models": "Catalog & credentials",
+    "config": "Group settings",
+    "service": "Engine & channels"
   },
   "navGroups": {
     "communication": "Communication",
     "intelligence": "Intelligence & agents",
-    "automation": "Automation & tasks",
-    "governance": "Governance & system"
+    "automation": "Automation",
+    "models": "Models & AI",
+    "monitoring": "Monitoring",
+    "governance": "Governance",
+    "system": "System"
   },
   "stats": {
     "totalMessages": "Total Messages",

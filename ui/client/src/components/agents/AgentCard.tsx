@@ -4,6 +4,7 @@ import { MoreVertical, Cpu } from 'lucide-react'
 import { type AgentItem, type DepartmentItem, type SkillItem } from '@/api/client'
 import {
   formatTokenCount,
+  formatAgentModelLabel,
   getAgentContextTokens,
   getAgentIcon,
   getAgentSkillStats,
@@ -15,6 +16,7 @@ interface AgentCardProps {
   agent: AgentItem
   department?: DepartmentItem
   skills: SkillItem[]
+  groupWorkerModel?: string
   isSelected?: boolean
   usagePercent: number
   onClick: () => void
@@ -25,6 +27,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
   agent,
   department,
   skills,
+  groupWorkerModel,
   isSelected,
   usagePercent,
   onClick,
@@ -36,6 +39,10 @@ export const AgentCard: React.FC<AgentCardProps> = ({
   const { active, total } = getAgentSkillStats(agent, skills)
   const contextTokens = getAgentContextTokens(agent, skills)
   const isOffline = agent.skills.length === 0 && !agent.systemPrompt?.trim()
+  const modelDisplay = formatAgentModelLabel(agent, groupWorkerModel, {
+    inherited: t('modelInherited'),
+    unresolved: t('modelDefault'),
+  })
 
   return (
     <article
@@ -121,7 +128,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
             {t('cardModel')}
           </span>
           <span className="min-w-0 break-all text-right font-mono text-xs text-(--text-main)">
-            {agent.model || t('modelDefault')}
+            {modelDisplay}
           </span>
         </div>
 

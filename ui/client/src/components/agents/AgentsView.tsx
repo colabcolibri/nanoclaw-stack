@@ -33,6 +33,8 @@ export const AgentsView: React.FC = () => {
   })
   const [isCreating, setIsCreating] = useState(false)
 
+  const [groupWorkerModel, setGroupWorkerModel] = useState<string>('')
+
   const loadData = async () => {
     setIsLoading(true)
     try {
@@ -42,6 +44,7 @@ export const AgentsView: React.FC = () => {
       ])
       setDepartments(agentsData.departments || [])
       setAgents(agentsData.agents || [])
+      setGroupWorkerModel(agentsData.groupWorkerModel || '')
       setSkills(skillsData.skills || [])
     } catch (err) {
       console.error('Erro ao carregar dados de agentes:', err)
@@ -106,7 +109,6 @@ export const AgentsView: React.FC = () => {
         description: createForm.role || 'Agente customizado',
         skills: [],
         allowGlobalSkills: true,
-        model: 'deepseek-chat',
         systemPrompt: `Você é um agente especialista em ${createForm.name}.\nExecute as tarefas técnicas solicitadas com precisão e retorne dados estruturados.`,
       })
       if (res.success && res.agent) {
@@ -186,6 +188,7 @@ export const AgentsView: React.FC = () => {
                 agent={ag}
                 department={departments.find((d) => d.id === ag.department)}
                 skills={skills}
+                groupWorkerModel={groupWorkerModel}
                 isSelected={selectedAgent?.id === ag.id && isDrawerOpen}
                 usagePercent={usagePercent}
                 onClick={() => handleOpenAgent(ag)}
@@ -202,6 +205,7 @@ export const AgentsView: React.FC = () => {
         agent={selectedAgent}
         departments={departments}
         availableSkills={skills}
+        groupWorkerModel={groupWorkerModel}
         onAgentSaved={handleAgentSaved}
         onAgentDeleted={handleAgentDeleted}
       />

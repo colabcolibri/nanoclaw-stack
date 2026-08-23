@@ -43,7 +43,7 @@ export function getViewContentWidth(view: string): ContentWidth {
     case 'logs':
       return 'full'
     case 'config':
-      return 'narrow'
+      return 'full'
     case 'soul':
       return 'full'
     default:
