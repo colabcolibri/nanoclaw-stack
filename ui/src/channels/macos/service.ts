@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { CONFIG } from "../config.js";
-import { DatabaseService } from "./db.js";
-import { GroupManager } from "./groups.js";
-import { NanoclawMotorClient } from "./nanoclaw-motor-client.js";
+import { CONFIG } from "../../config.js";
+import { DatabaseService } from "../../services/db.js";
+import { GroupManager } from "../../services/groups.js";
+import { NanoclawMotorClient } from "../../services/nanoclaw-motor-client.js";
 
 /**
  * MacChannelService - UI adapter for the macOS client.
@@ -97,17 +97,19 @@ export class MacChannelService {
     return [];
   }
 
-  static async resetSession(groupFolder: string, mode: "new" | "new-resume" = "new"): Promise<boolean> {
+  static async resetSession(
+    groupFolder: string,
+    mode: "new" | "new-resume" = "new",
+  ): Promise<{ message: string; sessionId: string }> {
     const token = this.getOrCreateApiKey(groupFolder);
-    await NanoclawMotorClient.resetSession(groupFolder, token, mode);
-    return true;
+    return NanoclawMotorClient.resetSession(groupFolder, token, mode);
   }
 
   static async processAudio(
     audioBlob: Blob | ArrayBuffer | Uint8Array,
     groupFolder: string,
     sessionId?: string,
-  ): Promise<{ transcription: string; reply: string; timestamp: string }> {
+  ): Promise<{ transcription: string; reply: string; timestamp: string; sessionId: string }> {
     const formData = new FormData();
     const blob = audioBlob instanceof Blob ? audioBlob : new Blob([audioBlob as BlobPart], { type: "audio/m4a" });
     formData.append("audio_file", blob, "recording.m4a");
@@ -140,6 +142,7 @@ export class MacChannelService {
       transcription,
       reply: result.reply,
       timestamp: result.timestamp,
+      sessionId: result.sessionId,
     };
   }
 }

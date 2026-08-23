@@ -1,6 +1,17 @@
 import type { ChatThread } from '@/api/client'
+import {
+  pickDefaultSessionId,
+  resolveSelectedSessionId,
+} from '@shared/thread-selection'
 
 export type ThreadFilter = 'all' | 'active' | 'archived'
+
+/** @deprecated Use pickDefaultSessionId from @shared/thread-selection */
+export function pickDefaultThreadId(threads: ChatThread[]): string | null {
+  return pickDefaultSessionId(threads)
+}
+
+export { resolveSelectedSessionId }
 
 export function formatThreadSubject(thread: ChatThread): string {
   if (thread.threadId) {
@@ -77,12 +88,6 @@ export function filterThreads(
       .toLowerCase()
     return haystack.includes(q)
   })
-}
-
-export function pickDefaultThreadId(threads: ChatThread[]): string | null {
-  if (threads.length === 0) return null
-  const active = threads.find((t) => t.status === 'active')
-  return (active ?? threads[0]).sessionId
 }
 
 export function channelAccentClass(channel: string): string {

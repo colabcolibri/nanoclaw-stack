@@ -13,7 +13,7 @@
  *                              IS_GROUP, PAIRED_USER_ID }
  *                         or { STATUS=failed, CODE, ERROR }
  *
- * Depends on src/channels/telegram-pairing.js, which the /add-telegram skill
+ * Depends on src/channels/telegram/pairing.js, which the /add-telegram skill
  * copies in from the `channels` branch before this step runs. setup/ is
  * excluded from the host tsconfig, so this file's import resolves only at
  * runtime — tsc won't complain on branches that haven't run add-telegram yet.
@@ -26,7 +26,7 @@ import {
   createPairing,
   waitForPairing,
   type PairingIntent,
-} from '../src/channels/telegram-pairing.js';
+} from '../src/channels/telegram/pairing.js';
 import { DATA_DIR } from '../src/config.js';
 import { initDb } from '../src/db/connection.js';
 import { runMigrations } from '../src/db/migrations/index.js';

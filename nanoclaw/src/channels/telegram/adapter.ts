@@ -1,20 +1,20 @@
 /**
  * Telegram channel adapter (v2) — uses Chat SDK bridge, with a pairing
  * interceptor wrapped around onInbound to verify chat ownership before
- * registration. See telegram-pairing.ts for the why.
+ * registration. See pairing.ts for the why.
  */
 import { createTelegramAdapter } from '@chat-adapter/telegram';
 
-import { readEnvFile } from '../env.js';
-import { log } from '../log.js';
-import { createMessagingGroup, getMessagingGroupByPlatform, updateMessagingGroup } from '../db/messaging-groups.js';
-import { grantRole, hasAnyOwner } from '../modules/permissions/db/user-roles.js';
-import { upsertUser } from '../modules/permissions/db/users.js';
-import { createChatSdkBridge, type ReplyContext } from './chat-sdk-bridge.js';
-import { sanitizeTelegramLegacyMarkdown } from './telegram-markdown-sanitize.js';
-import { registerChannelAdapter } from './channel-registry.js';
-import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from './adapter.js';
-import { tryConsume } from './telegram-pairing.js';
+import { readEnvFile } from '../../env.js';
+import { log } from '../../log.js';
+import { createMessagingGroup, getMessagingGroupByPlatform, updateMessagingGroup } from '../../db/messaging-groups.js';
+import { grantRole, hasAnyOwner } from '../../modules/permissions/db/user-roles.js';
+import { upsertUser } from '../../modules/permissions/db/users.js';
+import { createChatSdkBridge, type ReplyContext } from '../chat-sdk-bridge.js';
+import { sanitizeTelegramLegacyMarkdown } from './markdown-sanitize.js';
+import { registerChannelAdapter } from '../channel-registry.js';
+import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from '../adapter.js';
+import { tryConsume } from './pairing.js';
 
 /**
  * Dedicated bot identity, non-threaded platform (supportsThreads:false), so

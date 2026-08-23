@@ -26,3 +26,9 @@ export {
 } from './lifecycle.js';
 export { clearAllContinuations, getHistoryCutoff, setHistoryCutoff } from './session-state.js';
 export { buildExtractiveSummary, createLlmSummarizeFn, summarizeConversation } from './summarizer.js';
+export {
+  pickDefaultSessionId,
+  resolveSelectedSessionId,
+  type SelectableThread,
+  type ThreadStatus,
+} from './thread-selection.js';

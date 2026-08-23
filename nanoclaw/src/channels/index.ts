@@ -1,10 +1,8 @@
 // Channel self-registration barrel.
-// Each import triggers the channel module's registerChannelAdapter() call.
+// Each channel lives under channels/<name>/ and is imported here.
 //
-// Main ships with one default channel — `cli`, the always-on local-terminal
-// channel. Other channel skills (/add-slack, /add-discord, /add-whatsapp,
-// ...) copy their module from the `channels` branch and append a
-// self-registration import below.
+// Shared infrastructure (adapter, registry, chat-sdk-bridge) stays at channels/.
+// Main ships with cli + telegram; other channels append an import below.
 
-import './cli.js';
-import './telegram.js';
+import './cli/index.js';
+import './telegram/index.js';

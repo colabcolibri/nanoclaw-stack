@@ -50,6 +50,9 @@ free_port() {
 if ! command -v docker >/dev/null 2>&1; then
   die "Docker não instalado."
 fi
+if ! command -v bun >/dev/null 2>&1; then
+  die "Bun não instalado (necessário para turns do app Mac via subprocesso Bun)."
+fi
 if ! docker info >/dev/null 2>&1; then
   die "Docker Desktop não está rodando."
 fi

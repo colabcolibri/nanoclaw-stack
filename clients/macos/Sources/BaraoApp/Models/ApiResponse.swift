@@ -4,6 +4,14 @@ public struct PromptResponse: Codable {
     public let success: Bool?
     public let reply: String?
     public let timestamp: String?
+    public let sessionId: String?
+    public let error: String?
+}
+
+public struct ResetResponse: Codable {
+    public let success: Bool?
+    public let message: String?
+    public let sessionId: String?
     public let error: String?
 }
 
@@ -12,6 +20,7 @@ public struct AudioResponse: Codable {
     public let transcription: String?
     public let reply: String?
     public let timestamp: String?
+    public let sessionId: String?
     public let error: String?
 }
 

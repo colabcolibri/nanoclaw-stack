@@ -15,7 +15,7 @@ import { ensureContainerRuntimeRunning, cleanupOrphans } from './container-runti
 import { startActiveDeliveryPoll, startSweepDeliveryPoll, setDeliveryAdapter, stopDeliveryPolls } from './delivery.js';
 import { startHostSweep, stopHostSweep } from './host-sweep.js';
 import { startHostModules, stopHostModules } from './host-lifecycle.js';
-import { registerMacInternalApi } from './channels/mac-internal-api.js';
+import { registerMacInternalApi } from './channels/macos/index.js';
 import { routeInbound } from './router.js';
 import { log } from './log.js';
 import { enforceUpgradeTripwire } from './upgrade-state.js';

@@ -6,10 +6,16 @@ import fs from 'fs';
 import path from 'path';
 import type http from 'http';
 
-import { GROUPS_DIR } from '../config.js';
-import { processSyncTurn, resetSyncSession } from '../gateway/sync-turn-gateway.js';
-import { log } from '../log.js';
-import { registerWebhookHandler } from '../webhook-server.js';
+import { GROUPS_DIR } from '../../config.js';
+import type {
+  MacPromptRequest,
+  MacResetRequest,
+  MacResetResponse,
+  MacTurnResponse,
+} from './api-contract.js';
+import { processSyncTurn, resetSyncSession } from '../../gateway/sync-turn-gateway.js';
+import { log } from '../../log.js';
+import { registerWebhookHandler } from '../../webhook-server.js';
 
 function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -78,12 +84,7 @@ export function registerMacInternalApi(): void {
 
     try {
       if (suffix === '/prompt' || suffix === '/prompt/') {
-        const body = (await readJsonBody(req)) as {
-          prompt?: string;
-          sessionId?: string;
-          resetSession?: boolean;
-          conversationMode?: 'new' | 'new-resume';
-        };
+        const body = (await readJsonBody(req)) as MacPromptRequest;
         const prompt = body.prompt?.trim();
         if (!prompt) {
           jsonResponse(res, 400, { error: 'Prompt é obrigatório.' });
@@ -97,20 +98,27 @@ export function registerMacInternalApi(): void {
           resetSession: body.resetSession,
           conversationMode: body.conversationMode,
         });
-        jsonResponse(res, 200, {
+        const response: MacTurnResponse = {
           success: true,
           reply: result.reply,
           timestamp: result.timestamp,
           toolsExecutedCount: result.toolsExecutedCount,
-        });
+          sessionId: result.sessionId,
+        };
+        jsonResponse(res, 200, response);
         return;
       }
 
       if (suffix === '/reset' || suffix === '/reset/') {
-        const body = (await readJsonBody(req)) as { mode?: 'new' | 'new-resume' };
+        const body = (await readJsonBody(req)) as MacResetRequest;
         const mode = body.mode === 'new-resume' ? 'new-resume' : 'new';
-        const message = await resetSyncSession('macos', groupFolder, 'default', mode);
-        jsonResponse(res, 200, { success: true, message });
+        const result = await resetSyncSession('macos', groupFolder, 'default', mode);
+        const response: MacResetResponse = {
+          success: true,
+          message: result.reply,
+          sessionId: result.sessionId,
+        };
+        jsonResponse(res, 200, response);
         return;
       }
 

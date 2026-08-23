@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { ChatConversationPanel } from '@/components/chat/ChatConversationPanel'
 import { ThreadSidebar } from '@/components/chat/ThreadSidebar'
 import { ChatStatsRow } from '@/components/chat/ChatStatsRow'
-import { pickDefaultThreadId } from '@/components/chat/thread-utils'
+import { pickDefaultThreadId, resolveSelectedSessionId } from '@/components/chat/thread-utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -36,10 +36,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       const data = await ApiClient.getChatThreads(50)
       const list = data.threads || []
       setThreads(list)
-      setSelectedSessionId((current) => {
-        if (current && list.some((th) => th.sessionId === current)) return current
-        return pickDefaultThreadId(list)
-      })
+      setSelectedSessionId((current) => resolveSelectedSessionId(list, current))
     } catch {
       setThreads([])
       setSelectedSessionId(null)

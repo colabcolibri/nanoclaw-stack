@@ -8,7 +8,7 @@ public protocol ApiClientProtocol {
     func sendAudio(fileUrl: URL, config: AppConfig, sessionId: String?) async throws -> AudioResponse
     func fetchThreads(config: AppConfig, limit: Int) async throws -> [ChatThread]
     func fetchHistory(config: AppConfig, limit: Int, sessionId: String?) async throws -> [ChatMessage]
-    func resetHistory(config: AppConfig) async throws -> Bool
+    func beginNewConversation(config: AppConfig, mode: ConversationResetMode) async throws -> ResetResponse
 }
 
 /// Protocol for secure persistent storage.

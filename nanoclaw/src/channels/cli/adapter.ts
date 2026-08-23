@@ -37,8 +37,8 @@ import fs from 'fs';
 import net from 'net';
 import path from 'path';
 
-import { DATA_DIR } from '../config.js';
-import { log } from '../log.js';
+import { DATA_DIR } from '../../config.js';
+import { log } from '../../log.js';
 import type {
   ChannelAdapter,
   ChannelDefaults,
@@ -46,8 +46,8 @@ import type {
   DeliveryAddress,
   InboundEvent,
   OutboundMessage,
-} from './adapter.js';
-import { registerChannelAdapter } from './channel-registry.js';
+} from '../adapter.js';
+import { registerChannelAdapter } from '../channel-registry.js';
 
 const PLATFORM_ID = 'local';
 

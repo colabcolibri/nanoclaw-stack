@@ -18,8 +18,8 @@ import { randomInt } from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 
-import { DATA_DIR } from '../config.js';
-import { log } from '../log.js';
+import { DATA_DIR } from '../../config.js';
+import { log } from '../../log.js';
 
 export type PairingIntent = 'main' | { kind: 'wire-to'; folder: string } | { kind: 'new-agent'; folder: string };
 export type PairingStatus = 'pending' | 'consumed' | 'invalidated' | 'unknown';

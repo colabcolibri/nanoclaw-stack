@@ -112,16 +112,21 @@ public final class ChatViewModel: ObservableObject {
         do {
             let list = try await apiClient.fetchThreads(config: config, limit: 50)
             threads = list
-            if let current = selectedSessionId, list.contains(where: { $0.sessionId == current }) {
-                await loadHistory(sessionId: current)
-            } else {
-                selectedSessionId = pickDefaultThreadId(from: list)
-                await loadHistory(sessionId: selectedSessionId)
-            }
+            selectedSessionId = ThreadSelectionResolver.resolve(current: selectedSessionId, in: list)
+            await loadHistory(sessionId: selectedSessionId)
         } catch {
             threads = []
         }
         isLoadingThreads = false
+    }
+
+    /// Applies authoritative session id from server, then refreshes thread list and history.
+    private func syncAfterServerTurn(sessionId: String?) async {
+        selectedSessionId = ConversationSessionSync.preferredSessionId(
+            from: sessionId,
+            current: selectedSessionId
+        )
+        await loadThreads()
     }
 
     public func selectThread(_ sessionId: String) {
@@ -218,13 +223,14 @@ public final class ChatViewModel: ObservableObject {
                     messages[index].isSending = false
                 }
 
+                await syncAfterServerTurn(sessionId: response.sessionId)
+
                 if config.soundEffects {
                     audioPlayback.playNotificationSound()
                 }
                 if config.autoSpeak {
                     audioPlayback.speak(text: reply)
                 }
-                await loadThreads()
             } catch {
                 if let index = messages.firstIndex(where: { $0.id == pendingAssistantMessage.id }) {
                     messages[index].text = "Erro: \(error.localizedDescription)"
@@ -294,7 +300,7 @@ public final class ChatViewModel: ObservableObject {
                 if config.autoSpeak {
                     audioPlayback.speak(text: reply)
                 }
-                await loadThreads()
+                await syncAfterServerTurn(sessionId: response.sessionId)
             } catch {
                 if let asstIdx = messages.firstIndex(where: { $0.id == pendingAssistant.id }) {
                     messages[asstIdx].text = "Erro: \(error.localizedDescription)"
@@ -351,26 +357,29 @@ public final class ChatViewModel: ObservableObject {
         }
     }
 
-    public func startNewConversation() {
+    public func startNewConversation(mode: ConversationResetMode = .new) {
         let config = storage.loadConfig()
+        guard config.isValid else {
+            errorMessage = "Configure a URL do servidor e a Chave de API nas Configurações."
+            showErrorAlert = true
+            return
+        }
+
         Task {
-            _ = try? await apiClient.resetHistory(config: config)
-            messages.removeAll()
-            hasMoreHistory = false
-            currentHistoryLimit = 25
-            await loadThreads()
+            do {
+                let response = try await apiClient.beginNewConversation(config: config, mode: mode)
+                messages.removeAll()
+                hasMoreHistory = false
+                currentHistoryLimit = 25
+                await syncAfterServerTurn(sessionId: response.sessionId)
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
         }
     }
 
     public func clearConversation() {
         startNewConversation()
-    }
-
-    private func pickDefaultThreadId(from list: [ChatThread]) -> String? {
-        if list.isEmpty { return nil }
-        if let active = list.first(where: \.isActive) {
-            return active.sessionId
-        }
-        return list.first?.sessionId
     }
 }

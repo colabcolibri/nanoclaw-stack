@@ -63,7 +63,7 @@ export class SystemService {
   static async generateTelegramPairing(folder: string): Promise<{ code?: string; error?: string }> {
     try {
       const cmd = `cd ${CONFIG.NANOCLAW_PATH} && node /usr/bin/pnpm exec tsx -e '
-        import("./src/channels/telegram-pairing.js").then(async ({ createPairing }) => {
+        import("./src/channels/telegram/pairing.js").then(async ({ createPairing }) => {
           const rec = await createPairing({ kind: "wire-to", folder: "${folder}" });
           console.log("PAIRING_CODE:" + rec.code);
           process.exit(0);

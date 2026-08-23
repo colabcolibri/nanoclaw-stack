@@ -1,30 +1,28 @@
-import React, { useState, useEffect } from 'react'
+import { ApiClient, type ScheduledTask } from '@/api/client'
+import { EmptyState } from '@/components/common/EmptyState'
+import { PageHeader } from '@/components/common/PageHeader'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-  Clock,
-  RefreshCw,
-  Lightbulb,
-  Repeat,
-  CheckCircle2,
-  Calendar,
-  Eye,
-  Edit3,
-  Trash2,
-  Copy,
-  Check,
-  X,
   AlertTriangle,
-  Save,
-  FileText,
+  Check,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Plus,
+  Clock,
+  Copy,
+  Edit3,
+  Eye,
+  FileText,
+  Lightbulb,
+  RefreshCw,
+  Repeat,
+  Save,
+  Trash2,
+  X
 } from 'lucide-react'
-import { ApiClient, type ScheduledTask } from '@/api/client'
-import { PageHeader } from '@/components/common/PageHeader'
-import { EmptyState } from '@/components/common/EmptyState'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import React, { useEffect, useState } from 'react'
 
 export const SchedulesView: React.FC = () => {
   const [tasks, setTasks] = useState<ScheduledTask[]>([])
@@ -290,7 +288,7 @@ export const SchedulesView: React.FC = () => {
                           <span className="font-bold text-(--text-main) font-mono block mt-0.5">
                             {new Date(task.processAfter).toLocaleTimeString('pt-BR')} ({new Date(task.processAfter).toLocaleDateString('pt-BR')})
                           </span>
-                          <span className="text-[11px] text-(--text-muted) mt-0.5 block font-mono text-[10px]">
+                          <span className="text-(--text-muted) mt-0.5 block font-mono text-[10px]">
                             {task.processAfter}
                           </span>
                         </div>

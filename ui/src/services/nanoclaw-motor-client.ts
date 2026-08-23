@@ -1,9 +1,20 @@
 import { CONFIG } from "../config.js";
+import type {
+  ConversationMode,
+  MacResetResponse,
+  MacTurnResponse,
+} from "../../shared/channels/macos/index.js";
 
 export interface MotorPromptResult {
   reply: string;
   timestamp: string;
-  toolsExecutedCount?: number;
+  toolsExecutedCount: number;
+  sessionId: string;
+}
+
+export interface MotorResetResult {
+  message: string;
+  sessionId: string;
 }
 
 export class NanoclawMotorClient {
@@ -31,7 +42,7 @@ export class NanoclawMotorClient {
         },
         body: JSON.stringify(body),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; reply?: string; message?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
         throw new Error(data.error || `Motor respondeu ${res.status}`);
       }
@@ -45,14 +56,9 @@ export class NanoclawMotorClient {
     prompt: string,
     groupFolder: string,
     bearerToken: string,
-    opts?: { sessionId?: string; resetSession?: boolean; conversationMode?: "new" | "new-resume" },
+    opts?: { sessionId?: string; resetSession?: boolean; conversationMode?: ConversationMode },
   ): Promise<MotorPromptResult> {
-    const data = await this.postJson<{
-      success?: boolean;
-      reply?: string;
-      timestamp?: string;
-      toolsExecutedCount?: number;
-    }>("prompt", groupFolder, bearerToken, {
+    const data = await this.postJson<MacTurnResponse>("prompt", groupFolder, bearerToken, {
       prompt,
       sessionId: opts?.sessionId,
       resetSession: opts?.resetSession,
@@ -62,15 +68,19 @@ export class NanoclawMotorClient {
       reply: data.reply ?? "",
       timestamp: data.timestamp ?? new Date().toISOString(),
       toolsExecutedCount: data.toolsExecutedCount ?? 0,
+      sessionId: data.sessionId,
     };
   }
 
   static async resetSession(
     groupFolder: string,
     bearerToken: string,
-    mode: "new" | "new-resume" = "new",
-  ): Promise<string> {
-    const data = await this.postJson<{ message?: string }>("reset", groupFolder, bearerToken, { mode });
-    return data.message ?? "New conversation started.";
+    mode: ConversationMode = "new",
+  ): Promise<MotorResetResult> {
+    const data = await this.postJson<MacResetResponse>("reset", groupFolder, bearerToken, { mode });
+    return {
+      message: data.message ?? "New conversation started.",
+      sessionId: data.sessionId,
+    };
   }
 }

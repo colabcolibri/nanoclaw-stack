@@ -158,13 +158,29 @@ public final class ApiClientService: ApiClientProtocol {
         return chatMessages
     }
     
-    public func resetHistory(config: AppConfig) async throws -> Bool {
+    public func beginNewConversation(
+        config: AppConfig,
+        mode: ConversationResetMode = .new
+    ) async throws -> ResetResponse {
         guard let url = URL(string: "\(config.serverUrl)/api/mac/reset?group=\(config.groupFolder)") else {
             throw URLError(.badURL)
         }
-        let request = createRequest(url: url, method: "POST", config: config)
-        let (_, response) = try await urlSession.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else { return false }
-        return httpResponse.statusCode == 200
+        var request = createRequest(url: url, method: "POST", config: config)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["mode": mode.rawValue])
+
+        let (data, response) = try await urlSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if httpResponse.statusCode != 200 {
+            if let errObj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errMsg = errObj["error"] as? String {
+                throw NSError(domain: "BaraoApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errMsg])
+            }
+            throw NSError(domain: "BaraoApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Erro ao iniciar nova conversa (\(httpResponse.statusCode))"])
+        }
+
+        return try JSONDecoder().decode(ResetResponse.self, from: data)
     }
 }

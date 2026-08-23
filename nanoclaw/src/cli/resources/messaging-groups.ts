@@ -106,7 +106,7 @@ registerResource({
         if (!mg) {
           throw new Error(`no messaging group for ${channelType} ${platformId} — create + wire it first`);
         }
-        // Build the same InboundEvent the CLI admin transport (src/channels/cli.ts)
+        // Build the same InboundEvent the CLI admin transport (src/channels/cli/adapter.ts)
         // emits for a routed message, and route it in-process. The sender id should
         // be a wired user (e.g. the owner just granted) so the access gate passes.
         await routeInbound({

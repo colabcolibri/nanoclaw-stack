@@ -9,7 +9,7 @@ import { SystemService } from "../services/system.js";
 import { GoogleAuthService } from "../services/google-auth.js";
 import { NotionAuthService } from "../services/notion-auth.js";
 import { YampiAuthService } from "../services/yampi-auth.js";
-import { MacChannelService } from "../services/mac-channel.js";
+import { MacChannelService } from "../channels/macos/index.js";
 import { LlmModelService } from "../services/llm-models.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
@@ -158,6 +158,7 @@ export class ApiRouter {
             success: true,
             reply: result.reply,
             timestamp: result.timestamp,
+            sessionId: result.sessionId,
           });
         } catch (err: any) {
           return jsonResponse({ error: err.message || "Erro ao processar instrução no Barão." }, 500);
@@ -193,6 +194,7 @@ export class ApiRouter {
             transcription: result.transcription,
             reply: result.reply,
             timestamp: result.timestamp,
+            sessionId: result.sessionId,
           });
         } catch (err: any) {
           return jsonResponse({ error: err.message || "Erro ao transcrever e processar áudio." }, 500);
@@ -203,8 +205,12 @@ export class ApiRouter {
         try {
           const body = (await req.json().catch(() => ({}))) as { mode?: "new" | "new-resume" };
           const mode = body.mode === "new-resume" ? "new-resume" : "new";
-          await MacChannelService.resetSession(folder, mode);
-          return jsonResponse({ success: true, message: "Nova conversa iniciada." });
+          const result = await MacChannelService.resetSession(folder, mode);
+          return jsonResponse({
+            success: true,
+            message: result.message,
+            sessionId: result.sessionId,
+          });
         } catch (err: any) {
           return jsonResponse({ error: err.message || "Erro ao reiniciar sessão." }, 500);
         }
