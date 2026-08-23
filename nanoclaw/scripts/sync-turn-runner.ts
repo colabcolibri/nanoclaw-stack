@@ -1,8 +1,9 @@
 /**
  * Bun subprocess entry for sync-turn (Node motor cannot load bun:sqlite from agent-runner).
  * stdin: JSON { op: 'turn', input } | { op: 'reset', channel, groupFolder, userId?, mode? }
- * stdout: single JSON line { ok, result? | message? | error? }
+ * stdout: single JSON line { ok, result? | error? }
  */
+import { bootstrapSyncTurnWorker } from '../src/gateway/sync-turn-bootstrap.ts';
 import {
   processSyncTurn,
   resetSyncSession,
@@ -15,6 +16,8 @@ function emit(body: Record<string, unknown>): void {
 }
 
 async function main(): Promise<void> {
+  bootstrapSyncTurnWorker();
+
   const raw = await Bun.stdin.text();
   const req = JSON.parse(raw.trim() || '{}') as {
     op?: string;

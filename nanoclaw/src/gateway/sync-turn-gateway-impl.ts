@@ -8,6 +8,7 @@ import path from 'path';
 
 import { executeSlashCommand, parseSlashCommand } from '../commands/index.js';
 import { DATA_DIR, GROUPS_DIR } from '../config.js';
+import { bootstrapSyncTurnWorker } from './sync-turn-bootstrap.js';
 import { getAgentGroupByFolder } from '../db/agent-groups.js';
 import { getSession, updateSession } from '../db/sessions.js';
 import {
@@ -157,6 +158,7 @@ async function getCompletionFunction(
 }
 
 export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnResult> {
+  bootstrapSyncTurnWorker();
   const groupFolder = input.groupFolder;
   const agentGroupId = resolveAgentGroupId(groupFolder);
   const userId = input.userId?.trim() || 'default';
@@ -342,6 +344,7 @@ export async function resetSyncSession(
   userId = 'default',
   mode: 'new' | 'new-resume' = 'new',
 ): Promise<SyncResetResult> {
+  bootstrapSyncTurnWorker();
   const agentGroupId = resolveAgentGroupId(groupFolder);
   const threadId = `${channel}:${userId}`;
   const callerContext = {

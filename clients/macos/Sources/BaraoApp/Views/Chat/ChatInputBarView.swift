@@ -13,7 +13,7 @@ public struct ChatInputBarView: View {
     public let onStopRecording: () -> Void
     public let onCancelRecording: () -> Void
     
-    @State private var inputHeight: CGFloat = 24
+    @State private var inputHeight: CGFloat = 22
     
     private var canSend: Bool {
         isEnabled && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
@@ -65,21 +65,22 @@ public struct ChatInputBarView: View {
     }
     
     private var inputRow: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
                 if isDictating {
                     Circle()
                         .fill(Color.red)
                         .frame(width: 7, height: 7)
-                        .padding(.bottom, 10)
                 }
                 
-                ZStack(alignment: .topLeading) {
+                ZStack(alignment: .leading) {
                     if text.isEmpty {
                         Text(isDictating ? "Ouvindo..." : "Mensagem ao Barão…")
                             .font(.system(size: 14))
                             .foregroundStyle(Color(nsColor: .placeholderTextColor))
-                            .padding(.top, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: inputHeight)
+                            .padding(.leading, 2)
                             .allowsHitTesting(false)
                     }
                     
@@ -110,7 +111,6 @@ public struct ChatInputBarView: View {
                 .disabled(isSending || !isEnabled)
                 .help(isDictating ? "Parar ditado" : "Ditado por voz")
                 .padding(.trailing, 4)
-                .padding(.bottom, 2)
             }
             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(

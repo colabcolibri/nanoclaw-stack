@@ -9,8 +9,7 @@ import path from 'path';
 import { backfillContainerConfigs } from './backfill-container-configs.js';
 import { DATA_DIR } from './config.js';
 import { enforceStartupBackoff, resetCircuitBreaker } from './circuit-breaker.js';
-import { initDb } from './db/connection.js';
-import { runMigrations } from './db/migrations/index.js';
+import { ensureCentralDb } from './db/ensure-central-db.js';
 import { ensureContainerRuntimeRunning, cleanupOrphans } from './container-runtime.js';
 import { startActiveDeliveryPoll, startSweepDeliveryPoll, setDeliveryAdapter, stopDeliveryPolls } from './delivery.js';
 import { startHostSweep, stopHostSweep } from './host-sweep.js';
@@ -73,8 +72,7 @@ async function main(): Promise<void> {
 
   // 1. Init central DB
   const dbPath = path.join(DATA_DIR, 'v2.db');
-  const db = initDb(dbPath);
-  runMigrations(db);
+  ensureCentralDb();
   log.info('Central DB ready', { path: dbPath });
 
   try {

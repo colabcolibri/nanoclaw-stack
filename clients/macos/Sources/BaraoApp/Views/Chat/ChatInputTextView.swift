@@ -65,12 +65,15 @@ public struct ChatInputTextView: NSViewRepresentable {
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        textView.textContainerInset = NSSize(width: 0, height: 2)
+        textView.textContainerInset = NSSize(width: 0, height: 0)
         textView.insertionPointColor = NSColor.controlAccentColor
         
         scrollView.documentView = textView
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
         
         DispatchQueue.main.async {
+            context.coordinator.syncDocumentFrame()
             context.coordinator.updateHeight(textView: textView)
         }
         
@@ -81,6 +84,7 @@ public struct ChatInputTextView: NSViewRepresentable {
         guard let textView = nsView.documentView as? ChatNSTextView else { return }
         
         textView.onCommit = onCommit
+        context.coordinator.syncDocumentFrame()
         
         if textView.string != text {
             textView.string = text
@@ -95,9 +99,31 @@ public struct ChatInputTextView: NSViewRepresentable {
     
     public final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ChatInputTextView
+        weak var textView: NSTextView?
+        weak var scrollView: NSScrollView?
         
         init(_ parent: ChatInputTextView) {
             self.parent = parent
+        }
+        
+        func syncDocumentFrame() {
+            guard let scrollView, let textView else { return }
+            let clipHeight = scrollView.contentSize.height
+            guard clipHeight > 0 else { return }
+            
+            var frame = textView.frame
+            frame.origin = .zero
+            frame.size.width = scrollView.contentSize.width
+            frame.size.height = max(clipHeight, frame.height)
+            textView.frame = frame
+            textView.isVerticallyResizable = true
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView.minSize = NSSize(width: 0, height: clipHeight)
+        }
+        
+        private func verticalInset(for textView: NSTextView, lineHeight: CGFloat, contentHeight: CGFloat) -> CGFloat {
+            let inset = floor((contentHeight - lineHeight) / 2)
+            return max(0, inset)
         }
         
         public func textDidChange(_ notification: Notification) {
@@ -133,13 +159,21 @@ public struct ChatInputTextView: NSViewRepresentable {
                 textHeight += CGFloat(trailingCount) * lineHeight
             }
             
-            let singleLineHeight = max(parent.minHeight, ceil(lineHeight + textView.textContainerInset.height * 2))
+            let singleLineHeight = max(parent.minHeight, ceil(lineHeight))
             let fiveLinesHeight = singleLineHeight + ceil(lineHeight * 4)
             let calculatedMaxHeight = min(parent.maxHeight, fiveLinesHeight)
             
-            let totalHeight = ceil(textHeight + textView.textContainerInset.height * 2)
-            let newHeight = max(singleLineHeight, min(totalHeight, calculatedMaxHeight))
+            let rawTextHeight = max(lineHeight, ceil(textHeight))
+            let totalHeight = min(max(singleLineHeight, rawTextHeight), calculatedMaxHeight)
+            let isSingleLine = rawTextHeight <= lineHeight + 1
+            let insetY = isSingleLine
+                ? verticalInset(for: textView, lineHeight: lineHeight, contentHeight: totalHeight)
+                : 0
+            textView.textContainerInset = NSSize(width: 0, height: insetY)
             
+            let newHeight = totalHeight
+            
+            syncDocumentFrame()
             if abs(parent.dynamicHeight - newHeight) > 0.5 {
                 DispatchQueue.main.async {
                     self.parent.dynamicHeight = newHeight
