@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 
   // 1. Init central DB
   const dbPath = path.join(DATA_DIR, 'v2.db');
-  ensureCentralDb();
+  const db = ensureCentralDb();
   log.info('Central DB ready', { path: dbPath });
 
   try {

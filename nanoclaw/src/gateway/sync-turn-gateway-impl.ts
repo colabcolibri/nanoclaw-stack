@@ -200,7 +200,7 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
         defaultModel: 'deepseek-chat',
       });
       const result = await completeFn(
-        messages.map((m) => ({ role: m.role, content: m.text })),
+        messages,
         undefined,
         { purpose: 'conversation_summarize' },
       );
@@ -365,7 +365,7 @@ export async function resetSyncSession(
         defaultModel: 'deepseek-chat',
       });
       const result = await completeFn(
-        messages.map((m) => ({ role: m.role, content: m.text })),
+        messages,
         undefined,
         { purpose: 'conversation_summarize' },
       );
