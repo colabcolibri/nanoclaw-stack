@@ -16,5 +16,5 @@ echo "[build] Buildando imagem (pode demorar)..."
 
 export PROJECT_ROOT="$NANOCLAW_DIR"
 # shellcheck source=/dev/null
-source "$NANOCLAW_DIR/setup/lib/install-slug.sh"
+source "$NANOCLAW_DIR/lib/install-slug.sh"
 echo "[build] Pronto: $(container_image_base):latest"

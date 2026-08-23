@@ -50,10 +50,10 @@ export const CreateAgentDialog: React.FC<CreateAgentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-[var(--border-main)] bg-[var(--bg-card)]">
+      <DialogContent className="max-w-md border-(--border-main) bg-(--bg-card)">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-5 w-5 text-[var(--accent)]" />
+            <Bot className="h-5 w-5 text-(--accent)" />
             {t('createTitle')}
           </DialogTitle>
         </DialogHeader>

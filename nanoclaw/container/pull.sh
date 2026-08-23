@@ -34,8 +34,8 @@ cd "$SCRIPT_DIR"
 
 # Same slug derivation as build.sh — the local tag has to be the one the host
 # already spawns (src/config.ts CONTAINER_IMAGE).
-# shellcheck source=../setup/lib/install-slug.sh
-source "$PROJECT_ROOT/setup/lib/install-slug.sh"
+# shellcheck source=../lib/install-slug.sh
+source "$PROJECT_ROOT/lib/install-slug.sh"
 IMAGE_NAME="$(container_image_base)"
 TAG="${1:-latest}"
 LOCAL_REF="${IMAGE_NAME}:${TAG}"

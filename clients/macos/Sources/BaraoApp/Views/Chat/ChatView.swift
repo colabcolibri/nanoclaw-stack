@@ -8,9 +8,12 @@ public struct ChatView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 0) {
-            if viewModel.messages.isEmpty {
+        ZStack {
+            if viewModel.isLoadingMessages && viewModel.messages.isEmpty {
+                ProgressView()
+            } else if viewModel.messages.isEmpty {
                 EmptyStateView(assistantName: viewModel.assistantName) { prompt in
+                    guard viewModel.canSendMessages else { return }
                     viewModel.inputText = prompt
                     viewModel.sendMessage()
                 }
@@ -30,44 +33,80 @@ public struct ChatView: View {
                             }
                             
                             Color.clear
-                                .frame(height: 1)
+                                .frame(height: 8)
                                 .id("bottom-anchor")
                         }
                         .padding(.vertical, 16)
                         .frame(maxWidth: 720)
                         .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppConstants.Colors.chatCanvas.opacity(0.45))
                     .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            proxy.scrollTo("bottom-anchor", anchor: .bottom)
-                        }
+                        scrollToBottom(proxy, animated: false)
                     }
                     .onChange(of: viewModel.messages.count) { _ in
                         if !viewModel.isLoadingMore {
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                proxy.scrollTo("bottom-anchor", anchor: .bottom)
-                            }
+                            scrollToBottom(proxy, animated: true)
                         }
+                    }
+                    .onChange(of: viewModel.selectedSessionId) { _ in
+                        scrollToBottom(proxy, animated: false)
                     }
                 }
             }
-            
-            ChatInputBarView(
-                text: $viewModel.inputText,
-                isSending: viewModel.isSending,
-                isRecording: viewModel.isRecording,
-                isDictating: viewModel.isDictating,
-                audioLevel: viewModel.audioLevel,
-                onSend: viewModel.sendMessage,
-                onToggleDictation: viewModel.toggleLiveDictation,
-                onStartRecording: viewModel.startVoiceRecording,
-                onStopRecording: viewModel.stopAndSendVoiceRecording,
-                onCancelRecording: viewModel.cancelVoiceRecording
-            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppConstants.Colors.chatCanvas.opacity(0.35))
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                if !viewModel.canSendMessages {
+                    archivedBanner
+                }
+                ChatInputBarView(
+                    text: $viewModel.inputText,
+                    isSending: viewModel.isSending,
+                    isRecording: viewModel.isRecording,
+                    isDictating: viewModel.isDictating,
+                    audioLevel: viewModel.audioLevel,
+                    isEnabled: viewModel.canSendMessages,
+                    onSend: viewModel.sendMessage,
+                    onToggleDictation: viewModel.toggleLiveDictation,
+                    onStartRecording: viewModel.startVoiceRecording,
+                    onStopRecording: viewModel.stopAndSendVoiceRecording,
+                    onCancelRecording: viewModel.cancelVoiceRecording
+                )
+            }
+        }
+    }
+    
+    private var archivedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "archivebox")
+                .font(.system(size: 11))
+            Text("Conversa arquivada — leitura apenas.")
+                .font(.system(size: 11, weight: .medium))
+            Spacer()
+            Button("Nova conversa") {
+                viewModel.startNewConversation()
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.12))
+    }
+    
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if animated {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    proxy.scrollTo("bottom-anchor", anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo("bottom-anchor", anchor: .bottom)
+            }
+        }
     }
     
     private var loadMoreButton: some View {

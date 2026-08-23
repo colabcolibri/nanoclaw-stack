@@ -106,7 +106,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
       <ChatStatsRow stats={stats} currency={currency} />
 
-      <Card className="flex min-h-[min(72dvh,44rem)] flex-1 overflow-hidden border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
+      <Card className="flex min-h-[min(72dvh,44rem)] flex-1 overflow-hidden border-(--border-main) bg-(--bg-card) shadow-xs">
         <div className="flex min-h-0 w-full flex-1">
           <ThreadSidebar
             threads={threads}

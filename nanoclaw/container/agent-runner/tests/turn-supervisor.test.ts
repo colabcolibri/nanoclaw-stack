@@ -11,6 +11,7 @@ function mockWorkerResult(summary: string): WorkerResult {
     summary,
     rawFindingsReport: summary,
     iterations: 1,
+    completion: { status: 'sufficient', reason: 'mock' },
   };
 }
 

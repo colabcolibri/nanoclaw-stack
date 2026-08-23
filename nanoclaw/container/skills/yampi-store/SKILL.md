@@ -4,12 +4,6 @@ description: Yampi orders, products, stock and tracking via yampi_store API.
 domain: ecommerce_logistics
 tools:
   - yampi_store
-keywords:
-  - yampi
-  - loja
-  - pedido
-  - rastreio
-  - estoque
 ---
 
 # Yampi store

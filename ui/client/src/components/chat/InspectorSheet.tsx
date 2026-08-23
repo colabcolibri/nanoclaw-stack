@@ -42,13 +42,13 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="right"
-        className="flex h-dvh max-h-dvh w-full max-w-xl flex-col gap-0 overflow-hidden border-l border-[var(--border-main)] bg-[var(--bg-card)]/95 p-0 backdrop-blur-xl sm:max-w-xl"
+        className="flex h-dvh max-h-dvh w-full max-w-xl flex-col gap-0 overflow-hidden border-l border-(--border-main) bg-(--bg-card)/95 p-0 backdrop-blur-xl sm:max-w-xl"
       >
         <div className="flex h-full min-w-0 flex-col">
-          <SheetHeader className="shrink-0 space-y-0 border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)]/50 px-6 pb-5 pt-6">
+          <SheetHeader className="shrink-0 space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
             <div className="flex items-start gap-4 pr-8">
-              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)]">
-                <Braces className="h-5 w-5 text-[var(--accent)]" />
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
+                <Braces className="h-5 w-5 text-(--accent)" />
               </div>
               <div className="min-w-0 flex-1">
                 <SheetTitle className="mb-1 text-lg leading-snug">
@@ -71,7 +71,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
 
                   {message.model && (
                     <Field label={t('messageModel')} mono>
-                      <span className="break-all text-[var(--accent)]">{message.model}</span>
+                      <span className="break-all text-(--accent)">{message.model}</span>
                     </Field>
                   )}
 
@@ -92,7 +92,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
                 {message.memo && (
                   <section className="space-y-2">
                     <SectionLabel>Memo</SectionLabel>
-                    <p className="rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)] p-3.5 text-xs leading-relaxed text-[var(--text-main)] break-words">
+                    <p className="rounded-xl border border-(--accent-border) bg-(--accent-subtle) p-3.5 text-xs leading-relaxed text-(--text-main) wrap-break-word">
                       {message.memo}
                     </p>
                   </section>
@@ -123,12 +123,12 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
                     content={rawJson}
                     collapsedMaxHeight={280}
                     expandWhenLongerThan={400}
-                    preClassName="border-[var(--border-main)] bg-[var(--terminal-bg)] p-3.5 text-[11px] text-[var(--terminal-text)]"
+                    preClassName="border-(--border-main) bg-(--terminal-bg) p-3.5 text-[11px] text-(--terminal-text)"
                   />
                 </section>
               </div>
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">{t('inspectorEmpty')}</p>
+              <p className="text-sm text-(--text-muted)">{t('inspectorEmpty')}</p>
             )}
           </div>
         </div>
@@ -139,7 +139,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+    <span className="block text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">
       {children}
     </span>
   )
@@ -160,8 +160,8 @@ function Field({
       <div
         className={
           mono
-            ? 'mt-1.5 select-all font-mono text-[var(--text-main)]'
-            : 'mt-1.5 text-[var(--text-main)]'
+            ? 'mt-1.5 select-all font-mono text-(--text-main)'
+            : 'mt-1.5 text-(--text-main)'
         }
       >
         {children}
@@ -172,9 +172,9 @@ function Field({
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-3">
-      <span className="block text-[10px] text-[var(--text-dim)]">{label}</span>
-      <span className="mt-0.5 block font-mono text-sm font-semibold text-[var(--text-main)]">
+    <div className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-3">
+      <span className="block text-[10px] text-(--text-dim)">{label}</span>
+      <span className="mt-0.5 block font-mono text-sm font-semibold text-(--text-main)">
         {value.toLocaleString('pt-BR')}
       </span>
     </div>

@@ -8,7 +8,7 @@ Guia rápido para rodar o stack no Mac, saber quando o Docker é obrigatório e 
 
 ```bash
 pnpm ai              # IA (motor + agente) — bot/Telegram
-pnpm dev             # painel + IA — http://localhost:3080
+pnpm dev             # painel + IA — http://localhost:5080
 pnpm build:agent     # build imagem Docker (1ª vez)
 pnpm deploy          # produção (push + servidor)
 ```
@@ -29,8 +29,9 @@ Fluxo do agente (turn, memos, orquestrador): [agent-turn-flow.md](agent-turn-flo
 
 | componente | pasta | porta | precisa de docker? |
 | :--- | :--- | :--- | :--- |
-| painel (UI) | `ui/` | 3001 | não |
-| motor (host) | `nanoclaw/` | 3000 | não (processo Node) |
+| painel (UI) | `ui/` | 5080 (`VITE_DEV_PORT`) | não |
+| API UI (Bun) | `ui/` | 5081 (`PORT`) | não |
+| motor (host) | `nanoclaw/` | 5082 (`WEBHOOK_PORT`) | não (processo Node) |
 | agent-runner (por mensagem) | `nanoclaw/container/` | — | **sim** — um container por turno |
 | whisper / traefik | `whisper/`, `traefik/` | 9000, 80/443 | sim (opcional no dev) |
 
@@ -54,12 +55,14 @@ Crie `ui/.env`:
 ```env
 NANOCLAW_PATH=/caminho/absoluto/para/nanoclaw/nanoclaw
 NANOCLAW_DEFAULT_GROUP=barao
-UI_PUBLIC_URL=http://localhost:3080
+UI_PUBLIC_URL=http://localhost:5080
 ALLOWED_EMAIL=seu@email.com
 RESEND_API_KEY=re_...
 FROM_EMAIL=NanoClaw UI <seu@email.com>
 SESSION_SECRET=um_secret_aleatorio
-PORT=3001
+PORT=5081
+VITE_DEV_PORT=5080
+NANOCLAW_MOTOR_URL=http://127.0.0.1:5082
 ```
 
 O login OTP chega por email (Resend). Digite o código na segunda tela do login.
@@ -92,10 +95,10 @@ cd ui && bun run dev
 
 No `ui/`, use **só bun** (não misture `pnpm install` no `ui/` — gera warnings de pacotes ignorados).
 
-Se a porta 3001 estiver ocupada por um processo antigo:
+Se a porta da API (5081) estiver ocupada por um processo antigo:
 
 ```bash
-lsof -ti :3001 | xargs kill
+lsof -ti :5081 | xargs kill
 ```
 
 ---
@@ -107,22 +110,25 @@ lsof -ti :3001 | xargs kill
 | `ui/.env` | `NANOCLAW_PATH` | caminho do checkout `nanoclaw/` (local ou `/opt/nanoclaw-stack/nanoclaw` no servidor) |
 | `ui/.env` | `NANOCLAW_DEFAULT_GROUP` | pasta do agente em `groups/` (ex.: `barao`) |
 | `ui/.env` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (painel → MCPs → Conectar conta) |
-| `ui/.env` | `UI_PUBLIC_URL` | URL pública do painel (dev: `http://localhost:3080`) — **deve bater** com o redirect URI no Google Cloud Console |
+| `ui/.env` | `UI_PUBLIC_URL` | URL pública do painel (dev: `http://localhost:5080`) — **deve bater** com o redirect URI no Google Cloud Console |
 
 ### Google OAuth no localhost (`redirect_uri_mismatch`)
 
-1. Em `ui/.env`, confirme `UI_PUBLIC_URL=http://localhost:3080` (sem barra no final).
+1. Em `ui/.env`, confirme `UI_PUBLIC_URL=http://localhost:5080` (sem barra no final).
 2. No [Google Cloud Console](https://console.cloud.google.com/) → **APIs e serviços** → **Credenciais** → seu cliente OAuth (tipo **Aplicativo da Web**).
 3. Em **URIs de redirecionamento autorizados**, adicione exatamente:
    ```
-   http://localhost:3080/api/integrations/google/callback
+   http://localhost:5080/api/integrations/google/callback
    ```
 4. Salve e aguarde ~1 minuto. Reinicie o painel (`bun run dev` no `ui/`) e tente **Conectar conta Google** de novo.
 
 O redirect usa `UI_PUBLIC_URL` + `/api/integrations/google/callback`. Se o erro persistir, compare caractere a caractere com o URI cadastrado no Console (http vs https, porta, sem path extra).
 
 | `ui/.env` | `ALLOWED_EMAIL` | email autorizado no login OTP |
-| `ui/.env` | `VITE_DEV_PORT` | porta do painel em dev (padrão `3080`) |
+| `ui/.env` | `PORT` | API Bun em dev (padrão `5081`) |
+| `ui/.env` | `NANOCLAW_MOTOR_URL` | URL do motor Node (padrão `http://127.0.0.1:5082`) — **obrigatório** |
+| `ui/.env` | `VITE_DEV_PORT` | porta do painel em dev (padrão `5080`) |
+| `nanoclaw/.env` | `WEBHOOK_PORT` | porta do motor (padrão `5082`) |
 | `nanoclaw/.env` | `UI_PUBLIC_URL` | mesma URL do painel — injetada no container do agente (mensagens de erro) |
 | `nanoclaw/.env` | chaves de provider, tokens de canal | motor e agent-runner |
 

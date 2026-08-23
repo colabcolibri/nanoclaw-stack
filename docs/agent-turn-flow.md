@@ -1,7 +1,6 @@
 # Fluxo completo do agente (turn)
 
-Documento de referência para o stack **multi-agente** atual (`OrchestratorAgent` → `WorkerAgent` → `SenderAgent`).  
-O diagrama antigo em [nanoclaw/docs/ARCHITECTURE_WORKFLOW.md](../nanoclaw/docs/ARCHITECTURE_WORKFLOW.md) está desatualizado (fala em `ToolRouter` + Stage 1/2 monolítico).
+Documento de referência para o stack **multi-agente** atual (`OrchestratorAgent` → `WorkerAgent` → `SenderAgent`).
 
 Prompts internos do agent-runner ficam em **inglês** (`nanoclaw/container/agent-runner/src/prompts/`). Resposta ao usuário segue o idioma da mensagem.
 

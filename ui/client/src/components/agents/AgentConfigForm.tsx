@@ -66,7 +66,7 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
 
         <div className="space-y-2">
           <Label>{t('agentSlug')}</Label>
-          <Input value={form.id} disabled className="font-mono text-xs text-[var(--text-dim)]" />
+          <Input value={form.id} disabled className="font-mono text-xs text-(--text-dim)" />
         </div>
 
         <div className="space-y-2">
@@ -91,7 +91,7 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
             providers={providers}
             value={form.model}
             onChange={(v) => onChange({ model: v })}
-            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-input)] px-3 py-2 font-mono text-xs text-[var(--text-main)]"
+            className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 font-mono text-xs text-(--text-main)"
           />
         </div>
       </div>
@@ -107,20 +107,20 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
           value={form.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={3}
-          className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+          className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 text-xs text-(--text-main) focus:outline-none focus:ring-2 focus:ring-(--accent)/30"
         />
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-3.5">
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-3.5">
         <input
           type="checkbox"
           checked={form.allowGlobalSkills}
           onChange={(e) => onChange({ allowGlobalSkills: e.target.checked })}
           className="mt-0.5 h-4 w-4 rounded"
         />
-        <span className="text-xs text-[var(--text-main)]">
+        <span className="text-xs text-(--text-main)">
           <span className="block font-semibold">{t('allowGlobalSkills')}</span>
-          <span className="text-[11px] text-[var(--text-muted)]">{t('allowGlobalSkillsHint')}</span>
+          <span className="text-[11px] text-(--text-muted)">{t('allowGlobalSkillsHint')}</span>
         </span>
       </label>
 

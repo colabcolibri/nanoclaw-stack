@@ -4,12 +4,6 @@ description: Token ledger, costs USD/BRL, model breakdown via token_usage tool.
 domain: system_analytics
 tools:
   - token_usage
-keywords:
-  - token
-  - tokens
-  - cost
-  - ledger
-  - metrics
 ---
 
 # Token usage

@@ -43,11 +43,6 @@ export class AgentRegistry {
       id: 'productivity',
       name: 'Produtividade & Comunicação',
       description: 'Gestão de agendas, e-mails Gmail, notas e banco de dados Notion, compromissos e agendamentos.',
-      keywords: [
-        'email', 'e-mail', 'gmail', 'inbox', 'mensagem', 'caixa de entrada',
-        'agenda', 'calendario', 'calendário', 'reuniao', 'reunião', 'compromisso', 'evento', 'horario', 'horário',
-        'notion', 'tarefa', 'tarefas', 'nota', 'notas', 'anotacao', 'anotações', 'lembrete', 'followup', 'agendar',
-      ],
       agentIds: ['productivity_attendant', 'notion_architect'],
     });
 
@@ -56,11 +51,6 @@ export class AgentRegistry {
       id: 'commerce',
       name: 'Comércio, Logística & Revenda',
       description: 'Gestão de pedidos na loja Yampi, cálculo de preços de revenda/atacado e estimativa de frete Correios.',
-      keywords: [
-        'yampi', 'loja', 'pedido', 'pedidos', 'venda', 'vendas', 'cliente', 'pagamento',
-        'preco', 'preço', 'precos', 'preços', 'tabela', 'revenda', 'atacado', 'grok', 'jogo grok',
-        'frete', 'correios', 'cep', 'sedex', 'pac', 'entrega', 'rastreio', 'envio', 'prazo',
-      ],
       agentIds: ['store_attendant', 'pricing_logistics_agent'],
     });
 
@@ -69,10 +59,6 @@ export class AgentRegistry {
       id: 'research_intel',
       name: 'Pesquisa, Inteligência & Web',
       description: 'Buscas na web em tempo real, navegação em URLs e monitoramento de métricas e custos de tokens.',
-      keywords: [
-        'pesquisa', 'pesquisar', 'busca', 'buscar', 'google', 'web', 'internet', 'site', 'url', 'noticia', 'notícias',
-        'token', 'tokens', 'gasto', 'gastos', 'custo', 'custos', 'consumo', 'ledger', 'deepseek', 'fatura', 'uso',
-      ],
       agentIds: ['web_researcher', 'system_metrics_agent'],
     });
 
@@ -81,9 +67,6 @@ export class AgentRegistry {
       id: 'operations',
       name: 'Operações & Sistema',
       description: 'Operações de sistema de arquivos, comandos de infraestrutura e memória compartilhada.',
-      keywords: [
-        'sistema', 'arquivo', 'pasta', 'disco', 'comando', 'terminal', 'bash', 'memoria', 'memória', 'lembrar',
-      ],
       agentIds: ['system_operator'],
     });
   }
@@ -161,6 +144,7 @@ export class AgentRegistry {
       const role = parseYamlField('role') || 'Agente Especialista';
       const description = parseYamlField('description') || role;
       const model = parseYamlField('model');
+      const executionProfile = parseYamlField('execution_profile');
       const allowGlobalStr = parseYamlField('allow_global_skills');
       const allowGlobalSkills = allowGlobalStr !== undefined ? allowGlobalStr === 'true' : true;
 
@@ -175,6 +159,16 @@ export class AgentRegistry {
         }
       }
 
+      const capabilities: import('../execution/types.js').AgentCapability[] = [];
+      const capabilitiesSection = rawYaml.match(/capabilities:\s*\n((?:\s*-\s*.+\n?)+)/);
+      if (capabilitiesSection && capabilitiesSection[1]) {
+        const lines = capabilitiesSection[1].split('\n');
+        for (const line of lines) {
+          const item = line.replace(/^\s*-\s*/, '').trim().replace(/^['"]|['"]$/g, '');
+          if (item) capabilities.push(item as import('../execution/types.js').AgentCapability);
+        }
+      }
+
       return {
         id,
         name,
@@ -185,6 +179,8 @@ export class AgentRegistry {
         agentSkills: skills,
         allowGlobalSkills,
         model,
+        executionProfile,
+        capabilities: capabilities.length > 0 ? capabilities : undefined,
       };
     } catch {
       return null;
@@ -204,7 +200,6 @@ export class AgentRegistry {
         id: agent.departmentId,
         name: agent.departmentId.toUpperCase(),
         description: `Departamento ${agent.departmentId}`,
-        keywords: [agent.departmentId],
         agentIds: [],
       };
       this.departments.set(agent.departmentId, dept);
@@ -314,12 +309,45 @@ export class AgentRegistry {
     return lines.join('\n');
   }
 
+  /**
+   * Semantic catalog for LLM triage — language-agnostic.
+   * Routing must use scope descriptions and capability ids, never keyword matching.
+   */
+  static buildTriageCatalog(cwd?: string): string {
+    const lines: string[] = [
+      'Pick the best specialist by semantic intent. User message may be in any language.',
+      '',
+    ];
+
+    for (const dept of this.getDepartments(cwd)) {
+      lines.push(`## ${dept.id}`);
+      lines.push(`name: ${dept.name}`);
+      lines.push(`scope: ${dept.description}`);
+      lines.push('specialists:');
+
+      for (const agent of this.getAgentsInDepartment(dept.id, cwd)) {
+        const capabilityLine = agent.capabilities?.length
+          ? `capabilities: ${agent.capabilities.join(', ')}`
+          : undefined;
+        lines.push(`- id: ${agent.id}`);
+        lines.push(`  role: ${agent.role}`);
+        lines.push(`  description: ${agent.description}`);
+        if (capabilityLine) lines.push(`  ${capabilityLine}`);
+      }
+
+      lines.push('');
+    }
+
+    return lines.join('\n').trim();
+  }
+
   static getAgentsInDepartmentPrompt(deptId: string, cwd?: string): string {
     const agents = this.getAgentsInDepartment(deptId, cwd);
     if (agents.length === 0) return 'Nenhum agente registrado neste departamento.';
     const lines = [`## Especialistas no Departamento [${deptId}]:`];
     for (const a of agents) {
-      lines.push(`- **[${a.id}]** ${a.name}: ${a.role}`);
+      const caps = a.capabilities?.length ? ` | capabilities: ${a.capabilities.join(', ')}` : '';
+      lines.push(`- **[${a.id}]** ${a.name}: ${a.role}${caps}`);
     }
     return lines.join('\n');
   }

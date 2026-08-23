@@ -4,16 +4,6 @@ description: Read and write Google Calendar events via google_calendar API.
 domain: google_suite
 tools:
   - google_calendar
-keywords:
-  - agenda
-  - calendario
-  - calendário
-  - calendar
-  - compromisso
-  - reuniao
-  - reunião
-  - evento
-  - semana
 ---
 
 # Google Calendar

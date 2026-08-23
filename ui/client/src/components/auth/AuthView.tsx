@@ -47,16 +47,16 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-main)] flex items-center justify-center p-4 transition-colors">
-      <Card className="w-full max-w-md border-[var(--border-main)] bg-[var(--bg-card)] shadow-2xl overflow-hidden">
-        <CardHeader className="p-6 text-center border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)]">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <Zap className="w-6 h-6 text-[var(--accent)]" />
+    <div className="min-h-screen bg-(--bg-page) text-(--text-main) flex items-center justify-center p-4 transition-colors">
+      <Card className="w-full max-w-md border-(--border-main) bg-(--bg-card) shadow-2xl overflow-hidden">
+        <CardHeader className="p-6 text-center border-b border-(--border-main) bg-(--bg-card-subtle)">
+          <div className="w-12 h-12 rounded-2xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Zap className="w-6 h-6 text-(--accent)" />
           </div>
-          <CardTitle className="text-xl font-bold text-[var(--text-main)]">
+          <CardTitle className="text-xl font-bold text-(--text-main)">
             NanoClaw UAI
           </CardTitle>
-          <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
+          <CardDescription className="text-xs text-(--text-muted) mt-1">
             Painel de Operações, Chat Omnichannel & Automações
           </CardDescription>
         </CardHeader>
@@ -71,11 +71,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
           {step === 'email' ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
+                <label className="block text-xs font-bold text-(--text-main) mb-1.5">
                   E-mail de Acesso
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--text-dim)] absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-(--text-dim) absolute left-3 top-3" />
                   <Input
                     type="email"
                     required
@@ -103,11 +103,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">
+                <label className="block text-xs font-bold text-(--text-main) mb-1.5">
                   Código de 6 Dígitos
                 </label>
                 <div className="relative">
-                  <Key className="w-4 h-4 text-[var(--text-dim)] absolute left-3 top-3" />
+                  <Key className="w-4 h-4 text-(--text-dim) absolute left-3 top-3" />
                   <Input
                     type="text"
                     required
@@ -118,7 +118,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setOtp(e.target.value)}
                   />
                 </div>
-                <p className="text-[11px] text-[var(--text-dim)] mt-1.5 text-center font-mono">
+                <p className="text-[11px] text-(--text-dim) mt-1.5 text-center font-mono">
                   Identificação: {email}
                 </p>
               </div>
@@ -135,7 +135,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
               <button
                 type="button"
                 onClick={() => setStep('email')}
-                className="w-full text-center text-xs font-semibold text-[var(--text-dim)] hover:text-[var(--text-main)] mt-2 cursor-pointer transition-colors"
+                className="w-full text-center text-xs font-semibold text-(--text-dim) hover:text-(--text-main) mt-2 cursor-pointer transition-colors"
               >
                 Alterar e-mail
               </button>

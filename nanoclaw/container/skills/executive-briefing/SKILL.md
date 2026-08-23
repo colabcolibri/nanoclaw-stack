@@ -6,11 +6,6 @@ tools:
   - google_gmail
   - google_calendar
   - notion
-keywords:
-  - briefing
-  - summary
-  - report
-  - schedule
 ---
 
 # Executive briefing (format only)

@@ -47,7 +47,7 @@ public struct SettingsSheetView: View {
                                 .foregroundColor(.secondary)
                             TextField("https://uai.sergioluciano.com", text: $viewModel.serverUrl)
                                 .textFieldStyle(.roundedBorder)
-                            Text("Produção: https://uai.sergioluciano.com · Local: http://localhost:3080")
+                            Text("Produção: https://uai.sergioluciano.com · Local: http://localhost:5080")
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

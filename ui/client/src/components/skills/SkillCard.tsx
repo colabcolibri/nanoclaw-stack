@@ -30,8 +30,8 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
         }
       }}
       className={cn(
-        'flex min-w-0 cursor-pointer flex-col rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-5 transition-colors',
-        'hover:border-[var(--accent-border)] hover:bg-[var(--bg-card-subtle)]/40'
+        'flex min-w-0 cursor-pointer flex-col rounded-xl border border-(--border-main) bg-(--bg-card) p-5 transition-colors',
+        'hover:border-(--accent-border) hover:bg-(--bg-card-subtle)/40'
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -40,10 +40,10 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="break-words font-mono text-sm font-semibold leading-snug text-[var(--text-main)]">
+            <h3 className="wrap-break-word font-mono text-sm font-semibold leading-snug text-(--text-main)">
               {skill.name}
             </h3>
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-muted)]">
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-(--text-muted)">
               {skill.description || t('noDescription')}
             </p>
           </div>
@@ -57,8 +57,8 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
         </Badge>
       </div>
 
-      <div className="mb-3 border-t border-[var(--border-main)]/60 pt-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
+      <div className="mb-3 border-t border-(--border-main)/60 pt-3">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">
           {t('usedBy')}
         </p>
         {usingAgents.length > 0 ? (
@@ -74,12 +74,12 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
             ))}
           </div>
         ) : (
-          <span className="text-xs italic text-[var(--text-dim)]">{t('noAgents')}</span>
+          <span className="text-xs italic text-(--text-dim)">{t('noAgents')}</span>
         )}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-dim)]">
-        <span className="font-mono font-semibold text-[var(--text-main)]">
+      <div className="mt-auto flex flex-wrap items-center gap-2 text-[10px] text-(--text-dim)">
+        <span className="font-mono font-semibold text-(--text-main)">
           ~{formatSkillTokens(skill.totalTokens || 0)} {t('tokens')}
         </span>
         {refCount > 0 && (

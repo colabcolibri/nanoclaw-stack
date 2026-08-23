@@ -14,12 +14,12 @@ export const AgentYamlPreview: React.FC<AgentYamlPreviewProps> = ({ yaml, title,
   return (
     <div className={className}>
       <div className="mb-2 flex items-center gap-2">
-        <FileCode className="h-3.5 w-3.5 text-[var(--accent)]" />
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        <FileCode className="h-3.5 w-3.5 text-(--accent)" />
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">
           {title || t('yamlFrontmatter')}
         </p>
       </div>
-      <pre className="max-h-64 overflow-auto rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-3 font-mono text-[11px] leading-relaxed text-[var(--text-dim)] break-words whitespace-pre-wrap">
+      <pre className="max-h-64 overflow-auto rounded-lg border border-(--border-main) bg-(--bg-card-subtle) p-3 font-mono text-[11px] leading-relaxed text-(--text-dim) wrap-break-word whitespace-pre-wrap">
         {yaml}
       </pre>
     </div>

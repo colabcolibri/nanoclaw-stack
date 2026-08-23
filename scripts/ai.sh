@@ -8,6 +8,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NANOCLAW_DIR="${NANOCLAW_PATH:-$ROOT/nanoclaw}"
+NANOCLAW_ENV="$NANOCLAW_DIR/.env"
 
 log() { echo "[ai] $*"; }
 die() { echo "[ai] ERRO: $*" >&2; exit 1; }
@@ -15,6 +16,15 @@ die() { echo "[ai] ERRO: $*" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$ROOT/scripts/use-node22.sh"
 log "Node: $(node -v)"
+
+if [[ -f "$NANOCLAW_ENV" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$NANOCLAW_ENV"
+  set +a
+fi
+
+MOTOR_PORT="${WEBHOOK_PORT:-5082}"
 
 free_port() {
   local port="$1"
@@ -35,7 +45,7 @@ fi
 
 export PROJECT_ROOT="$NANOCLAW_DIR"
 # shellcheck source=/dev/null
-source "$NANOCLAW_DIR/setup/lib/install-slug.sh"
+source "$NANOCLAW_DIR/lib/install-slug.sh"
 AGENT_IMAGE="$(container_image_base):latest"
 
 if ! docker image inspect "$AGENT_IMAGE" >/dev/null 2>&1; then
@@ -45,10 +55,12 @@ fi
 log "Instalando deps do motor..."
 (cd "$NANOCLAW_DIR" && pnpm install)
 
-free_port 3000
+free_port "$MOTOR_PORT"
+
+export WEBHOOK_PORT="$MOTOR_PORT"
 
 log "Imagem agente: $AGENT_IMAGE"
-log "Subindo motor em http://localhost:3000"
+log "Subindo motor em http://localhost:$MOTOR_PORT"
 log "Ctrl+C para parar"
 log ""
 

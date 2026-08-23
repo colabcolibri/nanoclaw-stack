@@ -45,15 +45,15 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
   return (
     <aside
       className={cn(
-        'flex min-h-0 flex-col border-[var(--border-main)] bg-[var(--bg-card-subtle)]/40',
+        'flex min-h-0 flex-col border-(--border-main) bg-(--bg-card-subtle)/40',
         className,
       )}
     >
-      <div className="shrink-0 space-y-3 border-b border-[var(--border-main)] p-4">
+      <div className="shrink-0 space-y-3 border-b border-(--border-main) p-4">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-main)]">{t('threadsTitle')}</h2>
-            <p className="text-[11px] text-[var(--text-dim)]">
+            <h2 className="text-sm font-semibold text-(--text-main)">{t('threadsTitle')}</h2>
+            <p className="text-[11px] text-(--text-dim)">
               {t('threadsSidebarHint', { count: threads.length })}
             </p>
           </div>
@@ -70,16 +70,16 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
         </div>
 
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-dim)]" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-(--text-dim)" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('threadSearchPlaceholder')}
-            className="h-9 border-[var(--border-main)] bg-[var(--bg-card)] pl-8 text-xs"
+            className="h-9 border-(--border-main) bg-(--bg-card) pl-8 text-xs"
           />
         </div>
 
-        <div className="flex gap-1 rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)] p-1">
+        <div className="flex gap-1 rounded-lg border border-(--border-main) bg-(--bg-card) p-1">
           {FILTERS.map((filter) => (
             <button
               key={filter}
@@ -88,8 +88,8 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
               className={cn(
                 'flex-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors',
                 statusFilter === filter
-                  ? 'bg-[var(--accent)] text-white shadow-sm'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]',
+                  ? 'bg-(--accent) text-white shadow-sm'
+                  : 'text-(--text-muted) hover:bg-(--bg-card-subtle) hover:text-(--text-main)',
               )}
             >
               {t(`threadFilter_${filter}`)}
@@ -102,16 +102,16 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
         {isLoading ? (
           <div className="space-y-2 p-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-[3.75rem] w-full rounded-xl" />
+              <Skeleton key={i} className="h-15 w-full rounded-xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <p className="px-3 py-8 text-center text-xs text-[var(--text-dim)]">{t('noThreads')}</p>
+          <p className="px-3 py-8 text-center text-xs text-(--text-dim)">{t('noThreads')}</p>
         ) : showSections ? (
           <div className="space-y-4">
             {activeThreads.length > 0 && (
               <section>
-                <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wide text-(--text-dim)">
                   {t('threadSectionActive')}
                 </p>
                 <div className="space-y-1">
@@ -128,7 +128,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
             )}
             {archivedThreads.length > 0 && (
               <section>
-                <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wide text-(--text-dim)">
                   {t('threadSectionArchived')}
                 </p>
                 <div className="space-y-1">

@@ -16,7 +16,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       label: 'Mensagens',
       value: (stats?.totalMessages || 0).toLocaleString(),
       hint: `${stats?.totalInbound || 0} in • ${stats?.totalOutbound || 0} out`,
-      icon: <MessageSquare className="h-4 w-4 text-[var(--accent)]" />,
+      icon: <MessageSquare className="h-4 w-4 text-(--accent)" />,
     },
     {
       label: 'Tokens',
@@ -46,14 +46,14 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       {items.map((item) => (
         <Card key={item.label}>
           <CardContent className="space-y-2 p-4">
-            <div className="flex items-center justify-between text-xs font-medium text-[var(--text-muted)]">
+            <div className="flex items-center justify-between text-xs font-medium text-(--text-muted)">
               <span>{item.label}</span>
               {item.icon}
             </div>
-            <div className="text-lg font-semibold tracking-tight text-[var(--text-main)] font-mono sm:text-xl">
+            <div className="text-lg font-semibold tracking-tight text-(--text-main) font-mono sm:text-xl">
               {item.value}
             </div>
-            <div className="text-[11px] text-[var(--text-dim)] font-mono">{item.hint}</div>
+            <div className="text-[11px] text-(--text-dim) font-mono">{item.hint}</div>
           </CardContent>
         </Card>
       ))}

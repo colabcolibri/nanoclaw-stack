@@ -3,7 +3,6 @@ name: native-tool-builder
 description: Creates and expands high-performance, token-efficient Native TypeScript Tools and folder-based Skills in the NanoClaw ecosystem. Use when requested to develop new tools, integrations, or APIs.
 domain: tool_builder
 tools: [read_file, run_command]
-keywords: [create tool, new tool, tool builder, create skill, new skill, integration, create api]
 ---
 
 # Native Tool & Skill Builder
@@ -17,7 +16,7 @@ This skill empowers the assistant to construct, test, and register modular TypeS
 NanoClaw enforces a clean 2-tier division:
 
 1. **The Skill Folder (`container/skills/<skill-name>/SKILL.md`):**
-   - Contains YAML metadata (`domain`, `tools`, `keywords`) and the operational manual (query patterns, schemas, response standards).
+   - Contains YAML metadata (`domain`, `tools`) and the operational manual (query patterns, schemas, response standards).
    - Automatically discovered by `SkillsManager` and loaded into the LLM context only when the corresponding domain tools are activated.
 
 2. **The Native Tool Implementation (`container/agent-runner/src/tools/<my-tool>.ts`):**
@@ -83,7 +82,6 @@ name: my-tool
 description: Complete operational guidelines for using my_tool.
 domain: custom_domain
 tools: [my_tool]
-keywords: [keyword1, keyword2, action]
 ---
 
 # Operational Manual for My Tool
@@ -107,4 +105,4 @@ Detailed instructions for the AI:
    ```bash
    systemctl restart nanoclaw
    ```
-   The new tool is discovered automatically by `SkillsManager`, routed by `ToolRouter`, and executed on demand with zero overhead.
+   The new tool is registered in `ALL_TOOLS`, its domain in `ToolDomainRegistry`, and exposed to workers via `AGENT.md` → skill → `getToolsForAgent`.

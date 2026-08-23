@@ -2,7 +2,7 @@
 # Dev completo: motor + API UI + Vite (hot reload). Não builda imagem Docker.
 #
 # Uso: ./scripts/dev.sh
-# Abra: http://localhost:3080  (ou VITE_DEV_PORT no ui/.env)
+# Portas (ui/.env + nanoclaw/.env): painel 5080, API 5081, motor 5082
 
 set -euo pipefail
 
@@ -10,6 +10,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NANOCLAW_DIR="${NANOCLAW_PATH:-$ROOT/nanoclaw}"
 UI_DIR="$ROOT/ui"
 UI_ENV="$UI_DIR/.env"
+NANOCLAW_ENV="$NANOCLAW_DIR/.env"
 
 log() { echo "[dev] $*"; }
 die() { echo "[dev] ERRO: $*" >&2; exit 1; }
@@ -25,7 +26,16 @@ if [[ -f "$UI_ENV" ]]; then
   set +a
 fi
 
-VITE_DEV_PORT="${VITE_DEV_PORT:-3080}"
+if [[ -f "$NANOCLAW_ENV" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$NANOCLAW_ENV"
+  set +a
+fi
+
+VITE_DEV_PORT="${VITE_DEV_PORT:-5080}"
+UI_API_PORT="${PORT:-5081}"
+MOTOR_PORT="${WEBHOOK_PORT:-5082}"
 
 free_port() {
   local port="$1"
@@ -46,7 +56,7 @@ fi
 
 export PROJECT_ROOT="$NANOCLAW_DIR"
 # shellcheck source=/dev/null
-source "$NANOCLAW_DIR/setup/lib/install-slug.sh"
+source "$NANOCLAW_DIR/lib/install-slug.sh"
 AGENT_IMAGE="$(container_image_base):latest"
 
 if ! docker image inspect "$AGENT_IMAGE" >/dev/null 2>&1; then
@@ -58,8 +68,8 @@ log "Instalando deps..."
 (cd "$UI_DIR" && bun install)
 (cd "$UI_DIR/client" && bun install)
 
-free_port 3000
-free_port 3001
+free_port "$MOTOR_PORT"
+free_port "$UI_API_PORT"
 free_port "$VITE_DEV_PORT"
 
 PIDS=()
@@ -73,26 +83,27 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 export NANOCLAW_PATH="$NANOCLAW_DIR"
+export WEBHOOK_PORT="$MOTOR_PORT"
 
-log "Subindo motor..."
+log "Subindo motor (porta $MOTOR_PORT)..."
 (cd "$NANOCLAW_DIR" && pnpm dev) &
 PIDS+=($!)
 
-log "Subindo API (3001)..."
+log "Subindo API UI (porta $UI_API_PORT)..."
 (cd "$UI_DIR" && bun run dev) &
 PIDS+=($!)
 
 sleep 1
 
 log "Subindo Vite (porta $VITE_DEV_PORT)..."
-(cd "$UI_DIR/client" && VITE_DEV_PORT="$VITE_DEV_PORT" bun run dev) &
+(cd "$UI_DIR/client" && VITE_DEV_PORT="$VITE_DEV_PORT" PORT="$UI_API_PORT" bun run dev) &
 PIDS+=($!)
 
 log ""
 log "=== dev rodando ==="
 log "  Painel:  http://localhost:$VITE_DEV_PORT"
-log "  API:     http://localhost:3001"
-log "  Motor:   http://localhost:3000"
+log "  API UI:  http://localhost:$UI_API_PORT"
+log "  Motor:   http://localhost:$MOTOR_PORT"
 log "  Ctrl+C para parar"
 log ""
 

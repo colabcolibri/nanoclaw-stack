@@ -155,17 +155,17 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="right"
-        className="flex h-dvh max-h-dvh w-full max-w-3xl flex-col gap-0 overflow-hidden border-l border-[var(--border-main)] bg-[var(--bg-card)]/95 p-0 backdrop-blur-xl sm:max-w-3xl"
+        className="flex h-dvh max-h-dvh w-full max-w-3xl flex-col gap-0 overflow-hidden border-l border-(--border-main) bg-(--bg-card)/95 p-0 backdrop-blur-xl sm:max-w-3xl"
       >
         <div className="flex h-full min-w-0 flex-col">
-          <SheetHeader className="space-y-0 border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)]/50 px-6 pb-5 pt-6">
+          <SheetHeader className="space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
             <div className="flex items-start gap-4 pr-8">
-              <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)]">
-                <AgentIcon className="h-6 w-6 text-[var(--accent)]" />
+              <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
+                <AgentIcon className="h-6 w-6 text-(--accent)" />
               </div>
               <div className="min-w-0 flex-1">
                 <SheetTitle className="mb-1 flex flex-wrap items-center gap-2 text-xl">
-                  <span className="break-words leading-snug">{name || agent.id}</span>
+                  <span className="wrap-break-word leading-snug">{name || agent.id}</span>
                   <Badge
                     variant="outline"
                     className="border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-500"
@@ -176,8 +176,8 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                 </SheetTitle>
                 <SheetDescription asChild>
                   <div className="space-y-1">
-                    <p className="font-mono text-xs text-[var(--text-dim)] break-all">ID: {agent.id}</p>
-                    <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-[var(--accent)]">
+                    <p className="font-mono text-xs text-(--text-dim) break-all">ID: {agent.id}</p>
+                    <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-(--accent)">
                       <Cpu className="h-3 w-3 shrink-0" />
                       <span className="break-all">{model || t('modelDefault')}</span>
                     </p>
@@ -192,30 +192,30 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="shrink-0 border-b border-[var(--border-main)] px-4 sm:px-6">
+            <div className="shrink-0 border-b border-(--border-main) px-4 sm:px-6">
               <div className="overflow-x-auto overflow-y-hidden">
                 <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-5 rounded-none border-0 bg-transparent p-0 shadow-none">
                 <TabsTrigger
                   value="overview"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-[var(--accent)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--accent)] data-[state=inactive]:text-[var(--text-muted)] data-[state=inactive]:hover:text-[var(--text-main)]"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerOverview')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="config"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-[var(--accent)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--accent)] data-[state=inactive]:text-[var(--text-muted)] data-[state=inactive]:hover:text-[var(--text-main)]"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerConfig')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="skills"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-[var(--accent)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--accent)] data-[state=inactive]:text-[var(--text-muted)] data-[state=inactive]:hover:text-[var(--text-main)]"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerSkills')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="prompt"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-[var(--accent)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--accent)] data-[state=inactive]:text-[var(--text-muted)] data-[state=inactive]:hover:text-[var(--text-main)]"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerPrompt')}
                 </TabsTrigger>
@@ -232,7 +232,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                   promptChars={promptChars}
                   promptTokens={promptTokens}
                 />
-                <div className="mt-6 flex flex-wrap gap-3 border-t border-[var(--border-main)]/50 pt-4">
+                <div className="mt-6 flex flex-wrap gap-3 border-t border-(--border-main)/50 pt-4">
                   {agent.isCustom && (
                     <Button variant="outline" className="text-xs" onClick={handleDelete}>
                       <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -264,13 +264,13 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
 
               <TabsContent value="skills" className="mt-0 space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-[var(--text-muted)]">{t('assignedSkills')}</p>
-                  <span className="font-mono text-[11px] font-semibold text-[var(--accent)]">
+                  <p className="text-xs text-(--text-muted)">{t('assignedSkills')}</p>
+                  <span className="font-mono text-[11px] font-semibold text-(--accent)">
                     {t('skillsSelected', { count: selectedSkills.length })}
                   </span>
                 </div>
 
-                <div className="grid max-h-[min(50vh,24rem)] grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-2">
+                <div className="grid max-h-[min(50vh,24rem)] grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-2">
                   {availableSkills
                     .filter((sk) => !sk.isGlobal)
                     .map((sk) => {
@@ -282,15 +282,15 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                           onClick={() => handleToggleSkill(sk.name)}
                           className={`flex min-w-0 items-center gap-2.5 rounded-lg border p-2.5 text-left text-xs transition-all ${
                             isChecked
-                              ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] font-medium text-[var(--accent)]'
-                              : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-card)]'
+                              ? 'border-(--accent-border) bg-(--accent-subtle) font-medium text-(--accent)'
+                              : 'border-transparent text-(--text-muted) hover:bg-(--bg-card)'
                           }`}
                         >
                           <span
                             className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                               isChecked
-                                ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                                : 'border-[var(--border-main)]'
+                                ? 'border-(--accent) bg-(--accent) text-white'
+                                : 'border-(--border-main)'
                             }`}
                           >
                             {isChecked && <Check className="h-3 w-3" />}
@@ -306,18 +306,18 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                     {assignedSkillObjects.map((sk) => (
                       <div
                         key={sk.name}
-                        className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-4"
+                        className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-4"
                       >
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <Sparkles className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                            <Sparkles className="h-4 w-4 shrink-0 text-(--accent)" />
                             <span className="break-all font-mono text-xs font-bold">{sk.name}</span>
                           </div>
                           <Badge variant="secondary" className="shrink-0 font-mono text-[10px]">
                             ~{sk.totalTokens || 0} tok
                           </Badge>
                         </div>
-                        <p className="text-xs text-[var(--text-muted)] break-words">{sk.description}</p>
+                        <p className="text-xs text-(--text-muted) wrap-break-word">{sk.description}</p>
                       </div>
                     ))}
                   </div>
@@ -326,7 +326,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
 
               <TabsContent value="prompt" className="mt-0 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-[var(--text-muted)]">{t('promptBodyHint')}</p>
+                  <p className="text-xs text-(--text-muted)">{t('promptBodyHint')}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="font-mono text-[10px]">
                       {t('chars', { count: promptChars })}
@@ -340,7 +340,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={20}
-                  className="min-h-[360px] w-full max-w-full resize-y rounded-xl border border-[var(--border-main)] bg-[var(--bg-input)] p-3.5 font-mono text-xs leading-relaxed text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+                  className="min-h-90 w-full max-w-full resize-y rounded-xl border border-(--border-main) bg-(--bg-input) p-3.5 font-mono text-xs leading-relaxed text-(--text-main) focus:outline-none focus:ring-2 focus:ring-(--accent)/30"
                   placeholder={t('promptPlaceholder')}
                 />
               </TabsContent>
@@ -348,7 +348,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
           </Tabs>
 
           {activeTab !== 'overview' && (
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--border-main)] px-4 py-4 sm:px-6">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-(--border-main) px-4 py-4 sm:px-6">
               {saveSuccess ? (
                 <Button variant="default" size="sm" disabled className="text-xs">
                   <Check className="mr-1 h-3.5 w-3.5" />

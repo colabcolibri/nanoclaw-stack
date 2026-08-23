@@ -14,12 +14,12 @@ type StatusVariant = 'success' | 'secondary' | 'destructive'
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-4">
-      <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">
-        <Icon className="h-3.5 w-3.5 text-[var(--accent)]" />
+    <div className="min-w-0 rounded-xl border border-(--border-main) bg-(--bg-card) p-4">
+      <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">
+        <Icon className="h-3.5 w-3.5 text-(--accent)" />
         <span className="truncate">{label}</span>
       </div>
-      <p className="font-mono text-lg font-semibold text-[var(--text-main)]">{value}</p>
+      <p className="font-mono text-lg font-semibold text-(--text-main)">{value}</p>
     </div>
   )
 }
@@ -174,7 +174,7 @@ export const McpsView: React.FC = () => {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[88px] rounded-xl" />
+            <Skeleton key={i} className="h-22 rounded-xl" />
           ))
         ) : (
           <>
@@ -188,14 +188,14 @@ export const McpsView: React.FC = () => {
 
       <div className="space-y-3">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--text-main)]">{t('sectionOfficial')}</h2>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t('sectionOfficialHint')}</p>
+          <h2 className="text-sm font-semibold text-(--text-main)">{t('sectionOfficial')}</h2>
+          <p className="mt-0.5 text-xs text-(--text-muted)">{t('sectionOfficialHint')}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-[200px] rounded-xl" />
+                <Skeleton key={i} className="h-50 rounded-xl" />
               ))
             : INTEGRATIONS.map((integration) => {
                 const cardProps = getCardProps(integration.id)

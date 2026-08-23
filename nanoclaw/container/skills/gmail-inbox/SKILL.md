@@ -4,13 +4,6 @@ description: Gmail search, read threads, drafts and replies via google_gmail API
 domain: google_suite
 tools:
   - google_gmail
-keywords:
-  - email
-  - gmail
-  - inbox
-  - messages
-  - unread
-  - mail
 ---
 
 # Gmail inbox

@@ -180,9 +180,9 @@ function AppContent() {
 
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[var(--text-muted)] font-mono text-xs">
+      <div className="min-h-screen bg-(--bg-page) flex items-center justify-center text-(--text-muted) font-mono text-xs">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-(--accent) animate-ping" />
           <span>Carregando painel NanoClaw...</span>
         </div>
       </div>
@@ -195,7 +195,7 @@ function AppContent() {
 
   if (!appConfig) {
     return (
-      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[var(--text-muted)] font-mono text-xs">
+      <div className="min-h-screen bg-(--bg-page) flex items-center justify-center text-(--text-muted) font-mono text-xs">
         Carregando configuração...
       </div>
     )
@@ -203,12 +203,12 @@ function AppContent() {
 
   return (
     <AppConfigProvider config={appConfig}>
-    <div className="h-screen w-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)] flex flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-(--bg-page) text-(--text-main) flex flex-row">
       {isSidebarOpen && isMobile && (
         <button
           type="button"
           aria-label="Fechar menu"
-          className="fixed inset-0 z-30 bg-[var(--bg-overlay)] backdrop-blur-[2px] md:hidden"
+          className="fixed inset-0 z-30 bg-(--bg-overlay) backdrop-blur-[2px] md:hidden"
           onClick={toggleSidebar}
         />
       )}
@@ -234,7 +234,7 @@ function AppContent() {
         />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
-          <div className="mx-auto flex min-h-full w-full min-w-0 max-w-[var(--content-max)] flex-col gap-6 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto flex min-h-full w-full min-w-0 max-w-(--content-max) flex-col gap-6 p-4 sm:p-6 lg:p-8">
             {showStats && <StatsGrid stats={stats} currency={currency} />}
 
             <ContentArea width={getViewContentWidth(activeView)} className="gap-5">

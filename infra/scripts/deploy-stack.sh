@@ -47,6 +47,6 @@ systemctl restart nanoclaw-uai.service
 log "Status:"
 systemctl is-active docker.service nanoclaw.service nanoclaw-uai.service
 log "Commit ativo: $(git -C "$ROOT" rev-parse --short HEAD)"
-log "Imagem agente: $(source "$ROOT/nanoclaw/setup/lib/install-slug.sh" && PROJECT_ROOT="$ROOT/nanoclaw" container_image_base):latest"
+log "Imagem agente: $(source "$ROOT/nanoclaw/lib/install-slug.sh" && PROJECT_ROOT="$ROOT/nanoclaw" container_image_base):latest"
 log "Bundle UI: $(grep -o 'index-[^\"]*\\.js' "$ROOT/ui/src/public/index.html" | head -1 || echo '?')"
 log "=== deploy concluído ==="

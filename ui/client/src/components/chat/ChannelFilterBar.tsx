@@ -21,7 +21,7 @@ export const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({
   ]
 
   return (
-    <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl gap-1 shadow-xs">
+    <div className="flex p-1 bg-(--bg-card) border border-(--border-main) rounded-xl gap-1 shadow-xs">
       {channels.map((ch) => {
         const isActive = activeChannel === ch.id
         return (

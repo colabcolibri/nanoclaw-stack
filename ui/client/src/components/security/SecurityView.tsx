@@ -48,20 +48,20 @@ export const SecurityView: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         {/* Authorized Users */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
-          <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
-            <CardTitle className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-              <Users className="w-4 h-4 text-[var(--accent)]" />
+        <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden">
+          <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
+            <CardTitle className="text-sm font-bold text-(--text-main) flex items-center gap-2">
+              <Users className="w-4 h-4 text-(--accent)" />
               <span>Usuários Autorizados no Telegram / Chat</span>
             </CardTitle>
-            <CardDescription className="text-xs text-[var(--text-muted)]">
+            <CardDescription className="text-xs text-(--text-muted)">
               Lista de IDs e perfis habilitados para interação com o agente.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5 space-y-3">
             {users.length === 0 ? (
               <EmptyState
-                icon={<Users className="w-6 h-6 text-[var(--text-dim)]" />}
+                icon={<Users className="w-6 h-6 text-(--text-dim)" />}
                 title="Sem usuários"
                 description="Nenhum usuário cadastrado até o momento."
               />
@@ -69,10 +69,10 @@ export const SecurityView: React.FC = () => {
               users.map((u, i) => (
                 <div
                   key={i}
-                  className="p-3.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex items-center justify-between text-xs transition-colors"
+                  className="p-3.5 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) flex items-center justify-between text-xs transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-[var(--text-main)]">{u.name || u.username || 'Usuário'}</span>
+                    <span className="font-bold text-(--text-main)">{u.name || u.username || 'Usuário'}</span>
                     <Badge variant="secondary" className="font-mono text-[10px]">
                       {u.id || u.platformId}
                     </Badge>
@@ -88,13 +88,13 @@ export const SecurityView: React.FC = () => {
         </Card>
 
         {/* Pending Approvals */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
-          <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
-            <CardTitle className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
+        <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden">
+          <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
+            <CardTitle className="text-sm font-bold text-(--text-main) flex items-center gap-2">
               <Bell className="w-4 h-4 text-amber-500" />
               <span>Solicitações Pendentes de Aprovação</span>
             </CardTitle>
-            <CardDescription className="text-xs text-[var(--text-muted)]">
+            <CardDescription className="text-xs text-(--text-muted)">
               Ações sensíveis ou novos remetentes aguardando confirmação.
             </CardDescription>
           </CardHeader>
@@ -113,7 +113,7 @@ export const SecurityView: React.FC = () => {
                 >
                   <div>
                     <strong className="text-amber-600 dark:text-amber-400 block">{appr.title}</strong>
-                    <span className="text-[var(--text-muted)] text-[11px]">{appr.description}</span>
+                    <span className="text-(--text-muted) text-[11px]">{appr.description}</span>
                   </div>
                   <Button size="sm" className="h-7 text-xs font-semibold">
                     Aprovar

@@ -1,4 +1,5 @@
 import type { WorkerResult } from '../agents/types.js';
+import type { CapabilityRecord } from '../execution/supervisor-policy.js';
 
 export interface TurnStepRecord {
   stepIndex: number;
@@ -17,6 +18,7 @@ export interface TurnStepRecord {
 export class TurnPlanState {
   readonly userGoal: string;
   readonly steps: TurnStepRecord[] = [];
+  readonly capabilityRecords: CapabilityRecord[] = [];
 
   constructor(userGoal: string) {
     this.userGoal = userGoal.trim();
@@ -29,6 +31,11 @@ export class TurnPlanState {
       completedAt: new Date().toISOString(),
     };
     this.steps.push(entry);
+    this.capabilityRecords.push({
+      agentId: record.agentId,
+      capability: record.workerResult.completion.capability,
+      completion: record.workerResult.completion,
+    });
     return entry;
   }
 

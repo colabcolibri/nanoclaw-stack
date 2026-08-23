@@ -37,7 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   const currentLangLabel = i18n.language.startsWith('en') ? 'EN' : 'PT'
 
   return (
-    <header className="z-20 flex h-[var(--topbar-height)] shrink-0 items-center justify-between gap-4 border-b border-[var(--border-main)] bg-[var(--bg-topbar)] px-4 backdrop-blur-md sm:px-6">
+    <header className="z-20 flex h-(--topbar-height) shrink-0 items-center justify-between gap-4 border-b border-(--border-main) bg-(--bg-topbar) px-4 backdrop-blur-md sm:px-6">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <Button
           variant="ghost"
@@ -62,7 +62,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {showCurrency && onToggleCurrency && (
-          <div className="hidden items-center gap-0.5 rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)] p-0.5 sm:flex">
+          <div className="hidden items-center gap-0.5 rounded-lg border border-(--border-main) bg-(--bg-card) p-0.5 sm:flex">
             <Button
               variant={currency === 'BRL' ? 'default' : 'ghost'}
               size="sm"
@@ -95,7 +95,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
-          className="h-8 gap-1 px-2 text-[var(--destructive)] hover:bg-red-500/10 hover:text-[var(--destructive)]"
+          className="h-8 gap-1 px-2 text-(--destructive) hover:bg-red-500/10 hover:text-(--destructive)"
         >
           <LogOut className="h-3.5 w-3.5" />
           <span className="hidden text-xs sm:inline">{t('logout')}</span>

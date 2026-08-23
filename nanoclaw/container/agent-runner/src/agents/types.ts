@@ -1,12 +1,12 @@
 import type { ToolDefinition } from '../tools/types.js';
 import type { LLMCompletionFn, LLMResponse } from '../orchestrator/types.js';
 import type { ContextPlan } from '../services/context-pack.js';
+import type { AgentCapability, WorkerCompletion } from '../execution/types.js';
 
 export interface Department {
   id: string;
   name: string;
   description: string;
-  keywords: string[];
   agentIds: string[];
 }
 
@@ -20,6 +20,10 @@ export interface SpecialistAgent {
   agentSkills: string[]; // Specific tool/skill names exclusive to this agent
   allowGlobalSkills?: boolean; // If true, agent can also use global utility skills (default: true)
   model?: string;
+  /** Declarative worker loop profile (see execution/profiles.ts). */
+  executionProfile?: string;
+  /** Stable capability ids for routing and supervisor termination. */
+  capabilities?: AgentCapability[];
 }
 
 export interface FastPathDecision {
@@ -54,6 +58,8 @@ export interface WorkerResult {
   summary: string;
   rawFindingsReport: string;
   iterations: number;
+  /** Structured completion contract for supervisor termination (code, not prompt). */
+  completion: WorkerCompletion;
 }
 
 export interface HandoverPackage {

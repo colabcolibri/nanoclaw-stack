@@ -1,5 +1,5 @@
 import type { AgentTool, ToolDefinition } from './types.js';
-import { ToolRouter } from './router.js';
+import { ToolDomainRegistry } from './router.js';
 import { runCommandTool, readFileTool } from './system.js';
 import { googleCalendarTool } from './google-calendar.js';
 import { googleGmailTool } from './google-gmail.js';
@@ -12,7 +12,7 @@ import { correiosShippingTool } from './shipping.js';
 import { tokenUsageTool } from './token-usage.js';
 import { RETRIEVE_MESSAGE_CONTEXT_TOOL, handleRetrieveMessageContext } from './message-context.js';
 import { LOAD_SKILL_TOOL, handleLoadSkill } from './load-skill.js';
-import { webSearchTool, browseUrlTool, WEB_RESEARCH_TOOL } from './web-search.js';
+import { webSearchTool, browseUrlTool } from './web-search.js';
 
 export const ALL_TOOLS: Record<string, AgentTool> = {
   run_command: runCommandTool,
@@ -27,11 +27,6 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   schedule_followup: schedulerTool,
   token_usage: tokenUsageTool,
   web_search: webSearchTool,
-  web_research: {
-    domain: 'web_research',
-    definition: WEB_RESEARCH_TOOL,
-    execute: async (args: any, cwd: string) => webSearchTool.execute(args, cwd),
-  },
   browse_url: browseUrlTool,
   retrieve_message_context: {
     domain: 'runtime_meta',
@@ -45,14 +40,15 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   },
 };
 
-// Strict Invariant: Sync and assert all tools belong to a registered domain
-ToolRouter.syncRegistry(ALL_TOOLS);
+// Strict invariant: every tool belongs to a registered domain
+ToolDomainRegistry.syncRegistry(ALL_TOOLS);
 
 export const AGENT_TOOLS: ToolDefinition[] = Object.values(ALL_TOOLS).map((t) => t.definition);
 
 export async function executeTool(name: string, args: any, cwd: string): Promise<string> {
   const normalized = name.toLowerCase().replace(/-/g, '_');
-  const tool = ALL_TOOLS[name] || ALL_TOOLS[normalized];
+  const resolved = normalized === 'web_research' ? 'web_search' : normalized;
+  const tool = ALL_TOOLS[name] || ALL_TOOLS[normalized] || ALL_TOOLS[resolved];
   if (!tool) {
     return `Ferramenta desconhecida: ${name}`;
   }

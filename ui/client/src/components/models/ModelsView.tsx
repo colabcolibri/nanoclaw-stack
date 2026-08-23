@@ -81,7 +81,7 @@ export const ModelsView: React.FC = () => {
   })
 
   const inputClass =
-    'w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono'
+    'w-full px-3 py-2 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 font-mono'
 
   return (
     <div className="flex flex-col gap-5 w-full flex-1 min-w-0">
@@ -111,7 +111,7 @@ export const ModelsView: React.FC = () => {
 
       <Card>
         <CardContent className="p-4 sm:p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
             <KeyRound className="w-4 h-4" />
             Credenciais por provider
           </div>
@@ -121,19 +121,19 @@ export const ModelsView: React.FC = () => {
               return (
                 <div
                   key={id}
-                  className="flex flex-col gap-2 p-3 rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)] min-w-0"
+                  className="flex flex-col gap-2 p-3 rounded-lg border border-(--border-main) bg-(--bg-card) min-w-0"
                 >
                   <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="min-w-0">
                       <p className="text-xs font-medium truncate">{meta.name}</p>
-                      <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{meta.keyEnvName ?? id}</p>
+                      <p className="text-[10px] text-(--text-muted) font-mono truncate">{meta.keyEnvName ?? id}</p>
                     </div>
                     <Badge variant={status?.hasKey ? 'default' : 'outline'} className="shrink-0 text-[10px]">
                       {status?.hasKey ? 'OK' : 'Ausente'}
                     </Badge>
                   </div>
                   {status?.hasKey && status.masked && (
-                    <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{status.masked}</p>
+                    <p className="text-[10px] text-(--text-muted) font-mono truncate">{status.masked}</p>
                   )}
                   <div className="flex gap-2">
                     <Input
@@ -162,7 +162,7 @@ export const ModelsView: React.FC = () => {
       <Card>
         <CardContent className="p-4 sm:p-5 space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
               <Server className="w-4 h-4" />
               Modelos disponíveis ({filteredModels.length})
             </div>
@@ -189,9 +189,9 @@ export const ModelsView: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-[var(--border-main)]">
-            <table className="w-full text-xs min-w-[640px]">
-              <thead className="bg-[var(--bg-input)] text-[var(--text-muted)]">
+          <div className="overflow-x-auto rounded-lg border border-(--border-main)">
+            <table className="w-full text-xs min-w-160">
+              <thead className="bg-(--bg-input) text-(--text-muted)">
                 <tr>
                   <th className="text-left px-3 py-2 font-medium">ID</th>
                   <th className="text-left px-3 py-2 font-medium">Nome</th>
@@ -205,22 +205,22 @@ export const ModelsView: React.FC = () => {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-[var(--text-muted)]">
+                    <td colSpan={5} className="px-3 py-8 text-center text-(--text-muted)">
                       Carregando catálogo...
                     </td>
                   </tr>
                 ) : filteredModels.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-[var(--text-muted)]">
+                    <td colSpan={5} className="px-3 py-8 text-center text-(--text-muted)">
                       Nenhum modelo encontrado.
                     </td>
                   </tr>
                 ) : (
                   filteredModels.map((m) => (
-                    <tr key={m.id} className="border-t border-[var(--border-main)] hover:bg-[var(--bg-input)]/50">
+                    <tr key={m.id} className="border-t border-(--border-main) hover:bg-(--bg-input)/50">
                       <td className="px-3 py-2 font-mono text-[10px] max-w-[180px] truncate">{m.id}</td>
                       <td className="px-3 py-2">{m.label}</td>
-                      <td className="px-3 py-2 text-[var(--text-muted)]">{m.providerName}</td>
+                      <td className="px-3 py-2 text-(--text-muted)">{m.providerName}</td>
                       <td className="px-3 py-2">
                         {m.recommendedRole ? (
                           <Badge variant="outline" className="text-[10px]">
@@ -238,7 +238,7 @@ export const ModelsView: React.FC = () => {
             </table>
           </div>
 
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-[11px] text-(--text-muted)">
             Para adicionar ou alterar providers e modelos, edite{' '}
             <code className="font-mono">nanoclaw/src/llm/catalog.ts</code> e reinicie o serviço.
           </p>

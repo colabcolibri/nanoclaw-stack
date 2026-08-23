@@ -4,6 +4,9 @@ name: Pesquisador Web & Fontes
 department: research_intel
 role: Live web search and URL extraction
 description: web_search + browse_url for current facts with cited sources.
+execution_profile: research_bounded
+capabilities:
+  - web.research
 skills:
   - agent-browser
 allow_global_skills: true

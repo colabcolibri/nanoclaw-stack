@@ -1,5 +1,3 @@
-import type { Session } from '../types.js';
-
 /** Caller-agnostic identity for conversation routing. */
 export interface CallerContext {
   agentGroupId: string;
@@ -17,20 +15,10 @@ export interface DeliveryAddress {
   threadId: string | null;
 }
 
-export type ConversationCommandName = 'clear' | 'new' | 'new-resume';
-
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
   text: string;
   timestamp: string;
-}
-
-export interface ConversationCommandResult {
-  handled: true;
-  reply: string;
-  session: Session;
-  /** Wake container after command (e.g. handoff message pending). */
-  wake: boolean;
 }
 
 export type SummarizeMessagesFn = (messages: ConversationMessage[]) => Promise<string>;

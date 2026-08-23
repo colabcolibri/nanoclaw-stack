@@ -4,9 +4,10 @@ import Combine
 /// Protocol for network interactions adhering to Single Responsibility & Dependency Inversion.
 public protocol ApiClientProtocol {
     func verifyConnection(config: AppConfig) async throws -> Bool
-    func sendPrompt(_ prompt: String, config: AppConfig) async throws -> PromptResponse
-    func sendAudio(fileUrl: URL, config: AppConfig) async throws -> AudioResponse
-    func fetchHistory(config: AppConfig, limit: Int) async throws -> [ChatMessage]
+    func sendPrompt(_ prompt: String, config: AppConfig, sessionId: String?) async throws -> PromptResponse
+    func sendAudio(fileUrl: URL, config: AppConfig, sessionId: String?) async throws -> AudioResponse
+    func fetchThreads(config: AppConfig, limit: Int) async throws -> [ChatThread]
+    func fetchHistory(config: AppConfig, limit: Int, sessionId: String?) async throws -> [ChatMessage]
     func resetHistory(config: AppConfig) async throws -> Bool
 }
 

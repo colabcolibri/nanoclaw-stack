@@ -96,5 +96,5 @@ export function channelAccentClass(channel: string): string {
     discord: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
     slack: 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400',
   }
-  return map[channel] ?? 'bg-[var(--bg-card-subtle)] text-[var(--text-muted)]'
+  return map[channel] ?? 'bg-(--bg-card-subtle) text-(--text-muted)'
 }

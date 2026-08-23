@@ -20,7 +20,7 @@ const badgeVariants = cva(
         web: "border-teal-300 bg-teal-100 text-teal-950 dark:border-teal-500/50 dark:bg-teal-950/80 dark:text-teal-200",
         tokens: "border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-950/80 dark:text-amber-200",
         chars: "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-500/50 dark:bg-emerald-950/80 dark:text-emerald-200",
-        outline: "text-[var(--text-main)] border-[var(--border-main)] bg-[var(--bg-card)]",
+        outline: "text-(--text-main) border-(--border-main) bg-(--bg-card)",
       },
     },
     defaultVariants: {

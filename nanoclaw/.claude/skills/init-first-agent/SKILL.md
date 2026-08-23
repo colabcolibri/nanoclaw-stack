@@ -9,8 +9,8 @@ Wire the first NanoClaw agent to a channel and verify end-to-end delivery by hav
 
 ## Prerequisites
 
-- **Service running.** Check: `launchctl list | grep "$(. setup/lib/install-slug.sh && launchd_label)"` (macOS) or `systemctl --user status "$(. setup/lib/install-slug.sh && systemd_unit)"` (Linux). If stopped, tell the user to run `/setup` first.
-- **Target channel installed.** At least one `/add-<channel>` skill has run, credentials are in `.env`, and the adapter is uncommented in `src/channels/index.ts`.
+- **Service running.** Produção: `systemctl status nanoclaw`. Dev local: `pnpm dev` ou `pnpm ai` na raiz do stack. Imagem Docker: `source lib/install-slug.sh && container_image_base` (de dentro de `nanoclaw/`).
+- **Target channel configured.** Telegram adapter em `src/channels/index.ts` e token em `.env`.
 - **Adapter connected.** Tail `logs/nanoclaw.log` — look for a recent `channel setup` / `adapter connected` line for the target channel.
 
 ## 1. Pick the channel
@@ -64,7 +64,7 @@ Show the top rows to the user and confirm which `platform_id` is theirs (usually
 For Telegram only, there's an existing pair-code primitive. When you run this tool, take the output and extract the pairing code. Then show it to the user in plain text and ask the user to send the code in the Telegram chat to complete the pairing.
 
 ```bash
-npx tsx setup/index.ts --step pair-telegram -- --intent new-agent:dm-with-<folder>
+pnpm exec tsx scripts/pair-telegram.ts -- --intent new-agent:dm-with-<folder>
 ```
 
 Parse the `PAIR_TELEGRAM_ISSUED` status block for `CODE` and follow the `REMINDER_TO_ASSISTANT` line in that block. Then wait for the `PAIR_TELEGRAM` block — read `PLATFORM_ID` and `PAIRED_USER_ID` from it. telegram.ts's interceptor has already upserted the user and granted owner if none existed yet. Use `PLATFORM_ID` and `PAIRED_USER_ID` directly in step 5.

@@ -110,10 +110,10 @@ export const ServiceView: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {/* Host Service & Docker Manager */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden flex flex-col justify-between">
-          <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
+        <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden flex flex-col justify-between">
+          <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
+              <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-500" />
                 <span>Daemon do Host & Contêineres Docker</span>
               </CardTitle>
@@ -122,7 +122,7 @@ export const ServiceView: React.FC = () => {
                 <span>{statusInfo.active ? 'Daemon Online' : 'Daemon Inativo'}</span>
               </Badge>
             </div>
-            <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
+            <CardDescription className="text-xs text-(--text-muted) mt-1">
               Controle de processos em segundo plano e contêineres Docker isolados sob demanda.
             </CardDescription>
           </CardHeader>
@@ -130,33 +130,33 @@ export const ServiceView: React.FC = () => {
           <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-6">
             {/* Status overview metrics */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                <span className="text-[10px] uppercase font-bold text-[var(--text-dim)] block">PID do Daemon</span>
-                <span className="font-mono text-sm font-bold text-[var(--text-main)]">
+              <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main)">
+                <span className="text-[10px] uppercase font-bold text-(--text-dim) block">PID do Daemon</span>
+                <span className="font-mono text-sm font-bold text-(--text-main)">
                   {statusInfo.mainPid ? String(statusInfo.mainPid) : '--'}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)]">
-                <span className="text-[10px] uppercase font-bold text-[var(--text-dim)] block">Status do Sistema</span>
+              <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main)">
+                <span className="text-[10px] uppercase font-bold text-(--text-dim) block">Status do Sistema</span>
                 <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate block">
                   {statusInfo.statusText || 'Em Execução'}
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+            <p className="text-xs text-(--text-muted) leading-relaxed">
               O daemon roda no host e spawna contêineres Docker isolados <strong>sob demanda</strong> a cada mensagem ou execução de ferramenta para garantir 100% de segurança e contenção.
             </p>
 
             <div>
-              <div className="text-[11px] font-mono uppercase font-bold text-[var(--text-dim)] mb-2 flex items-center justify-between">
+              <div className="text-[11px] font-mono uppercase font-bold text-(--text-dim) mb-2 flex items-center justify-between">
                 <span>Contêineres Docker Ativos no Host:</span>
-                <span className="text-[10px] text-[var(--text-muted)]">{containers.length} detectados</span>
+                <span className="text-[10px] text-(--text-muted)">{containers.length} detectados</span>
               </div>
 
               <div className="space-y-2">
                 {containers.length === 0 ? (
-                  <div className="p-3.5 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--text-dim)]">
+                  <div className="p-3.5 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) font-mono text-xs text-(--text-dim)">
                     Nenhum contêiner rodando no momento (ocioso).
                   </div>
                 ) : (
@@ -165,9 +165,9 @@ export const ServiceView: React.FC = () => {
                     return (
                       <div
                         key={i}
-                        className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] font-mono text-xs text-[var(--text-main)] flex items-center justify-between gap-2 shadow-xs"
+                        className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) font-mono text-xs text-(--text-main) flex items-center justify-between gap-2 shadow-xs"
                       >
-                        <span className="font-semibold text-[var(--accent)]">{text}</span>
+                        <span className="font-semibold text-(--accent)">{text}</span>
                         <Badge variant="success" className="text-[10px] py-0 px-2 shrink-0">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Ativo</span>
@@ -192,27 +192,27 @@ export const ServiceView: React.FC = () => {
         </Card>
 
         {/* Telegram Pairing */}
-        <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden flex flex-col justify-between">
-          <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
+        <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden flex flex-col justify-between">
+          <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-[var(--accent)]" />
+              <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-(--accent)" />
                 <span>Pareamento do Telegram</span>
               </CardTitle>
               <Badge variant="default">1-Clique</Badge>
             </div>
-            <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
+            <CardDescription className="text-xs text-(--text-muted) mt-1">
               Gere um código de autorização para vincular novos usuários ou canais ao Barão.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-6">
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+            <p className="text-xs text-(--text-muted) leading-relaxed">
               Envie este código para o bot no Telegram para vincular instantaneamente seu ID à conta autorizada sem precisar de aprovação manual posterior.
             </p>
 
-            <div className="p-5 rounded-2xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex items-center justify-between gap-3 shadow-xs">
-              <span className="font-mono text-base sm:text-lg font-bold text-[var(--accent)] tracking-wider">
+            <div className="p-5 rounded-2xl bg-(--bg-card-subtle) border border-(--border-main) flex items-center justify-between gap-3 shadow-xs">
+              <span className="font-mono text-base sm:text-lg font-bold text-(--accent) tracking-wider">
                 {pairingCode || 'Clique abaixo para gerar'}
               </span>
 
@@ -241,15 +241,15 @@ export const ServiceView: React.FC = () => {
         </Card>
       </div>
 
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
-        <CardHeader className="p-5 bg-[var(--bg-card-subtle)] border-b border-[var(--border-main)]">
+      <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden w-full">
+        <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-sm sm:text-base font-bold text-[var(--text-main)] flex items-center gap-2">
-                <Radio className="w-4 h-4 text-[var(--accent)]" />
+              <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
+                <Radio className="w-4 h-4 text-(--accent)" />
                 <span>Canais conectados</span>
               </CardTitle>
-              <CardDescription className="text-xs text-[var(--text-muted)] mt-1">
+              <CardDescription className="text-xs text-(--text-muted) mt-1">
                 Chats e grupos wired ao agente no banco central (<code className="font-mono text-[10px]">messaging_groups</code>).
               </CardDescription>
             </div>
@@ -262,7 +262,7 @@ export const ServiceView: React.FC = () => {
         <CardContent className="p-5">
           {channels.length === 0 ? (
             <EmptyState
-              icon={<MessageSquare className="w-6 h-6 text-[var(--text-dim)]" />}
+              icon={<MessageSquare className="w-6 h-6 text-(--text-dim)" />}
               title="Nenhum canal wired"
               description="Quando alguém falar com o bot ou um canal for registrado no setup, ele aparece aqui."
             />
@@ -275,12 +275,12 @@ export const ServiceView: React.FC = () => {
                 return (
                   <div
                     key={channel.id}
-                    className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-4 flex flex-col gap-3 min-w-0"
+                    className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-4 flex flex-col gap-3 min-w-0"
                   >
                     <div className="flex items-start justify-between gap-2 min-w-0">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-[var(--text-main)]">{displayName}</p>
-                        <p className="truncate font-mono text-[10px] text-[var(--text-dim)] mt-0.5">{channel.platformId}</p>
+                        <p className="truncate text-sm font-bold text-(--text-main)">{displayName}</p>
+                        <p className="truncate font-mono text-[10px] text-(--text-dim) mt-0.5">{channel.platformId}</p>
                       </div>
                       <Badge variant={isDenied ? 'destructive' : 'success'} className="shrink-0 text-[10px]">
                         {isDenied ? 'Negado' : 'Conectado'}
@@ -305,20 +305,20 @@ export const ServiceView: React.FC = () => {
 
                     <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
                       <div className="min-w-0">
-                        <dt className="uppercase font-bold text-[var(--text-dim)]">Agente</dt>
-                        <dd className="truncate text-[var(--text-main)]">{channel.agentFolder || '—'}</dd>
+                        <dt className="uppercase font-bold text-(--text-dim)">Agente</dt>
+                        <dd className="truncate text-(--text-main)">{channel.agentFolder || '—'}</dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="uppercase font-bold text-[var(--text-dim)]">Engajamento</dt>
-                        <dd className="truncate text-[var(--text-main)]">{formatEngageMode(channel.engageMode)}</dd>
+                        <dt className="uppercase font-bold text-(--text-dim)">Engajamento</dt>
+                        <dd className="truncate text-(--text-main)">{formatEngageMode(channel.engageMode)}</dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="uppercase font-bold text-[var(--text-dim)]">Remetentes</dt>
-                        <dd className="truncate text-[var(--text-main)]">{formatSenderPolicy(channel.unknownSenderPolicy)}</dd>
+                        <dt className="uppercase font-bold text-(--text-dim)">Remetentes</dt>
+                        <dd className="truncate text-(--text-main)">{formatSenderPolicy(channel.unknownSenderPolicy)}</dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="uppercase font-bold text-[var(--text-dim)]">Desde</dt>
-                        <dd className="truncate text-[var(--text-main)]">
+                        <dt className="uppercase font-bold text-(--text-dim)">Desde</dt>
+                        <dd className="truncate text-(--text-main)">
                           {new Date(channel.createdAt).toLocaleDateString('pt-BR')}
                         </dd>
                       </div>

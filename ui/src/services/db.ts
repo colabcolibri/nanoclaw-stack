@@ -547,6 +547,56 @@ export class DatabaseService {
     return messages.slice(-limit);
   }
 
+  static getSessionById(sessionId: string): {
+    id: string;
+    agent_group_id: string;
+    messaging_group_id: string | null;
+    thread_id: string | null;
+    conversation_id: string | null;
+    agent_provider: string | null;
+    status: string;
+    container_status: string;
+    last_active: string | null;
+    archived_at: string | null;
+    created_at: string;
+  } | null {
+    if (!sessionId || !fs.existsSync(CONFIG.DB_PATH)) return null;
+    try {
+      const db = new Database(CONFIG.DB_PATH, { readonly: true });
+      const row = db
+        .query(
+          `SELECT id, agent_group_id, messaging_group_id, thread_id, conversation_id,
+                  agent_provider, status, container_status, last_active, archived_at, created_at
+           FROM sessions WHERE id = ?`,
+        )
+        .get(sessionId) as {
+        id: string;
+        agent_group_id: string;
+        messaging_group_id: string | null;
+        thread_id: string | null;
+        conversation_id: string | null;
+        agent_provider: string | null;
+        status: string;
+        container_status: string;
+        last_active: string | null;
+        archived_at: string | null;
+        created_at: string;
+      } | null;
+      db.close();
+      return row ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  static getChatThreadsForGroup(agentGroupId: string, channel?: string, limit = 50): ChatThreadItem[] {
+    const threads = this.getChatThreads(limit * 4);
+    return threads
+      .filter((t) => t.agentGroupId === agentGroupId)
+      .filter((t) => !channel || t.channel === channel)
+      .slice(0, limit);
+  }
+
   static extractSessionFromDbPath(dbPath: string): { agentGroupId: string; sessionId: string } | null {
     const normalized = dbPath.replace(/\\/g, "/");
     const marker = "v2-sessions/";

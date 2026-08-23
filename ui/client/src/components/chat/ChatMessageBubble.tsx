@@ -113,7 +113,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
             isUser
-              ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+              ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
           )}
         >
@@ -130,13 +130,13 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             <span
               className={cn(
                 'text-sm font-semibold',
-                isUser ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'
+                isUser ? 'text-(--accent)' : 'text-(--text-main)'
               )}
             >
               {isUser ? message.senderName || t('you') : t('assistant')}
             </span>
             {getChannelBadge(message.channel)}
-            <span className="font-mono text-[11px] font-normal text-[var(--text-dim)]">
+            <span className="font-mono text-[11px] font-normal text-(--text-dim)">
               {channelLabel} • {timeStr}
             </span>
           </div>
@@ -145,19 +145,19 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
 
       <div
         className={cn(
-          'rounded-xl border border-[var(--border-main)] text-sm shadow-xs transition-colors',
+          'rounded-xl border border-(--border-main) text-sm shadow-xs transition-colors',
           isUser
-            ? 'max-w-xl bg-[var(--bg-card)] text-[var(--text-main)]'
-            : 'w-full max-w-none bg-[var(--bg-card-subtle)] text-[var(--text-main)]'
+            ? 'max-w-xl bg-(--bg-card) text-(--text-main)'
+            : 'w-full max-w-none bg-(--bg-card-subtle) text-(--text-main)'
         )}
       >
         <div
-          className="prose-rendered break-words px-4 py-3.5 leading-relaxed sm:px-5 sm:py-4"
+          className="prose-rendered wrap-break-word px-4 py-3.5 leading-relaxed sm:px-5 sm:py-4"
           dangerouslySetInnerHTML={{ __html: renderedContent }}
         />
 
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--border-main)] px-3 py-2 sm:px-4">
-          <p className="font-mono text-[11px] text-[var(--text-dim)]">
+        <div className="flex items-center justify-between gap-3 border-t border-(--border-main) px-3 py-2 sm:px-4">
+          <p className="font-mono text-[11px] text-(--text-dim)">
             {message.tokens ? (
               <>
                 {t('tokenLabel', { count: message.tokens.toLocaleString('pt-BR') })}
@@ -172,7 +172,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              className="h-7 w-7 text-(--text-muted) hover:text-(--text-main)"
               onClick={handleCopy}
               title={t('copy')}
               aria-label={t('copy')}
@@ -186,7 +186,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-[var(--text-muted)] hover:text-[var(--accent)]"
+              className="h-7 w-7 text-(--text-muted) hover:text-(--accent)"
               onClick={() => onInspect(message)}
               title={t('inspect')}
               aria-label={t('inspect')}

@@ -50,21 +50,21 @@ export const AgentCard: React.FC<AgentCardProps> = ({
       }}
       className={cn(
         'group relative min-w-0 cursor-pointer overflow-hidden rounded-xl border p-6 transition-all',
-        'bg-[var(--bg-card)]',
+        'bg-(--bg-card)',
         isSelected
-          ? 'border-[var(--accent-border)] shadow-[0_0_15px_rgba(56,189,248,0.08)] ring-1 ring-[var(--accent-border)]'
-          : 'border-[var(--border-main)] hover:border-[var(--border-main)]/80 hover:bg-[var(--bg-card-subtle)]',
+          ? 'border-(--accent-border) shadow-[0_0_15px_rgba(56,189,248,0.08)] ring-1 ring-(--accent-border)'
+          : 'border-(--border-main) hover:border-(--border-main)/80 hover:bg-(--bg-card-subtle)',
         isOffline && 'opacity-75'
       )}
     >
       {isSelected && (
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--accent)]/5 blur-2xl" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-(--accent)/5 blur-2xl" />
       )}
 
       <div className="mb-5 space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)]">
-            <AgentIcon className="h-5 w-5 text-[var(--accent)]" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-(--border-main) bg-(--bg-card-subtle)">
+            <AgentIcon className="h-5 w-5 text-(--accent)" />
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -72,13 +72,13 @@ export const AgentCard: React.FC<AgentCardProps> = ({
               <span
                 className={cn(
                   'h-2 w-2 shrink-0 rounded-full',
-                  isOffline ? 'border border-[var(--text-dim)] bg-[var(--bg-card-subtle)]' : 'bg-[var(--success)]'
+                  isOffline ? 'border border-(--text-dim) bg-(--bg-card-subtle)' : 'bg-(--success)'
                 )}
               />
               <span
                 className={cn(
                   'text-xs font-medium',
-                  isOffline ? 'text-[var(--text-dim)]' : 'text-[var(--success)]'
+                  isOffline ? 'text-(--text-dim)' : 'text-(--success)'
                 )}
               >
                 {isOffline ? t('statusOffline') : t('statusOnline')}
@@ -90,7 +90,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
                 e.stopPropagation()
                 onMenuClick?.(e)
               }}
-              className="rounded-lg p-1 text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]"
+              className="rounded-lg p-1 text-(--text-dim) transition-colors hover:bg-(--bg-card-subtle) hover:text-(--text-main)"
               aria-label={t('inspect')}
             >
               <MoreVertical className="h-4 w-4" />
@@ -98,46 +98,46 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           </div>
         </div>
 
-        <h3 className="text-base font-semibold leading-snug text-[var(--text-main)] break-words">
+        <h3 className="text-base font-semibold leading-snug text-(--text-main) wrap-break-word">
           {agent.name}
         </h3>
 
         {agent.role && (
-          <p className="text-xs leading-relaxed text-[var(--text-muted)] break-words">{agent.role}</p>
+          <p className="text-xs leading-relaxed text-(--text-muted) wrap-break-word">{agent.role}</p>
         )}
       </div>
 
       <div className="space-y-0">
-        <div className="flex min-w-0 items-center justify-start gap-1.5 border-b border-[var(--border-main)]/50 py-2">
-          <DeptIcon className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-          <span className="min-w-0 text-sm leading-snug text-[var(--text-main)] break-words">
+        <div className="flex min-w-0 items-center justify-start gap-1.5 border-b border-(--border-main)/50 py-2">
+          <DeptIcon className="h-4 w-4 shrink-0 text-(--accent)" />
+          <span className="min-w-0 text-sm leading-snug text-(--text-main) wrap-break-word">
             {department?.name || agent.department}
           </span>
         </div>
 
-        <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border-main)]/50 py-2">
-          <span className="flex shrink-0 items-center gap-1.5 text-sm text-[var(--text-muted)]">
+        <div className="flex min-w-0 items-center justify-between gap-2 border-b border-(--border-main)/50 py-2">
+          <span className="flex shrink-0 items-center gap-1.5 text-sm text-(--text-muted)">
             <Cpu className="h-3.5 w-3.5" />
             {t('cardModel')}
           </span>
-          <span className="min-w-0 break-all text-right font-mono text-xs text-[var(--text-main)]">
+          <span className="min-w-0 break-all text-right font-mono text-xs text-(--text-main)">
             {agent.model || t('modelDefault')}
           </span>
         </div>
 
-        <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[var(--border-main)]/50 py-2">
-          <span className="shrink-0 text-sm text-[var(--text-muted)]">{t('cardActiveSkills')}</span>
-          <span className="rounded bg-[var(--bg-card-subtle)] px-2 py-0.5 font-mono text-xs text-[var(--text-main)]">
+        <div className="flex min-w-0 items-center justify-between gap-2 border-b border-(--border-main)/50 py-2">
+          <span className="shrink-0 text-sm text-(--text-muted)">{t('cardActiveSkills')}</span>
+          <span className="rounded bg-(--bg-card-subtle) px-2 py-0.5 font-mono text-xs text-(--text-main)">
             {active}/{total}
           </span>
         </div>
 
         <div className="flex min-w-0 items-center justify-between gap-2 py-2">
-          <span className="shrink-0 text-sm text-[var(--text-muted)]">{t('cardContextLoad')}</span>
+          <span className="shrink-0 text-sm text-(--text-muted)">{t('cardContextLoad')}</span>
           <span
             className={cn(
               'min-w-0 break-all text-right font-mono text-xs',
-              isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'
+              isSelected ? 'text-(--accent)' : 'text-(--text-main)'
             )}
           >
             {formatTokenCount(contextTokens)} {t('tokensUnit')}
@@ -145,11 +145,11 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-6 h-1 overflow-hidden rounded-full bg-[var(--bg-card-subtle)]">
+      <div className="mt-6 h-1 overflow-hidden rounded-full bg-(--bg-card-subtle)">
         <div
           className={cn(
             'h-full rounded-full transition-all',
-            isSelected ? 'bg-[var(--accent)]' : 'bg-[var(--text-muted)]'
+            isSelected ? 'bg-(--accent)' : 'bg-(--text-muted)'
           )}
           style={{ width: `${Math.max(4, usagePercent)}%` }}
         />

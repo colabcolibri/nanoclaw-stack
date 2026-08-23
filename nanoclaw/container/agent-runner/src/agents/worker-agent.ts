@@ -1,5 +1,5 @@
 import { AgentRegistry } from './registry.js';
-import { executeTool } from '../tools/index.js';
+import { ExecutionProfiles, ToolGateway } from '../execution/index.js';
 import { ExecutionScratchpad } from '../orchestrator/scratchpad.js';
 import { ResponseParser } from '../orchestrator/parser.js';
 import { AgentAuditLogger } from './audit-logger.js';
@@ -28,7 +28,9 @@ export class WorkerAgentRunner {
       supervisorStep?: number;
     } = {}
   ): Promise<WorkerResult> {
-    const maxIterations = Math.max(1, options.maxIterations || 6);
+    const profile = ExecutionProfiles.resolve(agent.executionProfile);
+    const maxIterations = Math.max(1, options.maxIterations || profile.maxIterations);
+    const toolContext = ToolGateway.createContext(agent.id, profile);
     const tools = AgentRegistry.getToolsForAgent(agent.id, cwd);
     const resolvedToolNames = tools.map((t) => t.function.name);
     const scratchpad = new ExecutionScratchpad(taskDescription, options.history || []);
@@ -93,7 +95,7 @@ export class WorkerAgentRunner {
       if (toolCalls.length > 0) {
         for (const call of toolCalls) {
           options.onActivity?.();
-          const toolResult = await executeTool(call.name, call.args, cwd);
+          const toolResult = await ToolGateway.execute(call.name, call.args, cwd, toolContext);
 
           scratchpad.recordFinding(call.name, call.args, toolResult);
           findings.push({
@@ -111,13 +113,33 @@ export class WorkerAgentRunner {
       break;
     }
 
+    const completion = profile.inferCompletion({
+      agentId: agent.id,
+      capability: agent.capabilities?.[0],
+      findings,
+      summary: finalSummary,
+      iterationsRun,
+      maxIterations,
+      budgetExhausted: toolContext.ledger.isExhausted(),
+    });
+
+    const status =
+      completion.status === 'blocked'
+        ? 'error'
+        : completion.status === 'partial' || completion.status === 'budget_exhausted'
+          ? 'partial'
+          : findings.length > 0 || finalSummary
+            ? 'success'
+            : 'partial';
+
     return {
       agentId: agent.id,
-      status: findings.length > 0 || finalSummary ? 'success' : 'partial',
+      status,
       findings,
       summary: finalSummary,
       rawFindingsReport: scratchpad.toSynthesisReport(),
       iterations: iterationsRun,
+      completion,
     };
   }
 }

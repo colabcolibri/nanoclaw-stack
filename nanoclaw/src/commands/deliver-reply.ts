@@ -1,11 +1,7 @@
-import { writeOutboundDirect } from '../session-manager.js';
+import { getConversationBackend } from '../conversations/backend.js';
 import type { Session } from '../types.js';
 import type { DeliveryAddress } from '../conversations/types.js';
 import type { CommandReplyPersist } from './types.js';
-
-function replyId(): string {
-  return `cmd-ack-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 /**
  * Deliver a command acknowledgement to the platform and optionally persist it
@@ -19,20 +15,7 @@ export function deliverCommandReply(
   persist: CommandReplyPersist,
 ): void {
   if (persist === 'ephemeral') return;
-
-  writeOutboundDirect(agentGroupId, sessionId, {
-    id: replyId(),
-    kind: 'chat',
-    platformId: delivery.platformId,
-    channelType: delivery.channelType,
-    threadId: delivery.threadId,
-    content: JSON.stringify({
-      text,
-      sender: 'system',
-      command_ack: true,
-      ephemeral: false,
-    }),
-  });
+  getConversationBackend().writeCommandAck(agentGroupId, sessionId, delivery, text);
 }
 
 /** Resolve which session row should receive a persisted ack. */

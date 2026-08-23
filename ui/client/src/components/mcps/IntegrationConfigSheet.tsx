@@ -106,7 +106,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
         className="flex h-dvh max-h-dvh w-full max-w-lg flex-col gap-0 overflow-hidden border-l p-0 backdrop-blur-xl sm:max-w-lg"
       >
         <div className="flex h-full min-w-0 flex-col">
-          <SheetHeader className="shrink-0 space-y-0 border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)]/50 px-6 pb-5 pt-6">
+          <SheetHeader className="shrink-0 space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
             <div className="pr-8">
               <SheetTitle className="text-lg leading-snug">{sheetTitle}</SheetTitle>
               <SheetDescription className="mt-1 text-xs leading-relaxed">
@@ -148,7 +148,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                     className="text-xs"
                   />
                 </div>
-                <div className="flex justify-end gap-2 border-t border-[var(--border-main)] pt-4">
+                <div className="flex justify-end gap-2 border-t border-(--border-main) pt-4">
                   <Button type="button" variant="outline" size="sm" onClick={onClose}>
                     {t('actions.cancel')}
                   </Button>
@@ -188,7 +188,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                     className="font-mono text-xs"
                   />
                 </div>
-                <div className="flex justify-end gap-2 border-t border-[var(--border-main)] pt-4">
+                <div className="flex justify-end gap-2 border-t border-(--border-main) pt-4">
                   <Button type="button" variant="outline" size="sm" onClick={onClose}>
                     {t('actions.cancel')}
                   </Button>
@@ -236,7 +236,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                     className="font-mono text-xs"
                   />
                 </div>
-                <div className="flex justify-end gap-2 border-t border-[var(--border-main)] pt-4">
+                <div className="flex justify-end gap-2 border-t border-(--border-main) pt-4">
                   <Button type="button" variant="outline" size="sm" onClick={onClose}>
                     {t('actions.cancel')}
                   </Button>
@@ -269,7 +269,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                   {macConfig.apiKey ? (
                     <MaskedHint label={t('masked.current')} value={maskSecret(macConfig.apiKey)} />
                   ) : (
-                    <p className="text-xs text-[var(--text-muted)]">{t('mac.noKey')}</p>
+                    <p className="text-xs text-(--text-muted)">{t('mac.noKey')}</p>
                   )}
                   <div className="flex gap-2">
                     <Input
@@ -289,8 +289,8 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                     </Button>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] p-4 text-xs leading-relaxed text-[var(--text-muted)]">
-                  <p className="mb-2 font-semibold text-[var(--text-main)]">{t('mac.howToTitle')}</p>
+                <div className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-4 text-xs leading-relaxed text-(--text-muted)">
+                  <p className="mb-2 font-semibold text-(--text-main)">{t('mac.howToTitle')}</p>
                   <ol className="list-decimal space-y-1.5 pl-4">
                     <li>{t('mac.step1')}</li>
                     <li>{t('mac.step2')}</li>
@@ -331,7 +331,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 border-t border-[var(--border-main)] pt-4">
+                <div className="flex justify-end gap-2 border-t border-(--border-main) pt-4">
                   <Button type="button" variant="outline" size="sm" onClick={onClose}>
                     {t('actions.cancel')}
                   </Button>
@@ -350,9 +350,9 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
 
 function MaskedHint({ label, value }: { label: string; value: string }) {
   return (
-    <p className="text-[11px] text-[var(--text-muted)]">
-      <span className="font-semibold text-[var(--text-dim)]">{label}: </span>
-      <span className="font-mono text-[var(--text-main)]">{value}</span>
+    <p className="text-[11px] text-(--text-muted)">
+      <span className="font-semibold text-(--text-dim)">{label}: </span>
+      <span className="font-mono text-(--text-main)">{value}</span>
     </p>
   )
 }

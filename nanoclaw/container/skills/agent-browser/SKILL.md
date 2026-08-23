@@ -5,13 +5,6 @@ domain: web_research
 tools:
   - web_search
   - browse_url
-keywords:
-  - web
-  - internet
-  - search
-  - news
-  - research
-  - url
 ---
 
 # Web research

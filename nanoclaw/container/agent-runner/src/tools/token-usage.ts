@@ -4,7 +4,7 @@ import { Database } from 'bun:sqlite';
 import type { AgentTool } from './types.js';
 
 export const tokenUsageTool: AgentTool = {
-  domain: 'core_system',
+  domain: 'metrics',
   definition: {
     type: 'function',
     function: {

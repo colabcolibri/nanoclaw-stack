@@ -57,7 +57,7 @@ export const ExpandableTextBlock: React.FC<ExpandableTextBlockProps> = ({
         id={contentId}
         ref={contentRef}
         className={cn(
-          'rounded-lg border border-[var(--border-main)] bg-[var(--bg-card)] p-2.5 text-[11px] leading-relaxed text-[var(--text-main)] break-words whitespace-pre-wrap',
+          'rounded-lg border border-(--border-main) bg-(--bg-card) p-2.5 text-[11px] leading-relaxed text-(--text-main) wrap-break-word whitespace-pre-wrap',
           mono && 'font-mono',
           isCollapsed && 'overflow-hidden',
           preClassName
@@ -72,7 +72,7 @@ export const ExpandableTextBlock: React.FC<ExpandableTextBlockProps> = ({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 gap-1 px-2 text-[10px] font-semibold text-[var(--accent)]"
+          className="h-7 gap-1 px-2 text-[10px] font-semibold text-(--accent)"
           onClick={() => setExpanded((prev) => !prev)}
           aria-expanded={expanded}
           aria-controls={contentId}

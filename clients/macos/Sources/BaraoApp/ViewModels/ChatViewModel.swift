@@ -4,6 +4,8 @@ import Combine
 
 @MainActor
 public final class ChatViewModel: ObservableObject {
+    @Published public var threads: [ChatThread] = []
+    @Published public var selectedSessionId: String? = nil
     @Published public var messages: [ChatMessage] = []
     @Published public var inputText: String = ""
     @Published public var isSending: Bool = false
@@ -11,6 +13,8 @@ public final class ChatViewModel: ObservableObject {
     @Published public var isDictating: Bool = false
     @Published public var hasMoreHistory: Bool = false
     @Published public var isLoadingMore: Bool = false
+    @Published public var isLoadingThreads: Bool = false
+    @Published public var isLoadingMessages: Bool = false
     @Published public var currentHistoryLimit: Int = 25
     @Published public var audioLevel: Float = 0.0
     @Published public var errorMessage: String? = nil
@@ -18,14 +22,24 @@ public final class ChatViewModel: ObservableObject {
     @Published public var isConnected: Bool = false
     @Published public var isCheckingConnection: Bool = false
     @Published public var assistantName: String = AppConstants.appName
-    
+
+    public var canSendMessages: Bool {
+        guard let id = selectedSessionId else { return true }
+        return threads.first(where: { $0.sessionId == id })?.isActive ?? true
+    }
+
+    public var selectedThread: ChatThread? {
+        guard let id = selectedSessionId else { return nil }
+        return threads.first(where: { $0.sessionId == id })
+    }
+
     private let apiClient: ApiClientProtocol
     private let storage: StorageServiceProtocol
     private let audioRecorder: AudioRecordingProtocol
     private let audioPlayback: AudioPlaybackProtocol
     private let liveSpeech: LiveSpeechRecognitionProtocol
     private var cancellables = Set<AnyCancellable>()
-    
+
     public init(
         apiClient: ApiClientProtocol = ApiClientService.shared,
         storage: StorageServiceProtocol = KeychainStorageService.shared,
@@ -38,10 +52,10 @@ public final class ChatViewModel: ObservableObject {
         self.audioRecorder = audioRecorder
         self.audioPlayback = audioPlayback
         self.liveSpeech = liveSpeech
-        
+
         setupBindings()
     }
-    
+
     private func setupBindings() {
         audioRecorder.audioLevelPublisher
             .receive(on: DispatchQueue.main)
@@ -49,7 +63,7 @@ public final class ChatViewModel: ObservableObject {
                 self?.audioLevel = level
             }
             .store(in: &cancellables)
-            
+
         NotificationCenter.default.publisher(for: NSNotification.Name("BaraoMessageFromSiri"))
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
@@ -64,23 +78,23 @@ public final class ChatViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     public func onAppear() {
         let config = storage.loadConfig()
         assistantName = config.assistantName
         Task {
             await checkConnection()
-            await loadHistory()
+            await loadThreads()
         }
     }
-    
+
     public func checkConnection() async {
         let config = storage.loadConfig()
         guard config.isValid else {
             isConnected = false
             return
         }
-        
+
         isCheckingConnection = true
         do {
             isConnected = try await apiClient.verifyConnection(config: config)
@@ -89,85 +103,128 @@ public final class ChatViewModel: ObservableObject {
         }
         isCheckingConnection = false
     }
-    
-    public func loadHistory() async {
+
+    public func loadThreads() async {
         let config = storage.loadConfig()
         guard config.isValid else { return }
-        
-        currentHistoryLimit = 25
+
+        isLoadingThreads = true
         do {
-            let history = try await apiClient.fetchHistory(config: config, limit: currentHistoryLimit)
-            if !history.isEmpty {
-                self.messages = history
-                self.hasMoreHistory = history.count >= currentHistoryLimit
+            let list = try await apiClient.fetchThreads(config: config, limit: 50)
+            threads = list
+            if let current = selectedSessionId, list.contains(where: { $0.sessionId == current }) {
+                await loadHistory(sessionId: current)
             } else {
-                self.hasMoreHistory = false
+                selectedSessionId = pickDefaultThreadId(from: list)
+                await loadHistory(sessionId: selectedSessionId)
             }
         } catch {
-            // Non-critical, ignore on startup
+            threads = []
+        }
+        isLoadingThreads = false
+    }
+
+    public func selectThread(_ sessionId: String) {
+        guard selectedSessionId != sessionId else { return }
+        selectedSessionId = sessionId
+        Task {
+            await loadHistory(sessionId: sessionId)
         }
     }
-    
+
+    public func refreshAll() {
+        Task {
+            await loadThreads()
+        }
+    }
+
+    public func loadHistory(sessionId: String? = nil) async {
+        let config = storage.loadConfig()
+        guard config.isValid else { return }
+
+        let targetSession = sessionId ?? selectedSessionId
+        isLoadingMessages = true
+        currentHistoryLimit = 25
+        do {
+            let history = try await apiClient.fetchHistory(
+                config: config,
+                limit: currentHistoryLimit,
+                sessionId: targetSession
+            )
+            messages = history
+            hasMoreHistory = history.count >= currentHistoryLimit
+        } catch {
+            messages = []
+            hasMoreHistory = false
+        }
+        isLoadingMessages = false
+    }
+
     public func loadMoreHistory() {
         guard !isLoadingMore, hasMoreHistory else { return }
         let config = storage.loadConfig()
         guard config.isValid else { return }
-        
+
         isLoadingMore = true
         let nextLimit = currentHistoryLimit + 25
-        
+
         Task {
             do {
-                let history = try await apiClient.fetchHistory(config: config, limit: nextLimit)
-                if history.count > self.messages.count {
-                    self.messages = history
-                    self.currentHistoryLimit = nextLimit
-                    self.hasMoreHistory = history.count >= nextLimit
+                let history = try await apiClient.fetchHistory(
+                    config: config,
+                    limit: nextLimit,
+                    sessionId: selectedSessionId
+                )
+                if history.count > messages.count {
+                    messages = history
+                    currentHistoryLimit = nextLimit
+                    hasMoreHistory = history.count >= nextLimit
                 } else {
-                    self.hasMoreHistory = false
+                    hasMoreHistory = false
                 }
             } catch {
-                self.hasMoreHistory = false
+                hasMoreHistory = false
             }
-            self.isLoadingMore = false
+            isLoadingMore = false
         }
     }
-    
+
     public func sendMessage() {
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty, !isSending else { return }
-        
+        guard !prompt.isEmpty, !isSending, canSendMessages else { return }
+
         let config = storage.loadConfig()
         guard config.isValid else {
             errorMessage = "Configure a URL do servidor e a Chave de API nas Configurações."
             showErrorAlert = true
             return
         }
-        
+
         inputText = ""
         let userMessage = ChatMessage(role: .user, text: prompt)
         messages.append(userMessage)
-        
+
         let pendingAssistantMessage = ChatMessage(role: .assistant, text: "Pensando...", isSending: true)
         messages.append(pendingAssistantMessage)
         isSending = true
-        
+
         Task {
             do {
-                let response = try await apiClient.sendPrompt(prompt, config: config)
+                let response = try await apiClient.sendPrompt(prompt, config: config, sessionId: selectedSessionId)
                 let reply = response.reply ?? "Sem resposta."
-                
+
                 if let index = messages.firstIndex(where: { $0.id == pendingAssistantMessage.id }) {
                     messages[index].text = reply
                     messages[index].isSending = false
                 }
-                
+
                 if config.soundEffects {
                     audioPlayback.playNotificationSound()
                 }
                 if config.autoSpeak {
                     audioPlayback.speak(text: reply)
                 }
+                await loadThreads()
             } catch {
                 if let index = messages.firstIndex(where: { $0.id == pendingAssistantMessage.id }) {
                     messages[index].text = "Erro: \(error.localizedDescription)"
@@ -180,9 +237,9 @@ public final class ChatViewModel: ObservableObject {
             isSending = false
         }
     }
-    
+
     public func startVoiceRecording() {
-        guard !isRecording, !isSending else { return }
+        guard !isRecording, !isSending, canSendMessages else { return }
         do {
             _ = try audioRecorder.startRecording()
             isRecording = true
@@ -191,48 +248,53 @@ public final class ChatViewModel: ObservableObject {
             showErrorAlert = true
         }
     }
-    
+
     public func stopAndSendVoiceRecording() {
         guard isRecording else { return }
         isRecording = false
         guard let fileUrl = audioRecorder.stopRecording() else { return }
-        
+
         let config = storage.loadConfig()
         guard config.isValid else {
             errorMessage = "Configure a conexão nas Configurações."
             showErrorAlert = true
             return
         }
-        
+
         let userMessage = ChatMessage(role: .user, text: "🎙️ Áudio gravado...", isAudio: true)
         messages.append(userMessage)
-        
+
         let pendingAssistant = ChatMessage(role: .assistant, text: "Transcrevendo áudio...", isSending: true)
         messages.append(pendingAssistant)
         isSending = true
-        
+
         Task {
             do {
-                let response = try await apiClient.sendAudio(fileUrl: fileUrl, config: config)
-                
+                let response = try await apiClient.sendAudio(
+                    fileUrl: fileUrl,
+                    config: config,
+                    sessionId: selectedSessionId
+                )
+
                 if let transcript = response.transcription, !transcript.isEmpty {
                     if let userIdx = messages.firstIndex(where: { $0.id == userMessage.id }) {
                         messages[userIdx].text = transcript
                     }
                 }
-                
+
                 let reply = response.reply ?? "Áudio processado."
                 if let asstIdx = messages.firstIndex(where: { $0.id == pendingAssistant.id }) {
                     messages[asstIdx].text = reply
                     messages[asstIdx].isSending = false
                 }
-                
+
                 if config.soundEffects {
                     audioPlayback.playNotificationSound()
                 }
                 if config.autoSpeak {
                     audioPlayback.speak(text: reply)
                 }
+                await loadThreads()
             } catch {
                 if let asstIdx = messages.firstIndex(where: { $0.id == pendingAssistant.id }) {
                     messages[asstIdx].text = "Erro: \(error.localizedDescription)"
@@ -246,12 +308,12 @@ public final class ChatViewModel: ObservableObject {
             try? FileManager.default.removeItem(at: fileUrl)
         }
     }
-    
+
     public func cancelVoiceRecording() {
         isRecording = false
         audioRecorder.cancelRecording()
     }
-    
+
     public func toggleLiveDictation() {
         if isDictating {
             stopLiveDictation()
@@ -259,9 +321,9 @@ public final class ChatViewModel: ObservableObject {
             startLiveDictation()
         }
     }
-    
+
     public func startLiveDictation() {
-        guard !isDictating, !isSending else { return }
+        guard !isDictating, !isSending, canSendMessages else { return }
         isDictating = true
         liveSpeech.startDictation(
             onPartialText: { [weak self] transcript in
@@ -274,7 +336,7 @@ public final class ChatViewModel: ObservableObject {
             }
         )
     }
-    
+
     public func stopLiveDictation() {
         guard isDictating else { return }
         liveSpeech.stopDictation()
@@ -288,15 +350,27 @@ public final class ChatViewModel: ObservableObject {
             audioPlayback.speak(text: text)
         }
     }
-    
-    public func clearConversation() {
+
+    public func startNewConversation() {
         let config = storage.loadConfig()
-        messages.removeAll()
-        hasMoreHistory = false
-        currentHistoryLimit = 25
         Task {
             _ = try? await apiClient.resetHistory(config: config)
+            messages.removeAll()
+            hasMoreHistory = false
+            currentHistoryLimit = 25
+            await loadThreads()
         }
     }
-}
 
+    public func clearConversation() {
+        startNewConversation()
+    }
+
+    private func pickDefaultThreadId(from list: [ChatThread]) -> String? {
+        if list.isEmpty { return nil }
+        if let active = list.first(where: \.isActive) {
+            return active.sessionId
+        }
+        return list.first?.sessionId
+    }
+}

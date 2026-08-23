@@ -100,7 +100,7 @@ public final class SettingsViewModel: ObservableObject {
                  NSURLErrorServerCertificateUntrusted,
                  NSURLErrorClientCertificateRejected,
                  NSURLErrorClientCertificateRequired:
-                return "Erro de TLS: servidores locais usam HTTP. Use http://localhost:3080 (sem o \"s\")."
+                return "Erro de TLS: servidores locais usam HTTP. Use http://localhost:5080 (sem o \"s\")."
             case NSURLErrorCannotConnectToHost,
                  NSURLErrorNetworkConnectionLost,
                  NSURLErrorCannotFindHost:

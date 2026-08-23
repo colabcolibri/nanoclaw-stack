@@ -165,6 +165,7 @@ describe('TurnSupervisor.runDelegation', () => {
         summary: 'step done',
         rawFindingsReport: 'step done',
         iterations: 1,
+        completion: { status: 'sufficient', reason: 'mock' },
       };
       return workerResult;
     };

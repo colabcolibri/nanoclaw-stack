@@ -40,7 +40,7 @@ Body: one path per line — `PATH` (source == destination) or `SRC -> DST`. Copi
 
 ### `append to:<file> [at:<marker>]`
 
-Body: the line(s) to add. Without `at:`, appends at end of file. With `at:<marker>`, inserts before the `// <<< <marker>` closing line of a dormant marker region (see `setup/index.ts`). **Idempotency: skip if already present.**
+Body: the line(s) to add. Without `at:`, appends at end of file. With `at:<marker>`, inserts before the `// <<< <marker>` closing line of a dormant marker region. **Idempotency: skip if already present.**
 
 ### `dep [manager:pnpm]`
 

@@ -40,7 +40,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   secondaryAction,
 }) => {
   return (
-    <article className="flex min-w-0 flex-col rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-5 transition-colors hover:bg-[var(--bg-card-subtle)]/40">
+    <article className="flex min-w-0 flex-col rounded-xl border border-(--border-main) bg-(--bg-card) p-5 transition-colors hover:bg-(--bg-card-subtle)/40">
       <div className="flex min-w-0 items-start gap-3">
         <div
           className={cn(
@@ -51,16 +51,16 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold leading-snug text-[var(--text-main)] break-words sm:text-base">
+          <h3 className="text-sm font-semibold leading-snug text-(--text-main) wrap-break-word sm:text-base">
             {title}
           </h3>
-          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)] break-words">
+          <p className="mt-1 text-xs leading-relaxed text-(--text-muted) wrap-break-word">
             {description}
           </p>
         </div>
       </div>
 
-      <div className="mt-4 border-t border-[var(--border-main)]/60 pt-4">
+      <div className="mt-4 border-t border-(--border-main)/60 pt-4">
         <Badge variant={statusVariant} className="max-w-full text-[10px] font-semibold">
           <span className="truncate">{statusLabel}</span>
         </Badge>

@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-40 cursor-pointer select-none",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--accent) disabled:pointer-events-none disabled:opacity-40 cursor-pointer select-none",
   {
     variants: {
       variant: {
-        default: "bg-[var(--accent)] text-white shadow hover:bg-[var(--accent-hover)] active:scale-[0.98]",
+        default: "bg-(--accent) text-white shadow hover:bg-(--accent-hover) active:scale-[0.98]",
         destructive: "bg-red-600 text-white shadow hover:bg-red-500 active:scale-[0.98]",
-        outline: "border border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)] shadow-xs",
-        secondary: "bg-[var(--btn-secondary-bg)] text-[var(--text-main)] border border-[var(--border-main)] hover:bg-[var(--bg-card-subtle)] shadow-xs",
-        ghost: "text-[var(--text-main)] hover:bg-[var(--bg-card-subtle)]",
-        link: "text-[var(--accent)] underline-offset-4 hover:underline",
+        outline: "border border-(--border-main) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-card-subtle) shadow-xs",
+        secondary: "bg-(--btn-secondary-bg) text-(--text-main) border border-(--border-main) hover:bg-(--bg-card-subtle) shadow-xs",
+        ghost: "text-(--text-main) hover:bg-(--bg-card-subtle)",
+        link: "text-(--accent) underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

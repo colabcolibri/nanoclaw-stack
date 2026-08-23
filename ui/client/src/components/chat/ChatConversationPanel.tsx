@@ -39,22 +39,22 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
   className,
 }) => {
   const { t } = useTranslation('chat')
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const topRef = useRef<HTMLDivElement>(null)
 
   const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   )
 
   useEffect(() => {
     if (!isLoading && sortedMessages.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [thread?.sessionId, isLoading, sortedMessages.length])
 
   return (
-    <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--bg-card)]', className)}>
+    <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col bg-(--bg-card)', className)}>
       {thread ? (
-        <header className="flex shrink-0 items-center gap-3 border-b border-[var(--border-main)] px-4 py-3 sm:px-5">
+        <header className="flex shrink-0 items-center gap-3 border-b border-(--border-main) px-4 py-3 sm:px-5">
           {showBackButton && onBack && (
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
@@ -69,10 +69,10 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
             {formatThreadChannelLabel(thread.channel).slice(0, 2)}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold text-[var(--text-main)]">
+            <h3 className="truncate text-sm font-semibold text-(--text-main)">
               {formatThreadSubject(thread)}
             </h3>
-            <p className="truncate text-[11px] text-[var(--text-dim)]">
+            <p className="truncate text-[11px] text-(--text-dim)">
               {formatThreadTitle(thread)}
               {thread.lastActiveAt ? ` · ${formatRelativeTime(thread.lastActiveAt)}` : ''}
             </p>
@@ -89,16 +89,16 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
           </Button>
         </header>
       ) : (
-        <header className="shrink-0 border-b border-[var(--border-main)] px-4 py-3 sm:px-5">
-          <p className="text-sm font-semibold text-[var(--text-main)]">{t('feedTitle')}</p>
-          <p className="text-[11px] text-[var(--text-dim)]">{t('feedSubtitle')}</p>
+        <header className="shrink-0 border-b border-(--border-main) px-4 py-3 sm:px-5">
+          <p className="text-sm font-semibold text-(--text-main)">{t('feedTitle')}</p>
+          <p className="text-[11px] text-(--text-dim)">{t('feedSubtitle')}</p>
         </header>
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
         {!thread ? (
           <EmptyState
-            icon={<MessageSquare className="h-10 w-10 text-[var(--text-dim)]" />}
+            icon={<MessageSquare className="h-10 w-10 text-(--text-dim)" />}
             title={t('selectThreadTitle')}
             description={t('selectThreadDescription')}
           />
@@ -113,7 +113,7 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
           </div>
         ) : sortedMessages.length === 0 ? (
           <EmptyState
-            icon={<MessageSquare className="h-8 w-8 text-[var(--text-dim)]" />}
+            icon={<MessageSquare className="h-8 w-8 text-(--text-dim)" />}
             title={t('emptyTitle')}
             description={t('noMessages')}
             action={
@@ -125,6 +125,7 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
           />
         ) : (
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+            <div ref={topRef} className="h-1 shrink-0" aria-hidden />
             {sortedMessages.map((m) => (
               <ChatMessageBubble
                 key={m.id}
@@ -133,7 +134,6 @@ export const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
                 onInspect={onInspectMessage}
               />
             ))}
-            <div ref={bottomRef} className="h-1 shrink-0" aria-hidden />
           </div>
         )}
       </div>

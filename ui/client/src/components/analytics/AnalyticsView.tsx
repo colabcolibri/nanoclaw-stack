@@ -123,7 +123,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <Card className="shadow-xs">
           <CardContent className="p-4 flex flex-col justify-between">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-dim)] flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wider text-(--text-dim) flex items-center justify-between">
                 <span>Custo total consolidado</span>
                 <Coins className="w-4 h-4 text-emerald-500" />
               </div>
@@ -133,9 +133,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   : `$ ${stats?.estimatedCostUsd || '0.0000'}`}
               </div>
             </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1 flex items-center justify-between">
+            <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
               <span>Cotação: R$ {exchangeRate.toFixed(4)}</span>
-              <span className="text-[10px] text-[var(--accent)] truncate max-w-[120px]" title={stats?.modelName}>
+              <span className="text-[10px] text-(--accent) truncate max-w-30" title={stats?.modelName}>
                 {stats?.modelName || 'deepseek-v4-flash'}
               </span>
             </div>
@@ -153,7 +153,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {totalPromptTokens.toLocaleString()}
               </div>
             </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1 flex items-center justify-between">
+            <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
               <span>Custo entrada:</span>
               <span className="font-bold text-sky-700 dark:text-sky-300">
                 {formatCost(totalCostInUsd, totalCostInBrl)}
@@ -173,7 +173,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {totalCompletionTokens.toLocaleString()}
               </div>
             </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1 flex items-center justify-between">
+            <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
               <span>Custo saída:</span>
               <span className="font-bold text-purple-700 dark:text-purple-300">
                 {formatCost(totalCostOutUsd, totalCostOutBrl)}
@@ -185,18 +185,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <Card className="shadow-xs">
           <CardContent className="p-4 flex flex-col justify-between">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-dim)] flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wider text-(--text-dim) flex items-center justify-between">
                 <span>Cache & requisições</span>
                 <Cpu className="w-4 h-4 text-amber-500" />
               </div>
-              <div className="text-2xl font-bold text-[var(--text-main)] my-1.5 font-mono">
+              <div className="text-2xl font-bold text-(--text-main) my-1.5 font-mono">
                 {stats?.cacheHitRatio || '0%'}{' '}
-                <span className="text-xs font-normal text-[var(--text-muted)]">hit ratio</span>
+                <span className="text-xs font-normal text-(--text-muted)">hit ratio</span>
               </div>
             </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-mono border-t border-[var(--border-main)] pt-2 mt-1 flex items-center justify-between">
+            <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
               <span>Total requisições:</span>
-              <span className="font-bold text-[var(--text-main)]">
+              <span className="font-bold text-(--text-main)">
                 {stats?.totalApiCalls ?? stats?.totalMessages ?? 0}
               </span>
             </div>
@@ -205,7 +205,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* Main Unified Messages Table with Generous Widths */}
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] overflow-hidden shadow-xs">
+      <Card className="border-(--border-main) bg-(--bg-card) overflow-hidden shadow-xs">
         <CardContent className="p-0 overflow-x-auto">
           {messages.length === 0 ? (
             <EmptyState
@@ -213,34 +213,34 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               description="Nenhuma mensagem ou chamada de API foi registrada ainda."
             />
           ) : (
-            <Table className="text-xs min-w-[1180px]">
-              <TableHeader className="bg-[var(--bg-card-subtle)]">
+            <Table className="text-xs min-w-295">
+              <TableHeader className="bg-(--bg-card-subtle)">
                 <TableRow>
-                  <TableHead className="min-w-[95px]">Tipo</TableHead>
-                  <TableHead className="min-w-[125px]">Data & hora</TableHead>
-                  <TableHead className="min-w-[85px]">Canal</TableHead>
-                  <TableHead className="min-w-[120px]">Remetente</TableHead>
-                  <TableHead className="min-w-[145px]">
+                  <TableHead className="min-w-23.75">Tipo</TableHead>
+                  <TableHead className="min-w-31.25">Data & hora</TableHead>
+                  <TableHead className="min-w-21.25">Canal</TableHead>
+                  <TableHead className="min-w-30">Remetente</TableHead>
+                  <TableHead className="min-w-36.25">
                     <div className="flex items-center gap-1">
-                      <Cpu className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <Cpu className="w-3.5 h-3.5 text-(--accent)" />
                       <span>Modelo</span>
                     </div>
                   </TableHead>
-                  <TableHead className="text-sky-700 dark:text-sky-300 min-w-[135px]">
+                  <TableHead className="text-sky-700 dark:text-sky-300 min-w-33.75">
                     <div>Token in (entrada)</div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-normal normal-case">Custo entrada</div>
+                    <div className="text-[10px] text-(--text-dim) font-normal normal-case">Custo entrada</div>
                   </TableHead>
-                  <TableHead className="text-purple-700 dark:text-purple-300 min-w-[135px]">
+                  <TableHead className="text-purple-700 dark:text-purple-300 min-w-33.75">
                     <div>Token out (saída)</div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-normal normal-case">Custo saída</div>
+                    <div className="text-[10px] text-(--text-dim) font-normal normal-case">Custo saída</div>
                   </TableHead>
-                  <TableHead className="text-emerald-700 dark:text-emerald-300 min-w-[125px]">
+                  <TableHead className="text-emerald-700 dark:text-emerald-300 min-w-31.25">
                     <div>Custo total</div>
-                    <div className="text-[10px] text-[var(--text-dim)] font-normal normal-case">({currency})</div>
+                    <div className="text-[10px] text-(--text-dim) font-normal normal-case">({currency})</div>
                   </TableHead>
-                  <TableHead className="min-w-[150px]">Execução</TableHead>
-                  <TableHead className="min-w-[180px]">Mensagem</TableHead>
-                  <TableHead className="text-right min-w-[70px]">Auditar</TableHead>
+                  <TableHead className="min-w-37.5">Execução</TableHead>
+                  <TableHead className="min-w-45">Mensagem</TableHead>
+                  <TableHead className="text-right min-w-17.5">Auditar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -273,7 +273,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           {isUser ? 'ENTRADA' : 'RESPOSTA'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-[var(--text-muted)] whitespace-nowrap">{dateStr}</TableCell>
+                      <TableCell className="font-mono text-(--text-muted) whitespace-nowrap">{dateStr}</TableCell>
                       <TableCell className="font-mono font-semibold">{m.channel}</TableCell>
                       <TableCell className="font-semibold whitespace-nowrap">{m.senderName}</TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -281,17 +281,17 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </TableCell>
                       <TableCell className="font-mono">
                         <div className="font-bold text-sky-600 dark:text-sky-400 text-xs">
-                          {promptTokens.toLocaleString()} <span className="text-[10px] font-normal text-[var(--text-muted)]">in</span>
+                          {promptTokens.toLocaleString()} <span className="text-[10px] font-normal text-(--text-muted)">in</span>
                         </div>
-                        <div className="text-[10px] text-[var(--text-dim)] font-medium">
+                        <div className="text-[10px] text-(--text-dim) font-medium">
                           {formatCost(costInUsd, costInBrl)}
                         </div>
                       </TableCell>
                       <TableCell className="font-mono">
                         <div className="font-bold text-purple-600 dark:text-purple-400 text-xs">
-                          {completionTokens.toLocaleString()} <span className="text-[10px] font-normal text-[var(--text-muted)]">out</span>
+                          {completionTokens.toLocaleString()} <span className="text-[10px] font-normal text-(--text-muted)">out</span>
                         </div>
-                        <div className="text-[10px] text-[var(--text-dim)] font-medium">
+                        <div className="text-[10px] text-(--text-dim) font-medium">
                           {formatCost(costOutUsd, costOutBrl)}
                         </div>
                       </TableCell>
@@ -299,7 +299,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         <div className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                           {formatCost(m.costUsd, m.costBrl)}
                         </div>
-                        <div className="text-[10px] text-[var(--text-dim)]">
+                        <div className="text-[10px] text-(--text-dim)">
                           {(m.tokens || (promptTokens + completionTokens)).toLocaleString()} total
                         </div>
                       </TableCell>
@@ -319,7 +319,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         {m.text}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-[var(--accent)] cursor-pointer">
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-(--accent) cursor-pointer">
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </TableCell>
@@ -339,21 +339,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onClick={() => setSelectedMessage(null)}
         >
           <div
-            className="w-full max-w-2xl bg-[var(--bg-card)] h-full border-l border-[var(--border-main)] p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)] cursor-default"
+            className="w-full max-w-2xl bg-(--bg-card) h-full border-l border-(--border-main) p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200 text-(--text-main) cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-6">
               {/* Header */}
-              <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4">
+              <div className="flex items-start justify-between border-b border-(--border-main) pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold text-[var(--text-main)]">Auditoria da Chamada & Sub-Runs</h3>
+                    <Sparkles className="w-5 h-5 text-(--accent)" />
+                    <h3 className="text-lg font-bold text-(--text-main)">Auditoria da Chamada & Sub-Runs</h3>
                   </div>
-                  <div className="flex items-center gap-3 text-xs font-mono text-[var(--text-dim)]">
+                  <div className="flex items-center gap-3 text-xs font-mono text-(--text-dim)">
                     <span>ID: {selectedMessage.id}</span>
                     <span>•</span>
-                    <span className="text-[var(--accent)] font-semibold">
+                    <span className="text-(--accent) font-semibold">
                       Modelo: {selectedMessage.model || stats?.modelName || 'deepseek-v4-flash'}
                     </span>
                   </div>
@@ -366,32 +366,32 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {/* Interaction Summary Metrics with Distinct In/Out & Costs & Model */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                 {/* Model Card */}
-                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
-                  <div className="text-[10px] text-[var(--text-dim)] uppercase font-bold flex items-center gap-1">
-                    <Cpu className="w-3 h-3 text-[var(--accent)]" />
+                <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) flex flex-col justify-between">
+                  <div className="text-[10px] text-(--text-dim) uppercase font-bold flex items-center gap-1">
+                    <Cpu className="w-3 h-3 text-(--accent)" />
                     <span>Modelo</span>
                   </div>
-                  <div className="text-xs font-bold text-[var(--text-main)] mt-1 truncate" title={selectedMessage.model || stats?.modelName}>
+                  <div className="text-xs font-bold text-(--text-main) mt-1 truncate" title={selectedMessage.model || stats?.modelName}>
                     {selectedMessage.model || stats?.modelName || 'deepseek-v4-flash'}
                   </div>
-                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {selectedMessage.channel}
                   </div>
                 </div>
 
                 {/* Total Cost */}
-                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
-                  <div className="text-[10px] text-[var(--text-dim)] uppercase font-bold">Custo Total</div>
+                <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) flex flex-col justify-between">
+                  <div className="text-[10px] text-(--text-dim) uppercase font-bold">Custo Total</div>
                   <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                     {formatCost(selectedMessage.costUsd, selectedMessage.costBrl)}
                   </div>
-                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {(selectedMessage.tokens || 0).toLocaleString()} tokens
                   </div>
                 </div>
 
                 {/* Token In + Custo In */}
-                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) flex flex-col justify-between">
                   <div className="text-[10px] text-sky-700 dark:text-sky-300 uppercase font-bold flex items-center gap-1">
                     <ArrowDownLeft className="w-3 h-3 text-sky-500" />
                     <span>Token In</span>
@@ -399,13 +399,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <div className="text-sm font-bold text-sky-600 dark:text-sky-400 mt-1">
                     {(selectedMessage.promptTokens || 0).toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {formatCost(selectedMessage.costInUsd, selectedMessage.costInBrl)}
                   </div>
                 </div>
 
                 {/* Token Out + Custo Out */}
-                <div className="p-3 rounded-xl bg-[var(--bg-card-subtle)] border border-[var(--border-main)] flex flex-col justify-between">
+                <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) flex flex-col justify-between">
                   <div className="text-[10px] text-purple-700 dark:text-purple-300 uppercase font-bold flex items-center gap-1">
                     <ArrowUpRight className="w-3 h-3 text-purple-500" />
                     <span>Token Out</span>
@@ -413,7 +413,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <div className="text-sm font-bold text-purple-600 dark:text-purple-400 mt-1">
                     {(selectedMessage.completionTokens || 0).toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {formatCost(selectedMessage.costOutUsd, selectedMessage.costOutBrl)}
                   </div>
                 </div>
@@ -421,21 +421,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
               {/* Message Content */}
               <div className="space-y-2">
-                <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
+                <div className="text-xs font-bold text-(--text-main) flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-(--accent)" />
                   <span>Conteúdo da Mensagem</span>
                 </div>
                 <ExpandableTextBlock
                   content={selectedMessage.text || ''}
                   collapsedMaxHeight={160}
-                  preClassName="bg-[var(--bg-card-subtle)] p-4 text-xs"
+                  preClassName="bg-(--bg-card-subtle) p-4 text-xs"
                 />
               </div>
 
               {/* Linked Intermediate Runs Section */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-2">
+                  <div className="text-xs font-bold text-(--text-main) flex items-center gap-2">
                     <Layers className="w-4 h-4 text-amber-500" />
                     <span>Passos Intermediários / Execuções de Ferramentas ({selectedMessage.subRuns?.length || 0})</span>
                   </div>
@@ -448,7 +448,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       .map((step, idx) => (
                       <div
                         key={step.id || idx}
-                        className="p-3.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-2 font-mono text-xs"
+                        className="p-3.5 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) space-y-2 font-mono text-xs"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -469,13 +469,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                               </Badge>
                             )}
                             {step.model && (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-main)] font-semibold flex items-center gap-1">
-                                <Cpu className="w-2.5 h-2.5 opacity-70 text-[var(--accent)]" />
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-(--bg-card) border border-(--border-main) text-(--text-main) font-semibold flex items-center gap-1">
+                                <Cpu className="w-2.5 h-2.5 opacity-70 text-(--accent)" />
                                 <span>{step.model}</span>
                               </span>
                             )}
                             {step.toolName && (
-                              <span className="font-bold text-[var(--accent)] flex items-center gap-1">
+                              <span className="font-bold text-(--accent) flex items-center gap-1">
                                 <Wrench className="w-3 h-3 text-amber-500" />
                                 <span>{step.toolName}</span>
                               </span>
@@ -486,9 +486,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 text-[11px] text-[var(--text-dim)] border-t border-[var(--border-main)] pt-2 flex-wrap">
+                        <div className="flex items-center gap-3 text-[11px] text-(--text-dim) border-t border-(--border-main) pt-2 flex-wrap">
                           <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-[var(--text-muted)]" />
+                            <Clock className="w-3 h-3 text-(--text-muted)" />
                             <span>{step.latencyMs ? `${step.latencyMs}ms` : '--'}</span>
                           </span>
                           <span className="text-sky-600 dark:text-sky-400 font-bold">
@@ -510,7 +510,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] text-center text-xs text-[var(--text-dim)] font-mono">
+                  <div className="p-4 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) text-center text-xs text-(--text-dim) font-mono">
                     Esta mensagem foi processada em resposta direta sem ferramentas intermediárias adicionais.
                   </div>
                 )}

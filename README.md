@@ -43,7 +43,6 @@ nanoclaw-stack/
 │   │   ├── agent-runner/src/services/     # MemoService, SkillsManager, TokenLedger
 │   │   ├── agent-runner/src/tools/        # Native tools (Web Search, Gmail, Calendar, Notion, Yampi)
 │   │   └── skills/                        # Skills manuals (agent-browser, notion-notes, yampi-store, etc.)
-│   ├── docs/         # Architectural diagrams and execution workflows
 │   └── src/          # Channel adapters (Telegram, macOS, CLI), SQLite state, message router
 │
 ├── ui/               # Web Management Dashboard Backend (Bun + Hono + TypeScript)
@@ -85,7 +84,7 @@ User Message (Text or Voice)
 [Ingress & Whisper ASR] ──► [Generate Message Memo ≤300 chars]
          │
          ▼
-[ToolRouter & Intent Gate]
+[Orchestrator Triage (LLM)]
    ├── [0 Tools Required] ──► [Fast-Path: 1 Single Call with SOUL Persona] ──► Output
    │
    └── [Tools Required]

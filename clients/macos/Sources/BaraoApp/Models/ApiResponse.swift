@@ -28,6 +28,12 @@ public struct HistoryResponse: Codable {
     public let error: String?
 }
 
+public struct ThreadsResponse: Codable {
+    public let success: Bool?
+    public let threads: [ChatThread]?
+    public let error: String?
+}
+
 public struct VerifyResponse: Codable {
     public let success: Bool?
     public let message: String?

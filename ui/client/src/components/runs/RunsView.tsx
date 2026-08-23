@@ -205,7 +205,7 @@ export const RunsView: React.FC = () => {
       />
 
       {/* FILTER BAR & SEARCH */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[var(--bg-card)] border border-[var(--border-main)] p-3 rounded-xl shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-(--bg-card) border border-(--border-main) p-3 rounded-xl shadow-2xs">
         {/* Filter Chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
@@ -213,7 +213,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'all'
                 ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Todos ({unifiedRuns.length})
@@ -223,7 +223,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'cron'
                 ? 'bg-purple-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Crons Periódicas ({cronLogs.length})
@@ -233,7 +233,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'triage'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Triagem
@@ -243,7 +243,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'supervisor'
                 ? 'bg-violet-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Supervisor
@@ -253,7 +253,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'audit'
                 ? 'bg-slate-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Passos ({auditTraces.length})
@@ -263,7 +263,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'tools'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Ferramentas & Ações
@@ -273,7 +273,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'synthesis'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Síntese persona
@@ -283,7 +283,7 @@ export const RunsView: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterType === 'memo'
                 ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
             Memórias Semânticas
@@ -299,11 +299,11 @@ export const RunsView: React.FC = () => {
       </div>
 
       {/* RUNS LIST */}
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden w-full">
+      <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden w-full">
         <CardContent className="p-6 space-y-4">
           {unifiedRuns.length === 0 ? (
             <EmptyState
-              icon={<Activity className="w-8 h-8 text-[var(--text-dim)]" />}
+              icon={<Activity className="w-8 h-8 text-(--text-dim)" />}
               title="Nenhuma execução encontrada"
               description="Nenhum log corresponde aos filtros de busca selecionados."
             />
@@ -333,17 +333,17 @@ export const RunsView: React.FC = () => {
               return (
                 <div
                   key={run.id}
-                  className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] hover:border-[var(--border-accent)] transition-all flex flex-col gap-3 shadow-2xs"
+                  className="p-4 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) hover:border-(--border-accent) transition-all flex flex-col gap-3 shadow-2xs"
                 >
                   {/* Top Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-main)] pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-(--border-main) pb-3">
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${badgeColor}`}>
                         {icon}
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <strong className="text-xs font-bold text-[var(--text-main)] font-mono">{run.id}</strong>
+                          <strong className="text-xs font-bold text-(--text-main) font-mono">{run.id}</strong>
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${badgeColor}`}>
                             {run.category}
                           </span>
@@ -357,7 +357,7 @@ export const RunsView: React.FC = () => {
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] text-[var(--text-dim)] font-mono mt-1">
+                        <div className="flex items-center gap-3 text-[11px] text-(--text-dim) font-mono mt-1">
                           <span>{new Date(run.timestamp).toLocaleString('pt-BR')}</span>
                           {run.latencyMs && <span>• {run.latencyMs}ms</span>}
                           {run.tokens && <span>• {run.tokens.toLocaleString('pt-BR')} tokens</span>}
@@ -378,22 +378,22 @@ export const RunsView: React.FC = () => {
                   </div>
 
                   {/* Prompt Text / Input */}
-                  <div className="p-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border-main)] text-xs">
+                  <div className="p-3 rounded-lg bg-(--bg-input) border border-(--border-main) text-xs">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-bold uppercase text-[var(--text-dim)] font-mono">
+                      <span className="text-[10px] font-bold uppercase text-(--text-dim) font-mono">
                         {run.kind === 'cron' ? 'Instrução do Cron:' : 'Conteúdo / Entrada:'}
                       </span>
                       {run.prompt && run.prompt.length > 180 && (
                         <button
                           onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
-                          className="text-[10px] font-semibold text-[var(--accent)] flex items-center gap-1 cursor-pointer hover:underline"
+                          className="text-[10px] font-semibold text-(--accent) flex items-center gap-1 cursor-pointer hover:underline"
                         >
                           <span>{isExpanded ? 'Recolher' : 'Expandir'}</span>
                           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
                       )}
                     </div>
-                    <p className={`text-[var(--text-main)] font-mono text-[11px] leading-relaxed ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
+                    <p className={`text-(--text-main) font-mono text-[11px] leading-relaxed ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
                       {run.prompt}
                     </p>
                   </div>
@@ -405,7 +405,7 @@ export const RunsView: React.FC = () => {
                         <Send className="w-3 h-3" />
                         <span>Saída / Ação Entregue:</span>
                       </span>
-                      <p className={`text-[var(--text-main)] leading-relaxed text-[11px] ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
+                      <p className={`text-(--text-main) leading-relaxed text-[11px] ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
                         {run.output}
                       </p>
                     </div>
@@ -424,54 +424,54 @@ export const RunsView: React.FC = () => {
           onClick={() => setSelectedRun(null)}
         >
           <div
-            className="w-full max-w-2xl bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] cursor-default animate-in zoom-in-95 duration-150"
+            className="w-full max-w-2xl bg-(--bg-card) border border-(--border-main) rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] cursor-default animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-5 border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex items-center justify-between">
+            <div className="p-5 border-b border-(--border-main) bg-(--bg-card-subtle) flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 flex items-center justify-center">
                   <Activity className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[var(--text-main)]">Auditoria da Execução (Run)</h3>
-                  <p className="text-xs font-mono text-[var(--text-dim)]">ID: {selectedRun.id}</p>
+                  <h3 className="text-sm font-bold text-(--text-main)">Auditoria da Execução (Run)</h3>
+                  <p className="text-xs font-mono text-(--text-dim)">ID: {selectedRun.id}</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedRun(null)}
-                className="w-8 h-8 p-0 text-[var(--text-dim)] hover:text-[var(--text-main)] cursor-pointer"
+                className="w-8 h-8 p-0 text-(--text-dim) hover:text-(--text-main) cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
             {/* Body */}
-            <div className="p-6 overflow-y-auto space-y-4 text-xs text-[var(--text-main)] leading-relaxed">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-3 border-b border-[var(--border-main)]">
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-(--text-main) leading-relaxed">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-3 border-b border-(--border-main)">
                 <div>
-                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block">Categoria</span>
-                  <span className="font-bold text-[var(--accent)] font-mono">{selectedRun.category}</span>
+                  <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Categoria</span>
+                  <span className="font-bold text-(--accent) font-mono">{selectedRun.category}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block">Data & Hora</span>
+                  <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Data & Hora</span>
                   <span className="font-bold font-mono">{new Date(selectedRun.timestamp).toLocaleString('pt-BR')}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block">Modelo</span>
+                  <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Modelo</span>
                   <span className="font-bold font-mono">{selectedRun.model || 'Padrão'}</span>
                 </div>
               </div>
 
               {selectedRun.prompt && (
                 <div>
-                  <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block mb-1">Entrada / Prompt:</span>
+                  <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block mb-1">Entrada / Prompt:</span>
                   <ExpandableTextBlock
                     content={selectedRun.prompt}
                     collapsedMaxHeight={160}
-                    preClassName="bg-[var(--bg-input)] p-3.5 text-xs"
+                    preClassName="bg-(--bg-input) p-3.5 text-xs"
                   />
                 </div>
               )}
@@ -493,7 +493,7 @@ export const RunsView: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-[var(--border-main)] bg-[var(--bg-card-subtle)] flex justify-between items-center">
+            <div className="p-4 border-t border-(--border-main) bg-(--bg-card-subtle) flex justify-between items-center">
               <Button
                 variant="outline"
                 size="sm"

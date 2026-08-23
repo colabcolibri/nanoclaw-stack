@@ -9,7 +9,7 @@ cd "$NANOCLAW_DIR"
 
 export PROJECT_ROOT="$NANOCLAW_DIR"
 # shellcheck source=/dev/null
-source "$NANOCLAW_DIR/setup/lib/install-slug.sh"
+source "$NANOCLAW_DIR/lib/install-slug.sh"
 IMAGE="$(container_image_base):latest"
 
 LOCK_FILE="$NANOCLAW_DIR/container/agent-runner/bun.lock"

@@ -43,24 +43,24 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
     >
       {/* Drawer Panel */}
       <div
-        className="relative w-full max-w-2xl bg-[var(--bg-card)] border-l border-[var(--border-main)] shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 text-[var(--text-main)] cursor-default"
+        className="relative w-full max-w-2xl bg-(--bg-card) border-l border-(--border-main) shadow-2xl p-6 flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200 text-(--text-main) cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="flex items-start justify-between border-b border-[var(--border-main)] pb-4 mb-5">
+        <div className="flex items-start justify-between border-b border-(--border-main) pb-4 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-[var(--text-main)]">{skill.name}</h3>
+                <h3 className="text-lg font-bold text-(--text-main)">{skill.name}</h3>
                 <Badge variant={skill.enabled ? 'success' : 'secondary'}>
                   <CheckCircle2 className="w-3 h-3" />
                   <span>{skill.enabled ? 'Ativa' : 'Inativa'}</span>
                 </Badge>
               </div>
-              <p className="text-xs font-mono text-[var(--text-dim)] mt-0.5">
+              <p className="text-xs font-mono text-(--text-dim) mt-0.5">
                 nanoclaw/container/skills/{skill.name}/
               </p>
             </div>
@@ -70,7 +70,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="w-8 h-8 p-0 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+            className="w-8 h-8 p-0 text-(--text-muted) hover:text-(--text-main) cursor-pointer"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -78,29 +78,29 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
 
         {/* Footprint Metrics Summary */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="p-3 bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl flex items-center gap-3">
+          <div className="p-3 bg-(--bg-card-subtle) border border-(--border-main) rounded-xl flex items-center gap-3">
             <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               <Zap className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-[var(--text-dim)] tracking-wider block">
+              <span className="text-[10px] uppercase font-bold text-(--text-dim) tracking-wider block">
                 Tokens Estimados
               </span>
-              <span className="text-sm font-bold text-[var(--text-main)] font-mono">
+              <span className="text-sm font-bold text-(--text-main) font-mono">
                 ~{formatK(totalTokens)} tok
               </span>
             </div>
           </div>
 
-          <div className="p-3 bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl flex items-center gap-3">
+          <div className="p-3 bg-(--bg-card-subtle) border border-(--border-main) rounded-xl flex items-center gap-3">
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <AlignLeft className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-[var(--text-dim)] tracking-wider block">
+              <span className="text-[10px] uppercase font-bold text-(--text-dim) tracking-wider block">
                 Total de Caracteres
               </span>
-              <span className="text-sm font-bold text-[var(--text-main)] font-mono">
+              <span className="text-sm font-bold text-(--text-main) font-mono">
                 {totalChars.toLocaleString('pt-BR')} chars
               </span>
             </div>
@@ -111,10 +111,10 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
         <div className="space-y-6 text-xs">
           {/* Description */}
           <div>
-            <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider block mb-1">
+            <span className="text-[11px] uppercase font-bold text-(--text-dim) tracking-wider block mb-1">
               Descrição da Habilidade
             </span>
-            <p className="text-[var(--text-main)] leading-relaxed bg-[var(--bg-card-subtle)] p-3.5 rounded-xl border border-[var(--border-main)]">
+            <p className="text-(--text-main) leading-relaxed bg-(--bg-card-subtle) p-3.5 rounded-xl border border-(--border-main)">
               {skill.description || 'Nenhuma descrição fornecida no manifesto da skill.'}
             </p>
           </div>
@@ -122,8 +122,8 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           {/* SKILL.md Manual */}
           <div>
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span className="text-[11px] uppercase font-bold text-(--text-dim) tracking-wider flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-(--accent)" />
                 <span>Manual Principal (SKILL.md)</span>
               </span>
               <div className="flex items-center gap-1.5">
@@ -137,7 +137,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                 </Badge>
               </div>
             </div>
-            <div className="bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl p-5 max-h-96 overflow-y-auto">
+            <div className="bg-(--bg-card-subtle) border border-(--border-main) rounded-xl p-5 max-h-96 overflow-y-auto">
               <div
                 className="prose-rendered text-xs leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: skillMdRendered }}
@@ -149,9 +149,9 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           {skill.references && skill.references.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider flex items-center gap-1.5">
+                <span className="text-[11px] uppercase font-bold text-(--text-dim) tracking-wider flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
-                  <span className="text-[var(--text-main)]">Documentos na pasta references/ ({skill.references.length})</span>
+                  <span className="text-(--text-main)">Documentos na pasta references/ ({skill.references.length})</span>
                 </span>
                 {skill.referencesTokens !== undefined && (
                   <div className="flex items-center gap-1.5">
@@ -173,13 +173,13 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   return (
                     <details
                       key={idx}
-                      className="group bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl overflow-hidden"
+                      className="group bg-(--bg-card-subtle) border border-(--border-main) rounded-xl overflow-hidden"
                     >
-                      <summary className="p-3 cursor-pointer text-xs font-bold text-sky-900 dark:text-sky-200 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
+                      <summary className="p-3 cursor-pointer text-xs font-bold text-sky-900 dark:text-sky-200 flex items-center justify-between select-none hover:bg-(--bg-card) transition-colors">
                         <div className="flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
                           <span>{ref.name}</span>
-                          <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
+                          <span className="text-[11px] font-mono text-(--text-dim) font-normal">
                             ({(ref.sizeBytes / 1024).toFixed(1)} KB)
                           </span>
                         </div>
@@ -192,7 +192,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                           </span>
                         </div>
                       </summary>
-                      <div className="p-4 border-t border-[var(--border-main)] bg-[var(--bg-card)] max-h-80 overflow-y-auto">
+                      <div className="p-4 border-t border-(--border-main) bg-(--bg-card) max-h-80 overflow-y-auto">
                         <div
                           className="prose-rendered text-xs"
                           dangerouslySetInnerHTML={{ __html: parseMarkdown(ref.content) }}
@@ -209,9 +209,9 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           {skill.scripts && skill.scripts.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                <span className="text-[11px] uppercase font-bold text-[var(--text-dim)] tracking-wider flex items-center gap-1.5">
+                <span className="text-[11px] uppercase font-bold text-(--text-dim) tracking-wider flex items-center gap-1.5">
                   <Code2 className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" />
-                  <span className="text-[var(--text-main)]">Scripts & Utilitários na pasta scripts/ ({skill.scripts.length})</span>
+                  <span className="text-(--text-main)">Scripts & Utilitários na pasta scripts/ ({skill.scripts.length})</span>
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Badge variant="script" className="text-[10px] py-0 px-2 gap-1 font-bold">
@@ -230,13 +230,13 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   return (
                     <details
                       key={idx}
-                      className="group bg-[var(--bg-card-subtle)] border border-[var(--border-main)] rounded-xl overflow-hidden"
+                      className="group bg-(--bg-card-subtle) border border-(--border-main) rounded-xl overflow-hidden"
                     >
-                      <summary className="p-3 cursor-pointer text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center justify-between select-none hover:bg-[var(--bg-card)] transition-colors">
+                      <summary className="p-3 cursor-pointer text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center justify-between select-none hover:bg-(--bg-card) transition-colors">
                         <div className="flex items-center gap-2">
                           <Code2 className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" />
                           <span>{sc.name}</span>
-                          <span className="text-[11px] font-mono text-[var(--text-dim)] font-normal">
+                          <span className="text-[11px] font-mono text-(--text-dim) font-normal">
                             ({(sc.sizeBytes / 1024).toFixed(1)} KB)
                           </span>
                         </div>
@@ -249,7 +249,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                           </span>
                         </div>
                       </summary>
-                      <div className="p-4 border-t border-[var(--border-main)] bg-[var(--terminal-bg)] text-[var(--terminal-text)] font-mono text-xs max-h-80 overflow-auto relative">
+                      <div className="p-4 border-t border-(--border-main) bg-(--terminal-bg) text-(--terminal-text) font-mono text-xs max-h-80 overflow-auto relative">
                         {sc.content && (
                           <Button
                             variant="secondary"

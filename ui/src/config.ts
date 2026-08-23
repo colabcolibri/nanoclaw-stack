@@ -1,5 +1,4 @@
 import path from "node:path";
-import { randomBytes } from "node:crypto";
 import { requireEnv, requireIntEnv } from "./require-env.js";
 
 const nanoclawPath = requireEnv("NANOCLAW_PATH");
@@ -21,6 +20,8 @@ export const CONFIG = {
   DEFAULT_GROUP_FOLDER: defaultGroupFolder,
   /** URL pública do painel — usada em mensagens de erro do agente e OAuth quando necessário. */
   UI_PUBLIC_URL: requireEnv("UI_PUBLIC_URL"),
+  /** URL do motor Node (webhooks + sync turns do app Mac). Obrigatório em ui/.env */
+  NANOCLAW_MOTOR_URL: requireEnv("NANOCLAW_MOTOR_URL").replace(/\/$/, ""),
   get GROUPS_PATH() {
     return path.join(this.NANOCLAW_PATH, "groups");
   },

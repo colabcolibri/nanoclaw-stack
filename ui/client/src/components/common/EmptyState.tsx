@@ -19,12 +19,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-16 text-center">
         {icon && (
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)] text-[var(--text-dim)]">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-(--border-main) bg-(--bg-card-subtle) text-(--text-dim)">
             {icon}
           </div>
         )}
-        {title && <h4 className="mb-1 text-sm font-semibold text-[var(--text-main)]">{title}</h4>}
-        <p className="max-w-sm text-sm text-[var(--text-muted)] leading-relaxed">{description}</p>
+        {title && <h4 className="mb-1 text-sm font-semibold text-(--text-main)">{title}</h4>}
+        <p className="max-w-sm text-sm text-(--text-muted) leading-relaxed">{description}</p>
         {action && <div className="mt-4">{action}</div>}
       </CardContent>
     </Card>

@@ -31,12 +31,15 @@ public final class ApiClientService: ApiClientProtocol {
         return verify?.success == true
     }
     
-    public func sendPrompt(_ prompt: String, config: AppConfig) async throws -> PromptResponse {
+    public func sendPrompt(_ prompt: String, config: AppConfig, sessionId: String? = nil) async throws -> PromptResponse {
         guard let url = URL(string: "\(config.serverUrl)/api/mac/prompt?group=\(config.groupFolder)") else {
             throw URLError(.badURL)
         }
         var request = createRequest(url: url, method: "POST", config: config)
-        let payload = ["prompt": prompt]
+        var payload: [String: Any] = ["prompt": prompt]
+        if let sessionId, !sessionId.isEmpty {
+            payload["sessionId"] = sessionId
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         
         let (data, response) = try await urlSession.data(for: request)
@@ -56,7 +59,7 @@ public final class ApiClientService: ApiClientProtocol {
         return try JSONDecoder().decode(PromptResponse.self, from: data)
     }
     
-    public func sendAudio(fileUrl: URL, config: AppConfig) async throws -> AudioResponse {
+    public func sendAudio(fileUrl: URL, config: AppConfig, sessionId: String? = nil) async throws -> AudioResponse {
         guard let url = URL(string: "\(config.serverUrl)/api/mac/audio?group=\(config.groupFolder)") else {
             throw URLError(.badURL)
         }
@@ -71,7 +74,14 @@ public final class ApiClientService: ApiClientProtocol {
         body.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording.m4a\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
         body.append(audioData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+        if let sessionId, !sessionId.isEmpty {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n".data(using: .utf8)!)
+            body.append(sessionId.data(using: .utf8)!)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         
         request.httpBody = body
         
@@ -91,8 +101,25 @@ public final class ApiClientService: ApiClientProtocol {
         return try JSONDecoder().decode(AudioResponse.self, from: data)
     }
     
-    public func fetchHistory(config: AppConfig, limit: Int = 50) async throws -> [ChatMessage] {
-        guard let url = URL(string: "\(config.serverUrl)/api/mac/history?limit=\(limit)&group=\(config.groupFolder)") else {
+    public func fetchThreads(config: AppConfig, limit: Int = 50) async throws -> [ChatThread] {
+        guard let url = URL(string: "\(config.serverUrl)/api/mac/threads?limit=\(limit)&group=\(config.groupFolder)") else {
+            throw URLError(.badURL)
+        }
+        let request = createRequest(url: url, method: "GET", config: config)
+        let (data, response) = try await urlSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        let res = try JSONDecoder().decode(ThreadsResponse.self, from: data)
+        return res.threads ?? []
+    }
+
+    public func fetchHistory(config: AppConfig, limit: Int = 50, sessionId: String? = nil) async throws -> [ChatMessage] {
+        var urlString = "\(config.serverUrl)/api/mac/history?limit=\(limit)&group=\(config.groupFolder)"
+        if let sessionId, !sessionId.isEmpty {
+            urlString += "&sessionId=\(sessionId)"
+        }
+        guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
         let request = createRequest(url: url, method: "GET", config: config)

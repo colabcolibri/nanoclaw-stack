@@ -6,11 +6,6 @@ tools:
   - google_gmail
   - yampi_store
   - resale_pricing
-keywords:
-  - store
-  - colibri
-  - iris
-  - email_support
 ---
 
 # Store email attendant (Íris)

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ToolRouter } from '../tools/router.js';
+import { ToolDomainRegistry } from '../tools/router.js';
 
 const REPO_CONTAINER_SKILLS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -16,7 +16,6 @@ export interface DiscoveredSkill {
   description: string;
   domain?: string;
   tools?: string[];
-  keywords?: string[];
   instructions: string;
   sourcePath: string;
 }
@@ -67,14 +66,13 @@ export class SkillsManager {
             if (parsed && !discovered.has(parsed.name)) {
               discovered.set(parsed.name, parsed);
 
-              // Dynamically register or extend domain in ToolRouter
+              // Register tool domain for syncRegistry validation
               if (parsed.domain && parsed.tools && parsed.tools.length > 0) {
-                ToolRouter.registerDomain({
+                ToolDomainRegistry.registerDomain({
                   id: parsed.domain,
                   name: parsed.description || parsed.name,
                   description: parsed.description || '',
                   toolNames: parsed.tools,
-                  keywords: parsed.keywords || [parsed.name],
                 });
               }
             }
@@ -126,13 +124,6 @@ export class SkillsManager {
   }
 
   /**
-   * Retrieves operational instructions from relevant skill folders matching the active tools.
-   */
-  static getSkillInstructionsForTools(toolNames: string[], cwd?: string): string {
-    return this.getCompactCatalogPrompt(cwd);
-  }
-
-  /**
    * Parses a SKILL.md file with YAML frontmatter.
    */
   private static parseSkillFile(filePath: string): DiscoveredSkill | null {
@@ -163,18 +154,12 @@ export class SkillsManager {
         : meta.tools
         ? String(meta.tools).split(',').map((s) => s.trim())
         : undefined;
-      const keywords = Array.isArray(meta.keywords)
-        ? meta.keywords
-        : meta.keywords
-        ? String(meta.keywords).split(',').map((s) => s.trim())
-        : undefined;
 
       return {
         name,
         description,
         domain,
         tools,
-        keywords,
         instructions: body.trim(),
         sourcePath: filePath,
       };

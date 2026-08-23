@@ -35,7 +35,8 @@ Worker LLM        →  schema de tools montado por getToolsForAgent()
 |-----------|-----------|
 | `container.json` → `skills: "all"` | Symlinks em `.claude-shared/skills` (Claude SDK). **Não** define tools do worker. |
 | `load_skill` | Carrega manual. **Não** adiciona tools ao schema. |
-| `ToolRouter.selectTools` | Legado/testes. Worker usa `AgentRegistry.getToolsForAgent`. |
+| `ToolDomainRegistry` | Catálogo de domínios de tools (validação + docs). **Não** roteia mensagens. |
+| `AgentRegistry.getToolsForAgent` | Única fonte de tools por worker em produção. |
 
 Tools do worker vêm **só** de: `AGENT.md` skills → `SKILL.md` `tools:` → `ALL_TOOLS`.
 
@@ -50,11 +51,9 @@ Tools do worker vêm **só** de: `AGENT.md` skills → `SKILL.md` `tools:` → `
 ---
 name: my-skill          # DEVE bater com o slug em AGENT.md skills:
 description: One line for UI catalog
-domain: my_domain       # ToolRouter domain (optional)
+domain: my_domain       # ToolDomainRegistry id (optional)
 tools:
   - my_tool_name       # chave em ALL_TOOLS — não o nome da skill
-keywords:
-  - keyword
 ---
 ```
 

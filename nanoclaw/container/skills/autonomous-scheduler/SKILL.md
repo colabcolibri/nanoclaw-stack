@@ -4,15 +4,6 @@ description: Persistent cron routines, delayed one-shot tasks, and follow-ups vi
 domain: notion_management
 tools:
   - schedule_followup
-keywords:
-  - cron
-  - agendamento
-  - agendar
-  - rotina
-  - recorrente
-  - followup
-  - follow-up
-  - lembrete
 ---
 
 # Autonomous scheduler

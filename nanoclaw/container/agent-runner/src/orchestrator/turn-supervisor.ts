@@ -6,6 +6,8 @@ import { DEFAULT_SYNTHESIS_CONTEXT_PLAN } from '../services/context-pack.js';
 import type { DepartmentDelegationDecision, HandoverPackage, SpecialistAgent } from '../agents/types.js';
 import type { LLMCompletionFn } from './types.js';
 import { TurnPlanState } from './turn-plan-state.js';
+import { SupervisorPolicy } from '../execution/supervisor-policy.js';
+import { ExecutionProfiles } from '../execution/profiles.js';
 
 export type SupervisorDecision =
   | { action: 'delegate'; agentId: string; task: string; reasoning?: string }
@@ -302,6 +304,26 @@ export class TurnSupervisor {
         };
       }
 
+      const policy = SupervisorPolicy.shouldForceFinish(
+        state.capabilityRecords,
+        agent.id,
+        agent.capabilities?.[0],
+      );
+      if (policy.force) {
+        lastGuidance =
+          'Synthesize all verified specialist findings clearly for the user.';
+        this.audit(options.cwd, {
+          step: 'supervisor_finish',
+          agent: 'orchestrator',
+          messageId,
+          supervisorStep: step + 1,
+          decision: 'finish',
+          purpose: `Supervisor auto-finish — ${policy.reason}`,
+          metadata: { policyReason: policy.reason, requestedAgentId: agent.id },
+        });
+        break;
+      }
+
       const task = this.buildDelegateTask(
         decision.task || options.routing.taskDescription || options.userGoal,
         state
@@ -332,8 +354,9 @@ export class TurnSupervisor {
         promptPreview: task.slice(0, 100),
       });
 
+      const workerProfile = ExecutionProfiles.resolve(agent.executionProfile);
       const workerResult = await WorkerAgentRunner.execute(agent, task, options.complete, options.cwd, {
-        maxIterations: options.maxWorkerIterations || 6,
+        maxIterations: options.maxWorkerIterations ?? workerProfile.maxIterations,
         onActivity: options.onActivity,
         history: options.history,
         defaultModel: options.defaultModel,

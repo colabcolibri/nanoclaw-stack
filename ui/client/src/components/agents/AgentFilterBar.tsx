@@ -38,8 +38,8 @@ export const AgentFilterBar: React.FC<AgentFilterBarProps> = ({
             className={cn(
               'rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors',
               isActive
-                ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]'
-                : 'border-[var(--border-main)] bg-[var(--bg-card-subtle)] text-[var(--text-main)] hover:bg-[var(--bg-card)]'
+                ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
+                : 'border-(--border-main) bg-(--bg-card-subtle) text-(--text-main) hover:bg-(--bg-card)'
             )}
           >
             {chip.label}
@@ -50,13 +50,13 @@ export const AgentFilterBar: React.FC<AgentFilterBarProps> = ({
     </div>
 
     <div className="relative w-full shrink-0 sm:w-64">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-dim)]" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--text-dim)" />
       <Input
         type="search"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder={searchPlaceholder}
-        className="h-10 rounded-lg border-[var(--border-main)] bg-[var(--bg-card)] pl-9 text-sm"
+        className="h-10 rounded-lg border-(--border-main) bg-(--bg-card) pl-9 text-sm"
       />
     </div>
   </div>

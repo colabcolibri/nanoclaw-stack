@@ -94,30 +94,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[var(--border-main)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-out md:relative md:z-30 md:shrink-0',
+        'fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-(--border-main) bg-(--bg-sidebar) transition-all duration-300 ease-out md:relative md:z-30 md:shrink-0',
         isMobile
           ? isOpen
-            ? 'w-[var(--sidebar-width)] translate-x-0'
-            : 'w-[var(--sidebar-width)] -translate-x-full'
+            ? 'w-(--sidebar-width) translate-x-0'
+            : 'w-(--sidebar-width) -translate-x-full'
           : isOpen
-            ? 'w-[var(--sidebar-width)] translate-x-0'
-            : 'w-[var(--sidebar-width-collapsed)] translate-x-0'
+            ? 'w-(--sidebar-width) translate-x-0'
+            : 'w-(--sidebar-width-collapsed) translate-x-0'
       )}
     >
       <div
         className={cn(
-          'flex h-[var(--topbar-height)] shrink-0 items-center border-b border-[var(--border-main)]',
+          'flex h-(--topbar-height) shrink-0 items-center border-b border-(--border-main)',
           isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
         )}
       >
         <div className={cn('flex min-w-0 items-center', isCollapsed ? 'justify-center' : 'gap-3')}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--accent-border) bg-(--accent-subtle) text-(--accent)">
             <Zap className="h-4 w-4" />
           </div>
           {!isCollapsed && (
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-[var(--text-main)]">{t('appName')}</div>
-              <div className="truncate text-[11px] text-[var(--text-dim)]">{t('appSubtitle')}</div>
+              <div className="truncate text-sm font-semibold text-(--text-main)">{t('appName')}</div>
+              <div className="truncate text-[11px] text-(--text-dim)">{t('appSubtitle')}</div>
             </div>
           )}
         </div>
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-card-subtle)] md:hidden"
+            className="rounded-md p-1.5 text-(--text-muted) hover:bg-(--bg-card-subtle) md:hidden"
             aria-label={t('close')}
           >
             <X className="h-4 w-4" />
@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {navGroups.map((group) => (
           <div key={group.titleKey} className={cn('flex w-full flex-col gap-1', isCollapsed && 'items-center')}>
             {!isCollapsed && (
-              <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
+              <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-(--text-dim)">
                 {t(group.titleKey)}
               </div>
             )}
@@ -162,14 +162,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? 'h-9 w-9 justify-center'
                       : 'w-full gap-2.5 px-2.5 py-2 text-left',
                     isActive
-                      ? 'bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]'
+                      ? 'bg-(--nav-active-bg) text-(--nav-active-text)'
+                      : 'text-(--text-muted) hover:bg-(--bg-card-subtle) hover:text-(--text-main)'
                   )}
                 >
                   <span
                     className={cn(
                       'shrink-0',
-                      isActive ? 'text-[var(--nav-active-text)]' : 'text-[var(--text-dim)]'
+                      isActive ? 'text-(--nav-active-text)' : 'text-(--text-dim)'
                     )}
                   >
                     {item.icon}
@@ -184,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div
         className={cn(
-          'flex shrink-0 items-center border-t border-[var(--border-main)] py-3 text-[11px] text-[var(--text-dim)]',
+          'flex shrink-0 items-center border-t border-(--border-main) py-3 text-[11px] text-(--text-dim)',
           isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
         )}
       >

@@ -171,11 +171,11 @@ export const ConfigView: React.FC = () => {
 
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <Card className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs overflow-hidden">
+      <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5">{t('assistantName')}</label>
+              <label className="block text-xs font-bold text-(--text-main) mb-1.5">{t('assistantName')}</label>
               <Input
                 type="text"
                 value={config.name}
@@ -187,33 +187,33 @@ export const ConfigView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
                   <span>{t('city')}</span>
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  className="w-full px-3.5 py-2.5 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={config.city}
                   onChange={(e) => setConfig({ ...config, city: e.target.value })}
                   placeholder={t('cityPlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-amber-500" />
                   <span>{t('country')}</span>
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  className="w-full px-3.5 py-2.5 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={config.country}
                   onChange={(e) => setConfig({ ...config, country: e.target.value })}
                   placeholder={t('countryPlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--text-main)] mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
                   <span>{t('timezone')}</span>
                 </label>
@@ -228,22 +228,22 @@ export const ConfigView: React.FC = () => {
             <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 space-y-4">
               <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-sky-500" />
-                <span className="text-xs font-bold text-[var(--text-main)]">
+                <span className="text-xs font-bold text-(--text-main)">
                   Roteamento de modelos por papel
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--text-dim)] -mt-2">
+              <p className="text-[10px] text-(--text-dim) -mt-2">
                 Deixe em &quot;Padrão&quot; para usar o modelo recomendado do provider do grupo. Override só quando quiser outro modelo.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                  <label className="block text-xs font-bold text-(--text-main) mb-1">
                     Worker (execução & tools)
                   </label>
                   <ModelSelect
                     providers={providers}
-                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    className="w-full px-3 py-2 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 font-mono"
                     value={config.model}
                     onChange={(model) => setConfig({ ...config, model })}
                     disabled={isLoadingModels}
@@ -252,12 +252,12 @@ export const ConfigView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                  <label className="block text-xs font-bold text-(--text-main) mb-1">
                     Orquestrador (triagem)
                   </label>
                   <ModelSelect
                     providers={providers}
-                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    className="w-full px-3 py-2 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 font-mono"
                     value={config.orchestratorModel}
                     onChange={(orchestratorModel) => setConfig({ ...config, orchestratorModel })}
                     disabled={isLoadingModels}
@@ -266,12 +266,12 @@ export const ConfigView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-main)] mb-1">
+                  <label className="block text-xs font-bold text-(--text-main) mb-1">
                     Sender (persona & resposta)
                   </label>
                   <ModelSelect
                     providers={providers}
-                    className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-main)] rounded-lg text-xs text-[var(--text-input)] focus:outline-none focus:border-sky-500 font-mono"
+                    className="w-full px-3 py-2 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 font-mono"
                     value={config.senderModel}
                     onChange={(senderModel) => setConfig({ ...config, senderModel })}
                     disabled={isLoadingModels}
@@ -283,13 +283,13 @@ export const ConfigView: React.FC = () => {
             </div>
 
             {/* Custos por papel */}
-            <div className="p-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-subtle)] space-y-3">
+            <div className="p-4 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-bold text-[var(--text-main)]">Custos por papel (referência)</span>
+                  <span className="text-xs font-bold text-(--text-main)">Custos por papel (referência)</span>
                 </div>
-                <span className="text-[10px] font-mono text-[var(--text-dim)]">
+                <span className="text-[10px] font-mono text-(--text-dim)">
                   1 USD = R$ {usdToBrlRate.toFixed(2)}
                 </span>
               </div>
@@ -301,16 +301,16 @@ export const ConfigView: React.FC = () => {
                   return (
                     <div
                       key={role.key}
-                      className="p-3 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-xl space-y-1"
+                      className="p-3 bg-(--bg-card) border border-(--border-main) rounded-xl space-y-1"
                     >
                       <div className={`text-[10px] font-bold uppercase tracking-wider ${role.color}`}>{role.label}</div>
-                      <div className="text-[10px] font-mono text-[var(--text-dim)] truncate">
+                      <div className="text-[10px] font-mono text-(--text-dim) truncate">
                         {role.modelId ? role.modelId : `Padrão → ${role.effectiveId || '…'}`}
                       </div>
-                      <div className="text-xs font-mono text-[var(--text-main)]">
+                      <div className="text-xs font-mono text-(--text-main)">
                         in ${pricing.inputPerMillion.toFixed(3)} · out ${pricing.outputPerMillion.toFixed(3)}
                       </div>
-                      <div className="text-[10px] text-[var(--text-dim)] font-mono">
+                      <div className="text-[10px] text-(--text-dim) font-mono">
                         ~R$ {(pricing.inputPerMillion * usdToBrlRate).toFixed(2)} / R${' '}
                         {(pricing.outputPerMillion * usdToBrlRate).toFixed(2)} por 1M
                       </div>

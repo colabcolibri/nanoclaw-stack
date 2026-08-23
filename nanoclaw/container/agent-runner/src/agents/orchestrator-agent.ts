@@ -211,18 +211,36 @@ export class OrchestratorAgent {
   }
 
   private static buildCompactCatalog(cwd?: string): string {
-    return AgentRegistry.getDepartments(cwd)
-      .map((dept) => {
-        const agents = AgentRegistry.getAgentsInDepartment(dept.id, cwd);
-        const agentIds = agents.map((a) => a.id).join(', ') || '(none)';
-        const keywords = dept.keywords.slice(0, 6).join(', ');
-        return `- ${dept.id}: [${keywords}] → ${agentIds}`;
-      })
-      .join('\n');
+    return AgentRegistry.buildTriageCatalog(cwd);
+  }
+
+  private static normalizeDelegationRouting(
+    routing: RoutingDecision & { taskDescription?: string },
+    cwd: string,
+  ): RoutingDecision & { taskDescription?: string } {
+    if (routing.type !== 'department_delegation') return routing;
+
+    if (routing.agentId) {
+      const agent = AgentRegistry.getAgent(routing.agentId, cwd);
+      if (agent) {
+        routing.departmentId = agent.departmentId;
+        return routing;
+      }
+    }
+
+    if (routing.departmentId) {
+      const agents = AgentRegistry.getAgentsInDepartment(routing.departmentId, cwd);
+      if (agents.length === 1) {
+        routing.agentId = agents[0].id;
+      }
+    }
+
+    return routing;
   }
 
   private static parseRoutingPayload(
-    raw: string
+    raw: string,
+    cwd: string,
   ): (RoutingDecision & { taskDescription?: string }) | null {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
@@ -292,22 +310,23 @@ export class OrchestratorAgent {
 
         const latencyMs = Date.now() - startTime;
         const raw = (response.content || '').trim();
-        const routing = this.parseRoutingPayload(raw);
+        const routing = this.parseRoutingPayload(raw, cwd);
 
         if (routing) {
+          const normalized = this.normalizeDelegationRouting(routing, cwd);
           AgentAuditLogger.record(cwd, {
             step: 'orchestrator_triage',
             agent: 'orchestrator',
             messageId,
-            purpose: `LLM triage (${orchestratorModel}): ${routing.type}`,
+            purpose: `LLM triage (${orchestratorModel}): ${normalized.type}`,
             latencyMs,
-            responsePreview: routing.reasoning?.slice(0, 100),
+            responsePreview: normalized.reasoning?.slice(0, 100),
             timestamp: new Date().toISOString(),
           });
-          if (routing.type === 'department_delegation' && !routing.taskDescription) {
-            routing.taskDescription = prompt;
+          if (normalized.type === 'department_delegation' && !normalized.taskDescription) {
+            normalized.taskDescription = prompt;
           }
-          return routing;
+          return normalized;
         }
       } catch {
         // retry

@@ -123,7 +123,7 @@ export const AgentsView: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-0 w-full max-w-full flex-1 flex-col gap-8 overflow-x-hidden text-[var(--text-main)]">
+    <div className="flex min-h-0 w-full max-w-full flex-1 flex-col gap-8 overflow-x-hidden text-(--text-main)">
       <PageHeader view="agents" subtitle={t('subtitle')} />
 
       <AgentFilterBar
@@ -165,7 +165,7 @@ export const AgentsView: React.FC = () => {
         </div>
       ) : filteredAgents.length === 0 ? (
         <EmptyState
-          icon={<Bot className="h-8 w-8 text-[var(--text-dim)]" />}
+          icon={<Bot className="h-8 w-8 text-(--text-dim)" />}
           title={t('emptyTitle')}
           description={t('emptyDescription')}
           action={

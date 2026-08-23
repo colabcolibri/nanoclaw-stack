@@ -1,6 +1,3 @@
-import React from 'react'
-import { useTranslation } from 'react-i18next'
-import { Archive } from 'lucide-react'
 import { type ChatThread } from '@/api/client'
 import {
   channelAccentClass,
@@ -9,6 +6,9 @@ import {
   formatThreadSubject,
 } from '@/components/chat/thread-utils'
 import { cn } from '@/lib/utils'
+import { Archive } from 'lucide-react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ThreadListItemProps {
   thread: ChatThread
@@ -30,8 +30,8 @@ export const ThreadListItem: React.FC<ThreadListItemProps> = ({ thread, isActive
       className={cn(
         'flex w-full min-w-0 gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-colors',
         isActive
-          ? 'border-[var(--accent)]/40 bg-[var(--accent)]/8 shadow-xs'
-          : 'border-transparent bg-transparent hover:border-[var(--border-main)] hover:bg-[var(--bg-card-subtle)]',
+          ? 'border-(--accent)/40 bg-(--accent)/8 shadow-xs'
+          : 'border-transparent bg-transparent hover:border-(--border-main) hover:bg-(--bg-card-subtle)',
       )}
     >
       <div
@@ -46,22 +46,22 @@ export const ThreadListItem: React.FC<ThreadListItemProps> = ({ thread, isActive
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="min-w-0 truncate text-sm font-semibold leading-tight text-[var(--text-main)]">
+          <p className="min-w-0 truncate text-sm font-semibold leading-tight text-(--text-main)">
             {subject}
           </p>
           {timeLabel && (
-            <span className="shrink-0 text-[10px] font-medium tabular-nums text-[var(--text-dim)]">
+            <span className="shrink-0 text-[10px] font-medium tabular-nums text-(--text-dim)">
               {timeLabel}
             </span>
           )}
         </div>
 
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <span className="max-w-[5.5rem] truncate text-[11px] text-[var(--text-dim)] sm:max-w-none">
+          <span className="max-w-22 truncate text-[11px] text-(--text-dim) sm:max-w-none">
             {channelLabel}
           </span>
           {isArchived ? (
-            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-[var(--bg-card-subtle)] px-1 py-px text-[10px] font-medium leading-none text-[var(--text-dim)]">
+            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-(--bg-card-subtle) px-1 py-px text-[10px] font-medium leading-none text-(--text-dim)">
               <Archive className="h-2.5 w-2.5" />
               {t('threadArchived')}
             </span>
@@ -71,13 +71,13 @@ export const ThreadListItem: React.FC<ThreadListItemProps> = ({ thread, isActive
             </span>
           )}
           {thread.messageCount > 0 && (
-            <span className="shrink-0 rounded-md border border-[var(--border-main)] px-1 py-px font-mono text-[10px] leading-none text-[var(--text-dim)]">
+            <span className="shrink-0 rounded-md border border-(--border-main) px-1 py-px font-mono text-[10px] leading-none text-(--text-dim)">
               {t('threadMessageCount', { count: thread.messageCount })}
             </span>
           )}
         </div>
 
-        <p className="mt-1 line-clamp-2 text-xs leading-snug text-[var(--text-muted)]">
+        <p className="mt-1 line-clamp-2 text-xs leading-snug text-(--text-muted)">
           {thread.lastPreview || t('threadEmpty')}
         </p>
       </div>

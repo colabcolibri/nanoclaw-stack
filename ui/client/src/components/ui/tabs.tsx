@@ -1,6 +1,6 @@
-import * as React from 'react'
-import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { cn } from '@/lib/utils'
+import * as TabsPrimitive from '@radix-ui/react-tabs'
+import * as React from 'react'
 
 const Tabs = TabsPrimitive.Root
 
@@ -11,7 +11,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-9 items-center justify-start gap-1 rounded-lg bg-[var(--bg-card-subtle)] p-1 text-[var(--text-muted)] border border-[var(--border-main)]',
+      'inline-flex h-9 items-center justify-start gap-1 rounded-lg bg-(--bg-card-subtle) p-1 text-(--text-muted) border border-(--border-main)',
       className
     )}
     {...props}
@@ -27,10 +27,10 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--accent)/30',
       'disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:bg-[var(--bg-card)] data-[state=active]:text-[var(--text-main)] data-[state=active]:shadow-xs',
-      'data-[state=inactive]:hover:text-[var(--text-main)]',
+      'data-[state=active]:bg-(--bg-card) data-[state=active]:text-(--text-main) data-[state=active]:shadow-xs',
+      'data-[state=inactive]:hover:text-(--text-main)',
       className
     )}
     {...props}
@@ -50,4 +50,5 @@ const TabsContent = React.forwardRef<
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsContent, TabsList, TabsTrigger }
+

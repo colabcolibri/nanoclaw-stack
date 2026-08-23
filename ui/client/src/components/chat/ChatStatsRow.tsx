@@ -35,7 +35,7 @@ export const ChatStatsRow: React.FC<ChatStatsRowProps> = ({
         outbound: stats?.totalOutbound || 0,
       }),
       icon: MessageSquare,
-      iconClass: 'text-[var(--accent)]',
+      iconClass: 'text-(--accent)',
     },
     {
       label: t('statsTokens'),
@@ -65,25 +65,25 @@ export const ChatStatsRow: React.FC<ChatStatsRowProps> = ({
         calls: stats?.totalApiCalls || 0,
       }),
       icon: Activity,
-      iconClass: stats?.serviceStatus === 'Online' ? 'text-emerald-500' : 'text-[var(--text-dim)]',
+      iconClass: stats?.serviceStatus === 'Online' ? 'text-emerald-500' : 'text-(--text-dim)',
     },
   ]
 
   return (
     <section className={cn('grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4', className)}>
       {items.map((item) => (
-        <Card key={item.label} className="border-[var(--border-main)] bg-[var(--bg-card)] shadow-xs">
+        <Card key={item.label} className="border-(--border-main) bg-(--bg-card) shadow-xs">
           <CardContent className="space-y-2 p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-(--text-muted)">
                 {item.label}
               </span>
               <item.icon className={cn('h-4 w-4 shrink-0', item.iconClass)} />
             </div>
-            <div className="font-mono text-lg font-semibold tracking-tight text-[var(--text-main)] sm:text-xl">
+            <div className="font-mono text-lg font-semibold tracking-tight text-(--text-main) sm:text-xl">
               {item.value}
             </div>
-            <p className="text-[11px] leading-snug text-[var(--text-dim)] font-mono">{item.hint}</p>
+            <p className="text-[11px] leading-snug text-(--text-dim) font-mono">{item.hint}</p>
           </CardContent>
         </Card>
       ))}

@@ -99,7 +99,7 @@ Use the channel's `typical-use` and `default-isolation` fields to pick the recom
 ### Register Command
 
 ```bash
-pnpm exec tsx setup/index.ts --step register -- \
+pnpm exec tsx scripts/register-channel.ts -- \
   --platform-id "<id>" --name "<name>" \
   --folder "<folder>" --channel "<type>" \
   --session-mode "<shared|agent-shared|per-thread>" \
@@ -118,10 +118,10 @@ For separate agents, also ask for a folder name and optionally a different assis
 
 When adding another group/chat on an already-configured platform (e.g. a second Telegram group):
 
-1. **Telegram:** ask the isolation question first to determine intent (`wire-to:<folder>` for an existing agent, `new-agent:<folder>` for a fresh one). Run `pnpm exec tsx setup/index.ts --step pair-telegram -- --intent <intent>`, show the `CODE` from the `PAIR_TELEGRAM_CODE` status block, and tell the user to post `@<botname> CODE` in the target group (or DM the bot for a private chat). Wait for the final `PAIR_TELEGRAM` block. The inbound interceptor has already created the `messaging_groups` row stamped with the Telegram adapter's declared policy (`request_approval` on current adapter copies; `strict` only on stale pre-declaration copies) and upserted the paired user — `register` only needs to add the wiring:
+1. **Telegram:** ask the isolation question first to determine intent (`wire-to:<folder>` for an existing agent, `new-agent:<folder>` for a fresh one). Run `pnpm exec tsx scripts/pair-telegram.ts -- --intent <intent>`, show the `CODE` from the `PAIR_TELEGRAM_CODE` status block, and tell the user to post `@<botname> CODE` in the target group (or DM the bot for a private chat). Wait for the final `PAIR_TELEGRAM` block. The inbound interceptor has already created the `messaging_groups` row stamped with the Telegram adapter's declared policy (`request_approval` on current adapter copies; `strict` only on stale pre-declaration copies) and upserted the paired user — `register-channel` only needs to add the wiring:
 
    ```bash
-   pnpm exec tsx setup/index.ts --step register -- \
+   pnpm exec tsx scripts/register-channel.ts -- \
      --platform-id "<PLATFORM_ID>" --name "<group-name>" \
      --folder "<folder>" --channel "telegram" \
      --session-mode "<shared|agent-shared|per-thread>" \

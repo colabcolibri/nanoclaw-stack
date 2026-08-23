@@ -31,8 +31,8 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
           className={cn(
             'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
             isActive
-              ? 'bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]'
-              : 'border border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]'
+              ? 'bg-(--nav-active-bg) text-(--nav-active-text)'
+              : 'border border-(--border-main) bg-(--bg-card) text-(--text-muted) hover:bg-(--bg-card-subtle) hover:text-(--text-main)'
           )}
         >
           {chip.label}
@@ -40,7 +40,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
             <span
               className={cn(
                 'rounded-md px-1.5 py-0.5 text-[10px] font-mono',
-                isActive ? 'bg-black/10' : 'bg-[var(--bg-card-subtle)]'
+                isActive ? 'bg-black/10' : 'bg-(--bg-card-subtle)'
               )}
             >
               {chip.count}

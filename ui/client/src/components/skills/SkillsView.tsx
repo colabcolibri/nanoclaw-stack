@@ -108,8 +108,8 @@ export const SkillsView: React.FC = () => {
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                 scopeFilter === chip.id
-                  ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]'
-                  : 'border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
+                  : 'border-(--border-main) bg-(--bg-card) text-(--text-muted) hover:text-(--text-main)'
               )}
             >
               {chip.label}
@@ -132,7 +132,7 @@ export const SkillsView: React.FC = () => {
         </div>
       ) : filteredSkills.length === 0 ? (
         <EmptyState
-          icon={<Sparkles className="h-8 w-8 text-[var(--text-dim)]" />}
+          icon={<Sparkles className="h-8 w-8 text-(--text-dim)" />}
           title={t('emptyTitle')}
           description={t('emptyDescription')}
         />
@@ -163,9 +163,9 @@ export const SkillsView: React.FC = () => {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-4">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">{label}</p>
-      <p className="mt-1 font-mono text-lg font-semibold text-[var(--text-main)]">{value}</p>
+    <div className="min-w-0 rounded-xl border border-(--border-main) bg-(--bg-card) p-4">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">{label}</p>
+      <p className="mt-1 font-mono text-lg font-semibold text-(--text-main)">{value}</p>
     </div>
   )
 }

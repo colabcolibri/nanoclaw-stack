@@ -6,6 +6,7 @@ public struct ChatInputBarView: View {
     public let isRecording: Bool
     public let isDictating: Bool
     public let audioLevel: Float
+    public let isEnabled: Bool
     public let onSend: () -> Void
     public let onToggleDictation: () -> Void
     public let onStartRecording: () -> Void
@@ -15,7 +16,7 @@ public struct ChatInputBarView: View {
     @State private var inputHeight: CGFloat = 24
     
     private var canSend: Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+        isEnabled && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
     }
     
     public init(
@@ -24,6 +25,7 @@ public struct ChatInputBarView: View {
         isRecording: Bool,
         isDictating: Bool = false,
         audioLevel: Float,
+        isEnabled: Bool = true,
         onSend: @escaping () -> Void,
         onToggleDictation: @escaping () -> Void,
         onStartRecording: @escaping () -> Void,
@@ -35,6 +37,7 @@ public struct ChatInputBarView: View {
         self.isRecording = isRecording
         self.isDictating = isDictating
         self.audioLevel = audioLevel
+        self.isEnabled = isEnabled
         self.onSend = onSend
         self.onToggleDictation = onToggleDictation
         self.onStartRecording = onStartRecording
@@ -43,9 +46,7 @@ public struct ChatInputBarView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            
+        Group {
             if isRecording {
                 recordingHUD
             } else {
@@ -53,8 +54,14 @@ public struct ChatInputBarView: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(.bar)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background {
+            Rectangle()
+                .fill(.bar)
+                .shadow(color: .black.opacity(0.06), radius: 8, y: -2)
+                .ignoresSafeArea(edges: .bottom)
+        }
     }
     
     private var inputRow: some View {
@@ -100,7 +107,7 @@ public struct ChatInputBarView: View {
                         .background(isDictating ? Color.red : Color.clear, in: Circle())
                 }
                 .buttonStyle(.plain)
-                .disabled(isSending)
+                .disabled(isSending || !isEnabled)
                 .help(isDictating ? "Parar ditado" : "Ditado por voz")
                 .padding(.trailing, 4)
                 .padding(.bottom, 2)

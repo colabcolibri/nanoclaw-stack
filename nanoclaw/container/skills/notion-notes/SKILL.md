@@ -4,11 +4,6 @@ description: Notion search, pages, tasks and database updates via notion tool.
 domain: notion_management
 tools:
   - notion
-keywords:
-  - notion
-  - notes
-  - tasks
-  - database
 ---
 
 # Notion notes
