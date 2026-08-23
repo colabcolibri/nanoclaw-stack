@@ -16,5 +16,9 @@
   "charCount": "{{count}} caracteres",
   "tokenCount": "~{{count}} tokens",
   "lineCount": "{{count}} linhas",
-  "emptyDoc": "Nenhuma instrução definida para este documento."
+  "emptyDoc": "Nenhuma instrução definida para este documento.",
+  "sourceCustom": "Personalizado",
+  "sourceDefault": "Padrão do sistema",
+  "defaultDocHint": "Conteúdo padrão do repositório. Salvar cria uma cópia personalizada neste grupo.",
+  "saveEmptyBlocked": "Não é possível salvar um documento vazio."
 }

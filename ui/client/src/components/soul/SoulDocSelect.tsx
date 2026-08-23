@@ -18,6 +18,12 @@ interface SoulDocSelectProps {
   disabled?: boolean
 }
 
+function sourceSuffix(doc: MarkdownDoc, t: (key: string) => string): string {
+  if (doc.source === 'default') return ` · ${t('sourceDefault')}`
+  if (doc.source === 'custom') return ` · ${t('sourceCustom')}`
+  return ''
+}
+
 export const SoulDocSelect: React.FC<SoulDocSelectProps> = ({
   docs,
   value,
@@ -53,6 +59,7 @@ export const SoulDocSelect: React.FC<SoulDocSelectProps> = ({
             {items.map((doc) => (
               <SelectItem key={doc.relativePath} value={doc.relativePath} className="font-mono text-xs">
                 {doc.title}
+                {sourceSuffix(doc, t)}
               </SelectItem>
             ))}
           </SelectGroup>

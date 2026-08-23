@@ -54,6 +54,7 @@ export interface MarkdownDoc {
   title: string
   category: string
   fallbackPath?: string
+  source: 'custom' | 'default' | 'empty'
 }
 
 export interface SkillReference {
@@ -284,7 +285,7 @@ export class ApiClient {
     return this.fetchJson(`/api/groups/${group}/docs`)
   }
 
-  static async getDoc(group: string, path = 'instructions.prepend.md'): Promise<{ content: string; path: string; exists: boolean }> {
+  static async getDoc(group: string, path = 'instructions.prepend.md'): Promise<{ content: string; path: string; exists: boolean; source: MarkdownDoc['source'] }> {
     return this.fetchJson(`/api/groups/${group}/doc?path=${encodeURIComponent(path)}`)
   }
 

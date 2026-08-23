@@ -16,5 +16,9 @@
   "charCount": "{{count}} characters",
   "tokenCount": "~{{count}} tokens",
   "lineCount": "{{count}} lines",
-  "emptyDoc": "No instructions defined for this document."
+  "emptyDoc": "No instructions defined for this document.",
+  "sourceCustom": "Customized",
+  "sourceDefault": "System default",
+  "defaultDocHint": "Default content from the repository. Saving creates a customized copy for this group.",
+  "saveEmptyBlocked": "Cannot save an empty document."
 }

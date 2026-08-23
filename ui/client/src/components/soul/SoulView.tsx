@@ -15,6 +15,7 @@ export const SoulView: React.FC = () => {
   const [docs, setDocs] = useState<MarkdownDoc[]>([])
   const [selectedPath, setSelectedPath] = useState<string>('instructions.prepend.md')
   const [content, setContent] = useState<string>('')
+  const [docSource, setDocSource] = useState<MarkdownDoc['source']>('custom')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
@@ -46,17 +47,26 @@ export const SoulView: React.FC = () => {
     try {
       const data = await ApiClient.getDoc(group, path)
       setContent(data.content || '')
+      setDocSource(data.source || 'empty')
     } catch {
       setContent('')
+      setDocSource('empty')
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSave = async () => {
+    if (!content.trim()) {
+      setToastMessage({ text: t('saveEmptyBlocked'), type: 'error' })
+      setTimeout(() => setToastMessage(null), 3000)
+      return
+    }
     setIsSaving(true)
     try {
       await ApiClient.saveDoc(group, selectedPath, content)
+      setDocSource('custom')
+      await loadDocsList()
       setToastMessage({ text: t('savedSuccess'), type: 'success' })
       setTimeout(() => setToastMessage(null), 3000)
     } catch {
@@ -97,6 +107,7 @@ export const SoulView: React.FC = () => {
       <SoulEditorCard
         doc={selectedDoc}
         content={content}
+        source={docSource}
         onContentChange={setContent}
         isLoading={isLoading}
       />

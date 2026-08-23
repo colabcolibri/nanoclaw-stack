@@ -39,6 +39,11 @@ const MCP_TOOLS_HOST_SUBPATH = path.join('container', 'agent-runner', 'src', 'mc
 const COMPOSED_HEADER =
   '<!-- Composed at spawn - do not edit. Standing instructions: instructions.prepend.md. Memory: memory/. -->';
 
+/** Skip macOS AppleDouble (`._*`) and other dotfiles in directory scans. */
+function isJunkDirEntry(name: string): boolean {
+  return name.startsWith('.');
+}
+
 /**
  * Regenerate `groups/<folder>/CLAUDE.md` from the shared base, enabled skill
  * fragments, and MCP server fragments declared in `container.json`.
@@ -69,6 +74,7 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
   const skillsHostDir = path.join(process.cwd(), 'container', 'skills');
   if (fs.existsSync(skillsHostDir)) {
     for (const skillName of fs.readdirSync(skillsHostDir)) {
+      if (isJunkDirEntry(skillName)) continue;
       const hostFragment = path.join(skillsHostDir, skillName, 'instructions.md');
       if (fs.existsSync(hostFragment)) {
         desired.set(`skill-${skillName}.md`, {
@@ -89,6 +95,7 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
   const mcpToolsHostDir = path.join(process.cwd(), MCP_TOOLS_HOST_SUBPATH);
   if (fs.existsSync(mcpToolsHostDir)) {
     for (const entry of fs.readdirSync(mcpToolsHostDir)) {
+      if (isJunkDirEntry(entry)) continue;
       const match = entry.match(/^(.+)\.instructions\.md$/);
       if (!match) continue;
       const moduleName = match[1];

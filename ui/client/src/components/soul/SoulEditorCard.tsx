@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 interface SoulEditorCardProps {
   doc: MarkdownDoc | null
   content: string
+  source: MarkdownDoc['source']
   onContentChange: (value: string) => void
   isLoading: boolean
 }
@@ -22,6 +23,7 @@ function formatCompactCount(value: number): string {
 export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
   doc,
   content,
+  source,
   onContentChange,
   isLoading,
 }) => {
@@ -61,8 +63,24 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
             <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
               {t('markdownBadge')}
             </Badge>
+            {source === 'default' && (
+              <Badge variant="outline" className="text-[10px] font-semibold">
+                {t('sourceDefault')}
+              </Badge>
+            )}
+            {source === 'custom' && (
+              <Badge variant="outline" className="border-[var(--accent-border)] text-[10px] font-semibold text-[var(--accent)]">
+                {t('sourceCustom')}
+              </Badge>
+            )}
           </div>
         </div>
+
+        {source === 'default' && !isLoading && (
+          <div className="border-b border-[var(--border-main)] bg-[var(--bg-card-subtle)] px-4 py-2.5 text-[11px] text-[var(--text-muted)] sm:px-5">
+            {t('defaultDocHint')}
+          </div>
+        )}
 
         <div className="grid min-h-[min(70dvh,42rem)] flex-1 grid-cols-1 divide-y divide-[var(--border-main)] lg:grid-cols-2 lg:divide-x lg:divide-y-0">
           <div className="flex min-h-[280px] flex-col">

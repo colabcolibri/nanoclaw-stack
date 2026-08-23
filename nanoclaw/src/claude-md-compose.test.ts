@@ -104,6 +104,19 @@ describe('composeGroupClaudeMd scheduling instructions (ncl tasks reach-in)', ()
     expect(importsOf(ag.folder)).toContain('@./.claude-fragments/module-scheduling.md');
   });
 
+  it('does not import macOS AppleDouble module fragments (._*.instructions.md)', () => {
+    const ag = group('ag-junk', 'junk-group');
+    seed(ag);
+
+    composeGroupClaudeMd(ag);
+
+    const imports = importsOf(ag.folder);
+    expect(imports.some((line) => line.includes('module-._'))).toBe(false);
+    expect(fs.existsSync(path.join(GROUPS_DIR, ag.folder, '.claude-fragments', 'module-._agents.md'))).toBe(
+      false,
+    );
+  });
+
   it('excludes module-scheduling.md (and module-cli.md) when cli_scope is disabled', () => {
     const ag = group('ag-sched-off', 'sched-group-off');
     seed(ag);

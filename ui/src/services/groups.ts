@@ -94,71 +94,160 @@ export interface MarkdownDocInfo {
   title: string;
   category: "⭐ 1. Principais (Edição Frequente)" | "⚙️ 2. Módulos & Ferramentas (Comportamento)" | "🔒 3. Protocolos de Sistema (Avançado)";
   fallbackPath?: string;
+  source: "custom" | "default" | "empty";
 }
 
-const mcpInstructions = (file: string) =>
-  path.join(CONFIG.NANOCLAW_PATH, "container", "agent-runner", "src", "mcp-tools", file);
+type DocCategory = MarkdownDocInfo["category"];
 
-const skillInstructions = (file: string) =>
-  path.join(CONFIG.NANOCLAW_PATH, "container", "skills", file);
+interface ContainerDocMeta {
+  title: string;
+  category: DocCategory;
+  fallback: string;
+}
 
-const DEFAULT_CONTAINER_DOCS: Record<string, { title: string; category: MarkdownDocInfo["category"]; fallback: string }> = {
-  "instructions.prepend.md": {
-    title: "🧠 SOUL — identidade & voz (instructions.prepend.md)",
-    category: "⭐ 1. Principais (Edição Frequente)",
-    fallback: "",
-  },
-  "instructions.context.md": {
-    title: "📋 Contexto operacional (instructions.context.md)",
-    category: "⭐ 1. Principais (Edição Frequente)",
-    fallback: "",
-  },
-  "memory/index.md": {
-    title: "💾 Memória Permanente & Fatos (memory/index.md)",
-    category: "⭐ 1. Principais (Edição Frequente)",
-    fallback: "",
-  },
-  ".claude-fragments/module-scheduling.md": {
-    title: "⏰ Agendamentos & Tarefas Cron (ncl tasks)",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: mcpInstructions("scheduling.instructions.md"),
-  },
-  ".claude-fragments/module-interactive.md": {
-    title: "💬 Modo Interativo & Perguntas (ask_user_question)",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: mcpInstructions("interactive.instructions.md"),
-  },
-  ".claude-fragments/module-agents.md": {
-    title: "👥 Criação & Delegação de Agentes (create_agent)",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: mcpInstructions("agents.instructions.md"),
-  },
-  ".claude-fragments/module-self-mod.md": {
-    title: "🔄 Instalação de Pacotes & Auto-Modificação",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: mcpInstructions("self-mod.instructions.md"),
-  },
-  ".claude-fragments/module-cli.md": {
-    title: "💻 Terminal & CLI do NanoClaw (ncl)",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: mcpInstructions("cli.instructions.md"),
-  },
-  ".claude-fragments/skill-onecli-gateway.md": {
-    title: "🔌 Skill: OneCLI Gateway & Auth",
-    category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
-    fallback: skillInstructions("onecli-gateway/instructions.md"),
-  },
-  "memory/system/definition.md": {
-    title: "📐 Arquitetura de Memória OKF (definition.md)",
-    category: "🔒 3. Protocolos de Sistema (Avançado)",
-    fallback: "",
-  },
-  ".claude-fragments/module-core.md": {
-    title: "⚙️ Core de Mensagens & Arquivos (module-core.md)",
-    category: "🔒 3. Protocolos de Sistema (Avançado)",
-    fallback: mcpInstructions("core.instructions.md"),
-  },
+const MEMORY_SKIP_PATHS = new Set(["memory/system/index.md"]);
+
+const MODULE_TITLES: Record<string, string> = {
+  scheduling: "⏰ Agendamentos & Tarefas Cron (ncl tasks)",
+  interactive: "💬 Modo Interativo & Perguntas (ask_user_question)",
+  agents: "👥 Criação & Delegação de Agentes (create_agent)",
+  "self-mod": "🔄 Instalação de Pacotes & Auto-Modificação",
+  cli: "💻 Terminal & CLI do NanoClaw (ncl)",
+  core: "⚙️ Core de Mensagens & Arquivos (module-core.md)",
 };
+
+const mcpToolsDir = () =>
+  path.join(CONFIG.NANOCLAW_PATH, "container", "agent-runner", "src", "mcp-tools");
+
+const skillsDir = () => path.join(CONFIG.NANOCLAW_PATH, "container", "skills");
+
+const memoryTemplate = (rel: string) =>
+  path.join(CONFIG.NANOCLAW_PATH, "container", "agent-runner", "src", "memory", "templates", rel);
+
+function isJunkName(name: string): boolean {
+  return name.startsWith(".");
+}
+
+function formatSkillTitle(skillName: string): string {
+  const label = skillName
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  return `🔌 Skill: ${label}`;
+}
+
+function buildContainerDocsCatalog(): Record<string, ContainerDocMeta> {
+  const catalog: Record<string, ContainerDocMeta> = {
+    "instructions.prepend.md": {
+      title: "🧠 SOUL — identidade & voz (instructions.prepend.md)",
+      category: "⭐ 1. Principais (Edição Frequente)",
+      fallback: "",
+    },
+    "instructions.context.md": {
+      title: "📋 Contexto operacional (instructions.context.md)",
+      category: "⭐ 1. Principais (Edição Frequente)",
+      fallback: "",
+    },
+    "memory/index.md": {
+      title: "💾 Memória Permanente & Fatos (memory/index.md)",
+      category: "⭐ 1. Principais (Edição Frequente)",
+      fallback: memoryTemplate("index.md"),
+    },
+    "memory/system/definition.md": {
+      title: "📐 Arquitetura de Memória OKF (definition.md)",
+      category: "🔒 3. Protocolos de Sistema (Avançado)",
+      fallback: memoryTemplate("system/definition.md"),
+    },
+  };
+
+  const mcpDir = mcpToolsDir();
+  if (fs.existsSync(mcpDir)) {
+    for (const entry of fs.readdirSync(mcpDir)) {
+      if (isJunkName(entry)) continue;
+      const match = entry.match(/^(.+)\.instructions\.md$/);
+      if (!match) continue;
+      const moduleName = match[1];
+      const relPath = `.claude-fragments/module-${moduleName}.md`;
+      catalog[relPath] = {
+        title: MODULE_TITLES[moduleName] ?? `⚙️ Módulo: ${moduleName}`,
+        category:
+          moduleName === "core"
+            ? "🔒 3. Protocolos de Sistema (Avançado)"
+            : "⚙️ 2. Módulos & Ferramentas (Comportamento)",
+        fallback: path.join(mcpDir, entry),
+      };
+    }
+  }
+
+  const skillsRoot = skillsDir();
+  if (fs.existsSync(skillsRoot)) {
+    for (const skillName of fs.readdirSync(skillsRoot)) {
+      if (isJunkName(skillName)) continue;
+      const instructions = path.join(skillsRoot, skillName, "instructions.md");
+      if (!fs.existsSync(instructions)) continue;
+      const relPath = `.claude-fragments/skill-${skillName}.md`;
+      catalog[relPath] = {
+        title: formatSkillTitle(skillName),
+        category: "⚙️ 2. Módulos & Ferramentas (Comportamento)",
+        fallback: instructions,
+      };
+    }
+  }
+
+  return catalog;
+}
+
+function readLocalDocFile(filePath: string): { content: string; isCustom: boolean } | null {
+  let lstat: fs.Stats;
+  try {
+    lstat = fs.lstatSync(filePath);
+  } catch {
+    return null;
+  }
+
+  if (lstat.isSymbolicLink()) {
+    try {
+      return { content: fs.readFileSync(filePath, "utf-8"), isCustom: false };
+    } catch {
+      return null;
+    }
+  }
+
+  if (lstat.isFile()) {
+    return { content: fs.readFileSync(filePath, "utf-8"), isCustom: true };
+  }
+
+  return null;
+}
+
+function resolveDocSource(
+  folder: string,
+  relativePath: string,
+  meta?: ContainerDocMeta,
+): { content: string; source: MarkdownDocInfo["source"]; exists: boolean } {
+  const safeRel = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, "");
+  const filePath = path.join(CONFIG.GROUPS_PATH, path.basename(folder), safeRel);
+
+  const local = readLocalDocFile(filePath);
+  if (local) {
+    return {
+      content: local.content,
+      source: local.isCustom ? "custom" : "default",
+      exists: local.isCustom,
+    };
+  }
+
+  if (meta?.fallback && fs.existsSync(meta.fallback)) {
+    return {
+      content: fs.readFileSync(meta.fallback, "utf-8"),
+      source: "default",
+      exists: false,
+    };
+  }
+
+  return { content: "", source: "empty", exists: false };
+}
 
 export class GroupManager {
   static list(): GroupSummary[] {
@@ -213,38 +302,47 @@ export class GroupManager {
 
     if (!fs.existsSync(groupDir)) return docs;
 
+    const catalog = buildContainerDocsCatalog();
     const knownPaths = new Set<string>();
 
-    for (const [relPath, meta] of Object.entries(DEFAULT_CONTAINER_DOCS)) {
+    for (const [relPath, meta] of Object.entries(catalog)) {
       knownPaths.add(relPath);
+      const resolved = resolveDocSource(folder, relPath, meta);
+      if (resolved.source === "empty") continue;
+
       docs.push({
         filename: path.basename(relPath),
         relativePath: relPath,
         title: meta.title,
         category: meta.category,
-        fallbackPath: meta.fallback,
+        fallbackPath: meta.fallback || undefined,
+        source: resolved.source,
       });
     }
 
-    // Dynamically discover any custom memory files created by the agent/user
+    // Dynamically discover custom memory files created by the agent/user
     const memoryDir = path.join(groupDir, "memory");
     if (fs.existsSync(memoryDir)) {
       const scanDir = (dir: string, baseRel: string) => {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
+          if (isJunkName(entry.name)) continue;
           const entryRel = path.join(baseRel, entry.name);
-          if (entry.isDirectory() && entry.name !== "node_modules" && !entry.name.startsWith(".")) {
+          if (entry.isDirectory() && entry.name !== "node_modules") {
             scanDir(path.join(dir, entry.name), entryRel);
           } else if (entry.isFile() && entry.name.endsWith(".md")) {
-            if (!knownPaths.has(entryRel)) {
-              knownPaths.add(entryRel);
-              docs.push({
-                filename: entry.name,
-                relativePath: entryRel,
-                title: `📄 Memória: ${entryRel}`,
-                category: "⭐ 1. Principais (Edição Frequente)",
-              });
-            }
+            if (knownPaths.has(entryRel) || MEMORY_SKIP_PATHS.has(entryRel)) continue;
+            const resolved = resolveDocSource(folder, entryRel);
+            if (resolved.source === "empty") continue;
+
+            knownPaths.add(entryRel);
+            docs.push({
+              filename: entry.name,
+              relativePath: entryRel,
+              title: `📄 Memória: ${entryRel}`,
+              category: "⭐ 1. Principais (Edição Frequente)",
+              source: resolved.source,
+            });
           }
         }
       };
@@ -254,27 +352,22 @@ export class GroupManager {
     return docs;
   }
 
-  static getMarkdownDoc(folder: string, relativePath: string): { content: string; path: string; exists: boolean } {
+  static getMarkdownDoc(
+    folder: string,
+    relativePath: string,
+  ): { content: string; path: string; exists: boolean; source: MarkdownDocInfo["source"] } {
     const safeRel = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, "");
     const filePath = path.join(CONFIG.GROUPS_PATH, path.basename(folder), safeRel);
+    const catalog = buildContainerDocsCatalog();
+    const meta = catalog[safeRel];
+    const resolved = resolveDocSource(folder, safeRel, meta);
 
-    // If file exists and is a regular readable file (or valid symlink)
-    if (fs.existsSync(filePath)) {
-      try {
-        const stat = fs.statSync(filePath);
-        if (stat.isFile()) {
-          return { content: fs.readFileSync(filePath, "utf-8"), path: filePath, exists: true };
-        }
-      } catch {}
-    }
-
-    // Check if we have a default fallback from container source
-    const meta = DEFAULT_CONTAINER_DOCS[safeRel];
-    if (meta && meta.fallback && fs.existsSync(meta.fallback)) {
-      return { content: fs.readFileSync(meta.fallback, "utf-8"), path: filePath, exists: true };
-    }
-
-    return { content: "", path: filePath, exists: false };
+    return {
+      content: resolved.content,
+      path: filePath,
+      exists: resolved.exists,
+      source: resolved.source,
+    };
   }
 
   static saveMarkdownDoc(folder: string, relativePath: string, content: string): boolean {
