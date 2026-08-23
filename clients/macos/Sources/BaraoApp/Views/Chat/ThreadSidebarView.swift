@@ -167,10 +167,17 @@ public struct ThreadSidebarView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    if let count = thread.messageCount, count > 0 {
-                        Text("\(count) mensagens")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        if !thread.isActive {
+                            Text("Arquivada")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        if let count = thread.messageCount, count > 0 {
+                            Text("\(count) mensagens")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -178,12 +185,13 @@ public struct ThreadSidebarView: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
+                isSelected ? Color.accentColor.opacity(thread.isActive ? 0.14 : 0.08) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
+        .opacity(thread.isActive ? 1 : 0.82)
     }
 }

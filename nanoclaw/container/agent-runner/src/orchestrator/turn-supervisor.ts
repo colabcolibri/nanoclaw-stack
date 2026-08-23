@@ -222,8 +222,8 @@ export class TurnSupervisor {
       return {
         handover: {
           userGoal: options.userGoal,
-          technicalFindings: '(Nenhum agente especialista registrado no sistema)',
-          guidanceForSender: 'Informe ao usuário que não há especialistas disponíveis no momento.',
+          technicalFindings: '(No specialist agents registered in the system)',
+          guidanceForSender: 'Tell the user no specialists are available right now.',
           isFastPath: true,
           contextPlan,
         },
@@ -294,8 +294,8 @@ export class TurnSupervisor {
         return {
           handover: {
             userGoal: options.userGoal,
-            technicalFindings: '(Especialista não encontrado no catálogo)',
-            guidanceForSender: 'Informe ao usuário que não há especialistas disponíveis no momento.',
+            technicalFindings: '(Specialist not found in catalog)',
+            guidanceForSender: 'Tell the user no specialists are available right now.',
             isFastPath: true,
             contextPlan,
           },
@@ -392,7 +392,7 @@ export class TurnSupervisor {
       }
     }
 
-    const specialistNames = [...new Set(state.steps.map((s) => s.agentName))].join(', ') || 'nenhum';
+    const specialistNames = [...new Set(state.steps.map((s) => s.agentName))].join(', ') || 'none';
 
     this.audit(options.cwd, {
       step: 'supervisor_turn_summary',
@@ -415,7 +415,7 @@ export class TurnSupervisor {
         workerSummary: state.buildWorkerSummaryLine(),
         guidanceForSender:
           lastGuidance ||
-          `Os especialistas (${specialistNames}) concluíram as etapas. Sintetize as informações com clareza.`,
+          `Specialists (${specialistNames}) finished their steps. Synthesize the findings clearly for the user.`,
         isFastPath: false,
         contextPlan,
       },

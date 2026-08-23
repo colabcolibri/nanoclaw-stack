@@ -35,7 +35,7 @@ export function getTemporalContext(cwd?: string): string {
 
   if (!tz) {
     throw new Error(
-      'timezone não configurado. Defina TZ no ambiente ou timezone em container.json do grupo.',
+      'timezone not configured. Set TZ in the environment or timezone in the group container.json.',
     );
   }
 
@@ -43,7 +43,7 @@ export function getTemporalContext(cwd?: string): string {
   const resolvedTz = tz;
 
   try {
-    const formatted = new Intl.DateTimeFormat('pt-BR', {
+    const formatted = new Intl.DateTimeFormat('en-US', {
       timeZone: resolvedTz,
       dateStyle: 'full',
       timeStyle: 'medium',

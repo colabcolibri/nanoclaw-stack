@@ -1,12 +1,9 @@
 /**
- * Bun subprocess — orchestrator + summarize only (no central v2.db / better-sqlite3).
+ * Bun subprocess — orchestrator only (no central v2.db / better-sqlite3).
  * stdin: JSON SyncTurnRunnerRequest
  * stdout: single JSON line { ok, result? | error? }
  */
-import {
-  runOrchestratorTurn,
-  runSummarize,
-} from '../src/gateway/sync-turn-orchestrator-worker.ts';
+import { runOrchestratorTurn } from '../src/gateway/sync-turn-orchestrator-worker.ts';
 import type { SyncTurnRunnerRequest } from '../src/gateway/sync-turn-types.ts';
 
 function emit(body: Record<string, unknown>): void {
@@ -20,12 +17,6 @@ async function main(): Promise<void> {
   if (req.op === 'orchestrate' && req.orchestrate) {
     const result = await runOrchestratorTurn(req.orchestrate);
     emit({ ok: true, result });
-    return;
-  }
-
-  if (req.op === 'summarize' && req.summarize) {
-    const summary = await runSummarize(req.summarize);
-    emit({ ok: true, result: summary });
     return;
   }
 

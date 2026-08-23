@@ -104,7 +104,7 @@ public final class ChatViewModel: ObservableObject {
         isCheckingConnection = false
     }
 
-    public func loadThreads() async {
+    public func loadThreads(keepSelection: Bool = false) async {
         let config = storage.loadConfig()
         guard config.isValid else { return }
 
@@ -112,7 +112,18 @@ public final class ChatViewModel: ObservableObject {
         do {
             let list = try await apiClient.fetchThreads(config: config, limit: 50)
             threads = list
-            selectedSessionId = ThreadSelectionResolver.resolve(current: selectedSessionId, in: list)
+
+            if keepSelection, let preferred = selectedSessionId, !preferred.isEmpty {
+                if let row = list.first(where: { $0.sessionId == preferred }) {
+                    selectedSessionId = row.isActive ? preferred : ThreadSelectionResolver.pickDefault(from: list)
+                } else {
+                    // Nova sessão ainda não indexada na lista — mantém o id do servidor.
+                    selectedSessionId = preferred
+                }
+            } else {
+                selectedSessionId = ThreadSelectionResolver.resolve(current: selectedSessionId, in: list)
+            }
+
             await loadHistory(sessionId: selectedSessionId)
         } catch {
             threads = []
@@ -122,11 +133,10 @@ public final class ChatViewModel: ObservableObject {
 
     /// Applies authoritative session id from server, then refreshes thread list and history.
     private func syncAfterServerTurn(sessionId: String?) async {
-        selectedSessionId = ConversationSessionSync.preferredSessionId(
-            from: sessionId,
-            current: selectedSessionId
-        )
-        await loadThreads()
+        if let trimmed = sessionId?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            selectedSessionId = trimmed
+        }
+        await loadThreads(keepSelection: true)
     }
 
     public func selectThread(_ sessionId: String) {
@@ -135,6 +145,11 @@ public final class ChatViewModel: ObservableObject {
         Task {
             await loadHistory(sessionId: sessionId)
         }
+    }
+
+    /// Only one open conversation — archived threads are read-only history.
+    public var activeThreads: [ChatThread] {
+        threads.filter(\.isActive)
     }
 
     public func refreshAll() {
@@ -197,6 +212,12 @@ public final class ChatViewModel: ObservableObject {
     public func sendMessage() {
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isSending, canSendMessages else { return }
+
+        if let resetMode = Self.conversationResetMode(from: prompt) {
+            inputText = ""
+            startNewConversation(mode: resetMode)
+            return
+        }
 
         let config = storage.loadConfig()
         guard config.isValid else {
@@ -368,10 +389,18 @@ public final class ChatViewModel: ObservableObject {
         Task {
             do {
                 let response = try await apiClient.beginNewConversation(config: config, mode: mode)
+                selectedSessionId = response.sessionId
                 messages.removeAll()
                 hasMoreHistory = false
                 currentHistoryLimit = 25
-                await syncAfterServerTurn(sessionId: response.sessionId)
+                await loadThreads(keepSelection: true)
+                if messages.isEmpty,
+                   let ack = response.message?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !ack.isEmpty {
+                    messages = [
+                        ChatMessage(role: .assistant, text: ack)
+                    ]
+                }
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
@@ -381,5 +410,17 @@ public final class ChatViewModel: ObservableObject {
 
     public func clearConversation() {
         startNewConversation()
+    }
+
+    private static func conversationResetMode(from prompt: String) -> ConversationResetMode? {
+        let token = prompt.split(whereSeparator: \.isWhitespace).first.map(String.init)?.lowercased()
+        switch token {
+        case "/new":
+            return .new
+        case "/new-resume":
+            return .newResume
+        default:
+            return nil
+        }
     }
 }

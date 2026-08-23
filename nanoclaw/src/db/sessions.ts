@@ -146,6 +146,12 @@ export function deleteSession(id: string): void {
 
 /** Active conversational session for UI/API callers without a messaging_group row. */
 export function findUiConversationSession(agentGroupId: string, threadId: string): Session | undefined {
+  const rows = findAllActiveUiConversationSessions(agentGroupId, threadId);
+  return rows[0];
+}
+
+/** All active UI sessions for one platform thread (newest first). */
+export function findAllActiveUiConversationSessions(agentGroupId: string, threadId: string): Session[] {
   return getDb()
     .prepare(
       `SELECT * FROM sessions
@@ -153,9 +159,61 @@ export function findUiConversationSession(agentGroupId: string, threadId: string
          AND messaging_group_id IS NULL
          AND thread_id = ?
          AND status = 'active'
-         AND thread_id NOT LIKE 'system:%'`,
+         AND thread_id NOT LIKE 'system:%'
+       ORDER BY COALESCE(last_active, created_at) DESC, created_at DESC`,
     )
-    .get(agentGroupId, threadId) as Session | undefined;
+    .all(agentGroupId, threadId) as Session[];
+}
+
+/** All active sessions for a caller binding — used by /new to archive every stale row. */
+export function findAllActiveConversationSessions(
+  agentGroupId: string,
+  messagingGroupId: string | null,
+  threadId: string | null,
+  sessionMode: 'shared' | 'per-thread' | 'agent-shared',
+): Session[] {
+  if (sessionMode === 'agent-shared') {
+    return getDb()
+      .prepare(
+        `SELECT * FROM sessions
+         WHERE agent_group_id = ?
+           AND status = 'active'
+           AND NOT (messaging_group_id IS NULL AND thread_id IS NOT NULL AND thread_id LIKE 'system:%')
+         ORDER BY COALESCE(last_active, created_at) DESC, created_at DESC`,
+      )
+      .all(agentGroupId) as Session[];
+  }
+
+  if (messagingGroupId) {
+    if (threadId) {
+      return getDb()
+        .prepare(
+          `SELECT * FROM sessions
+           WHERE agent_group_id = ?
+             AND messaging_group_id = ?
+             AND thread_id = ?
+             AND status = 'active'
+           ORDER BY COALESCE(last_active, created_at) DESC, created_at DESC`,
+        )
+        .all(agentGroupId, messagingGroupId, threadId) as Session[];
+    }
+    return getDb()
+      .prepare(
+        `SELECT * FROM sessions
+         WHERE agent_group_id = ?
+           AND messaging_group_id = ?
+           AND thread_id IS NULL
+           AND status = 'active'
+         ORDER BY COALESCE(last_active, created_at) DESC, created_at DESC`,
+      )
+      .all(agentGroupId, messagingGroupId) as Session[];
+  }
+
+  if (threadId) {
+    return findAllActiveUiConversationSessions(agentGroupId, threadId);
+  }
+
+  return [];
 }
 
 export function listArchivedConversations(

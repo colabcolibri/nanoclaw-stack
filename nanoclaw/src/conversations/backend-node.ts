@@ -1,5 +1,5 @@
 import { killContainer, isContainerRunning } from '../container-runner.js';
-import { createSession, updateSession } from '../db/sessions.js';
+import { createSession, findAllActiveConversationSessions, updateSession } from '../db/sessions.js';
 import { log } from '../log.js';
 import {
   initSessionFolder as initSessionFolderRaw,
@@ -84,7 +84,15 @@ export function createNodeConversationBackend(): ConversationBackend {
     },
 
     startNewConversation(ctx: CallerContext, current: Session, opts?: { handoffText?: string }) {
-      this.archiveSession(current);
+      const lookupThreadId = ctx.sessionMode === 'per-thread' ? ctx.threadId : null;
+      for (const stale of findAllActiveConversationSessions(
+        ctx.agentGroupId,
+        ctx.messagingGroupId,
+        lookupThreadId,
+        ctx.sessionMode,
+      )) {
+        this.archiveSession(stale);
+      }
       const next = createConversationSessionInternal(ctx);
       if (opts?.handoffText) {
         writeSessionMessage(ctx.agentGroupId, next.id, {

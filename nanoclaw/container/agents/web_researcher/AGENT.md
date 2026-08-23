@@ -23,4 +23,4 @@ Web research worker.
 
 ## Output
 
-DONE + facts with source URLs. Never fabricate citations.
+DONE + facts with source URLs as Markdown links `[title](url)` from tool JSON. Never fabricate citations.

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Adapter, AdapterPostableMessage, RawMessage } from 'chat';
 
-import { createChatSdkBridge, splitForLimit } from './chat-sdk-bridge.js';
+import { createChatSdkBridge, slashCommandToInbound, splitForLimit } from './chat-sdk-bridge.js';
 
 vi.mock('../webhook-server.js', () => ({
   registerWebhookAdapter: vi.fn(),
@@ -457,5 +457,24 @@ describe('createChatSdkBridge.deliver — display cards (send_card)', () => {
     expect(calls).toHaveLength(1);
     const msg = calls[0].message as { markdown?: string };
     expect(msg.markdown).toBe('plain hello');
+  });
+});
+
+describe('slashCommandToInbound', () => {
+  it('builds inbound payload for Telegram /new bot_command', () => {
+    const inbound = slashCommandToInbound({
+      adapter: stubAdapter({}),
+      channel: { id: 'telegram:7239635872' } as never,
+      command: '/new',
+      text: '',
+      user: { userId: '7239635872', userName: 'Srg', fullName: 'Srg', isBot: false, isMe: false },
+      raw: { message_id: 117, date: 1_700_000_000, chat: { id: 7239635872, type: 'private' } },
+      openModal: async () => undefined,
+    });
+    expect(inbound.kind).toBe('chat-sdk');
+    expect(inbound.id).toBe('7239635872:117');
+    expect((inbound.content as { text: string }).text).toBe('/new');
+    expect(inbound.isMention).toBe(true);
+    expect(inbound.isGroup).toBe(false);
   });
 });

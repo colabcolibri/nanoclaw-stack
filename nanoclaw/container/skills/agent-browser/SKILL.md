@@ -20,5 +20,5 @@ tools:
 
 1. One `web_search` with enough `max_results` before retrying similar queries.
 2. `browse_url` on primary sources only — not every snippet.
-3. Cite source URLs in summary. Never invent facts.
+3. Include source URLs from tool output as Markdown links in the summary. Never invent links.
 4. DONE + bullets with links. No conversational preamble.

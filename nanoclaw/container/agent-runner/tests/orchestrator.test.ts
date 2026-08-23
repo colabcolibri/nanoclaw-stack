@@ -1,8 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeAll } from "bun:test";
 import { TurnOrchestrator } from "../src/orchestrator/turn-orchestrator.js";
 import { ExecutionScratchpad } from "../src/orchestrator/scratchpad.js";
 import { PayloadSanitizer } from "../src/orchestrator/payload-sanitizer.js";
 import type { LLMResponse } from "../src/orchestrator/types.js";
+
+beforeAll(() => {
+  process.env.TZ = process.env.TZ || "UTC";
+});
 
 describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
   test("Executes specialist worker in Stage 1 and applies Persona exclusively in Sender Agent with ExecutionScratchpad", async () => {
@@ -19,7 +23,7 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
         // Stage 1 - Specialist worker execution
         stage1ToolsPassed = enableTools;
         const sys = messages.find((m) => m.role === "system")?.content || "";
-        if (sys.includes("agente especialista")) {
+        if (sys.includes("specialist") || sys.includes("Worker execution")) {
           stage1HadTechnicalPrompt = true;
         }
 
@@ -52,7 +56,7 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
       }
 
       const userPrompt = messages.find((m) => m.role === "user")?.content || "";
-      if (userPrompt.includes("read_file") || userPrompt.includes("Resultados Técnicos")) {
+      if (userPrompt.includes("read_file") || userPrompt.includes("Verified technical results")) {
         stage2ReceivedFindings = true;
       }
 
@@ -128,7 +132,7 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
     // Technical noise MUST be stripped/collapsed
     expect(parsed.spf).toBeUndefined();
     expect(parsed.rawHeaders).toBeUndefined();
-    expect(parsed.imageBlob).toContain("Blob Base64");
+    expect(parsed.imageBlob).toContain("Base64 blob");
   });
 
   test("ExecutionScratchpad maintains and isolates tool execution memory", () => {

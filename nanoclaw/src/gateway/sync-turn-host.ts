@@ -4,24 +4,28 @@
  */
 import path from 'path';
 
-import { executeSlashCommand, parseSlashCommand } from '../commands/index.js';
+import { runSlashPipeline } from '../routing/slash-pipeline.js';
+import { parseSlashCommand } from '../commands/index.js';
 import { DATA_DIR, GROUPS_DIR } from '../config.js';
 import { ensureCentralDb } from '../db/ensure-central-db.js';
 import { getAgentGroupByFolder } from '../db/agent-groups.js';
+import { getContainerConfig } from '../db/container-configs.js';
 import { getSession, updateSession } from '../db/sessions.js';
 import {
   readConversationHistory,
   resolveActiveSession,
 } from '../conversations/lifecycle.js';
 import type { SummarizeMessagesFn } from '../conversations/types.js';
-import { summarizeConversation } from '../conversations/summarizer.js';
+import { createLlmSummarizeFn } from '../conversations/summarizer.js';
+import { loadGroupTurnContext } from './group-turn-context.js';
+import { createOpenAiCompatibleComplete } from './llm-openai-compatible.js';
 import {
   initSessionFolder,
   writeOutboundDirect,
   writeSessionMessage,
 } from '../session-manager.js';
 import type { Session } from '../types.js';
-import { invokeOrchestratorTurn, invokeSummarize } from './sync-turn-bun-client.js';
+import { invokeOrchestratorTurn } from './sync-turn-bun-client.js';
 import type {
   SyncChannel,
   SyncResetResult,
@@ -34,6 +38,14 @@ export type { SyncChannel, SyncResetResult, SyncTurnInput, SyncTurnResult } from
 const PROJECT_ROOT = process.cwd();
 const REGISTRY_PATH = path.join(DATA_DIR, 'llm-models.json');
 
+/** Remove wire-format delivery envelope; user-visible text only. */
+function stripDeliveryEnvelope(raw: string): string {
+  return raw
+    .replace(/<message[^>]*>/gi, '')
+    .replace(/<\/message>/gi, '')
+    .trim();
+}
+
 function resolveAgentGroupId(groupFolder: string): string {
   const group = getAgentGroupByFolder(groupFolder);
   if (!group?.id) {
@@ -42,21 +54,36 @@ function resolveAgentGroupId(groupFolder: string): string {
   return group.id;
 }
 
-function buildSummarizeFn(groupDir: string): SummarizeMessagesFn {
-  return async (messages) => {
-    try {
-      const llmSummary = await invokeSummarize({
-        messages: messages.map((m) => ({ role: m.role, text: m.text })),
+function buildSummarizeFn(groupDir: string, defaultModel: string): SummarizeMessagesFn {
+  let completeFn: Awaited<ReturnType<typeof createOpenAiCompatibleComplete>> | null = null;
+  return createLlmSummarizeFn(async (messages) => {
+    if (!completeFn) {
+      completeFn = await createOpenAiCompatibleComplete({
         groupDir,
-        defaultModel: 'deepseek-chat',
         registryPath: REGISTRY_PATH,
         projectRoot: PROJECT_ROOT,
+        defaultModel,
+        messageId: `summarize-${Date.now()}`,
+        recordTelemetry: false,
       });
-      if (llmSummary.trim()) return llmSummary.trim().slice(0, 2000);
-    } catch {
-      /* extractive fallback below */
     }
-    return summarizeConversation(messages);
+    return completeFn(messages);
+  });
+}
+
+function resolveContainerModels(agentGroupId: string): {
+  defaultModel: string;
+  orchestratorModel?: string;
+  senderModel?: string;
+} {
+  const config = getContainerConfig(agentGroupId);
+  if (!config?.model?.trim()) {
+    throw new Error('model não configurado em container_configs para este grupo.');
+  }
+  return {
+    defaultModel: config.model.trim(),
+    orchestratorModel: config.orchestrator_model?.trim() || undefined,
+    senderModel: config.sender_model?.trim() || undefined,
   };
 }
 
@@ -97,31 +124,68 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
   };
 
   const groupDir = path.join(GROUPS_DIR, groupFolder);
-  const summarizeFn = buildSummarizeFn(groupDir);
 
   const conversationMode = input.conversationMode ?? (input.resetSession ? 'new' : undefined);
+  const parsedSlashEarly = parseSlashCommand(input.prompt);
+  const slashNeedsSummarize =
+    conversationMode === 'new-resume' || parsedSlashEarly?.id === 'new-resume';
+  let summarizeFn: SummarizeMessagesFn | undefined;
+  if (slashNeedsSummarize) {
+    const models = resolveContainerModels(agentGroupId);
+    summarizeFn = buildSummarizeFn(groupDir, models.defaultModel);
+  }
+
+  const slashBase = {
+    content: input.prompt,
+    caller: callerContext,
+    delivery,
+    userId,
+    agentGroupId,
+    transport: 'sync' as const,
+  };
+
   let sessionAfterMode: Session | null = null;
+  let modeSlashReply: string | null = null;
   if (conversationMode) {
-    const modeResult = await executeSlashCommand(conversationMode, callerContext, delivery, {
+    const modeOutcome = await runSlashPipeline({
+      ...slashBase,
+      explicitCommandId: conversationMode,
       summarizeWithLlm: conversationMode === 'new-resume' ? summarizeFn : undefined,
     });
-    sessionAfterMode = modeResult.session;
+    if (modeOutcome.kind !== 'handled') {
+      throw new Error(`Falha ao executar comando de conversa: ${conversationMode}`);
+    }
+    sessionAfterMode = modeOutcome.result.session;
+    modeSlashReply = modeOutcome.result.reply;
     pinnedSession = null;
   }
 
-  const parsedSlash = parseSlashCommand(input.prompt);
-  if (parsedSlash) {
-    const cmdResult = await executeSlashCommand(parsedSlash.id, callerContext, delivery, {
-      summarizeWithLlm: parsedSlash.id === 'new-resume' ? summarizeFn : undefined,
-    });
-    return {
-      reply: cmdResult.reply,
-      timestamp: new Date().toISOString(),
-      toolsExecutedCount: 0,
-      sessionId: cmdResult.session.id,
-    };
+  if (parsedSlashEarly) {
+    if (conversationMode && parsedSlashEarly.id === conversationMode && modeSlashReply !== null) {
+      return {
+        reply: modeSlashReply,
+        timestamp: new Date().toISOString(),
+        toolsExecutedCount: 0,
+        sessionId: sessionAfterMode!.id,
+      };
+    }
+    if (parsedSlashEarly.id !== conversationMode) {
+      const cmdOutcome = await runSlashPipeline({
+        ...slashBase,
+        summarizeWithLlm: parsedSlashEarly.id === 'new-resume' ? summarizeFn : undefined,
+      });
+      if (cmdOutcome.kind === 'handled') {
+        return {
+          reply: cmdOutcome.result.reply,
+          timestamp: new Date().toISOString(),
+          toolsExecutedCount: 0,
+          sessionId: cmdOutcome.result.session.id,
+        };
+      }
+    }
   }
 
+  const models = resolveContainerModels(agentGroupId);
   const session = sessionAfterMode
     ?? (pinnedSession
       ? pinnedSession.status !== 'active'
@@ -151,22 +215,24 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     .filter((m) => m.role === 'user' || m.role === 'assistant')
     .map((m) => ({ role: m.role, content: m.text }));
 
+  const turnContext = loadGroupTurnContext(groupDir);
   const turnResult = await invokeOrchestratorTurn({
     prompt: input.prompt,
     groupDir,
-    groupFolder,
     threadId,
-    channel: input.channel,
     userMsgId,
     history,
+    personaInstructions: turnContext.personaInstructions,
+    systemInstructions: turnContext.systemInstructions,
+    coreMemory: turnContext.coreMemory,
+    defaultModel: models.defaultModel,
+    orchestratorModel: models.orchestratorModel,
+    senderModel: models.senderModel,
     registryPath: REGISTRY_PATH,
     projectRoot: PROJECT_ROOT,
   });
 
-  const cleanReply = turnResult.deliveredText
-    .replace(/<message[^>]*>/gi, '')
-    .replace(/<\/message>/gi, '')
-    .trim();
+  const replyText = stripDeliveryEnvelope(turnResult.deliveredText);
 
   const responseTimestamp = new Date().toISOString();
   const assistantMsgId = `msg-${input.channel}-out-${Date.now()}`;
@@ -177,13 +243,13 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     platformId: threadId,
     channelType: input.channel,
     threadId,
-    content: `<message to="${threadId}">\n${cleanReply}\n</message>`,
+    content: JSON.stringify({ text: replyText }),
   });
 
   updateSession(sessionId, { last_active: responseTimestamp });
 
   return {
-    reply: cleanReply,
+    reply: replyText,
     timestamp: responseTimestamp,
     toolsExecutedCount: turnResult.toolsExecutedCount,
     sessionId,
@@ -211,10 +277,24 @@ export async function resetSyncSession(
   };
   const delivery = { channelType: channel, platformId: threadId, threadId };
   const groupDir = path.join(GROUPS_DIR, groupFolder);
-  const summarizeFn = buildSummarizeFn(groupDir);
+  let summarizeFn: SummarizeMessagesFn | undefined;
+  if (mode === 'new-resume') {
+    const models = resolveContainerModels(agentGroupId);
+    summarizeFn = buildSummarizeFn(groupDir, models.defaultModel);
+  }
 
-  const result = await executeSlashCommand(mode, callerContext, delivery, {
-    summarizeWithLlm: mode === 'new-resume' ? summarizeFn : undefined,
+  const outcome = await runSlashPipeline({
+    content: `/${mode}`,
+    caller: callerContext,
+    delivery,
+    userId,
+    agentGroupId,
+    transport: 'sync',
+    explicitCommandId: mode,
+    summarizeWithLlm: summarizeFn,
   });
-  return { reply: result.reply, sessionId: result.session.id };
+  if (outcome.kind !== 'handled') {
+    throw new Error(`Falha ao reiniciar sessão (${mode}).`);
+  }
+  return { reply: outcome.result.reply, sessionId: outcome.result.session.id };
 }

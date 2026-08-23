@@ -55,7 +55,7 @@ export class MemoryManager {
     try {
       const content = fs.readFileSync(memPath, 'utf-8').trim();
       if (!content) return '';
-      return `### 🧠 Memória Persistente de Longo Prazo:\n${content}`;
+      return `### Long-term memory\n${content}`;
     } catch {
       return '';
     }

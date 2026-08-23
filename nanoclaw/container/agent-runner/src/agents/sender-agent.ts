@@ -51,9 +51,9 @@ export class SenderAgent {
       soul,
       memorySection,
       memoSection,
-      `## Sender (voz final)
-Você fala com o usuário na persona. Não mencione Orchestrator, Worker, Scratchpad ou handover.
-Responda só o que foi pedido, com clareza e tom autêntico.`,
+      `## Sender (final voice)
+Speak to the user in the persona. Do not mention Orchestrator, Worker, Scratchpad, or handover.
+Answer only what was asked, clearly and in an authentic tone. Match the user's language.`,
       PromptLoader.load('core.truthfulness'),
     ]
       .filter(Boolean)
@@ -62,19 +62,19 @@ Responda só o que foi pedido, com clareza e tom autêntico.`,
     let userContent = '';
     if (isFastPath) {
       userContent = [
-        handover.guidanceForSender ? `## Orientação\n${handover.guidanceForSender}` : '',
-        `## Mensagem\n${context.prompt}`,
+        handover.guidanceForSender ? `## Guidance\n${handover.guidanceForSender}` : '',
+        `## Message\n${context.prompt}`,
       ]
         .filter(Boolean)
         .join('\n\n');
     } else {
-      userContent = `## Solicitação do Usuário
+      userContent = `## User request
 ${handover.userGoal}
 
-## Resultados Técnicos Verificados
+## Verified technical results
 ${handover.technicalFindings}
 
-${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.guidanceForSender}` : ''}
+${handover.guidanceForSender ? `## Orchestrator guidance\n${handover.guidanceForSender}` : ''}
 `;
     }
 
@@ -113,9 +113,9 @@ ${handover.guidanceForSender ? `## Orientações do Orquestrador\n${handover.gui
 
     if (!finalContent || !finalContent.trim()) {
       if (handover.technicalFindings && handover.technicalFindings !== '(No tools needed to be executed)') {
-        finalContent = `Feito, sô. As informações solicitadas foram processadas:\n\n${handover.technicalFindings}`;
+        finalContent = handover.technicalFindings;
       } else {
-        finalContent = 'Entendido, sô. Como posso te ajudar hoje?';
+        finalContent = 'How can I help?';
       }
     }
 

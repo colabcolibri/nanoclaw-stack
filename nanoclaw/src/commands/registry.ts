@@ -18,7 +18,7 @@ const definitions: SlashCommandDefinition[] = [
       const { session } = resolveActiveSession(caller);
       forgetSoft(caller.agentGroupId, session.id);
       return {
-        reply: 'Session cleared.',
+        reply: 'Contexto do modelo limpo. O histórico de auditoria foi mantido.',
         session,
         wake: false,
         persist: 'current_session',
@@ -36,7 +36,7 @@ const definitions: SlashCommandDefinition[] = [
       const { session: current } = resolveActiveSession(caller);
       const next = startNewConversation(caller, current);
       return {
-        reply: 'New conversation started.',
+        reply: 'Nova conversa iniciada. A conversa anterior foi arquivada.',
         session: next,
         wake: false,
         persist: 'result_session',
@@ -54,7 +54,7 @@ const definitions: SlashCommandDefinition[] = [
       const { session: current } = resolveActiveSession(caller);
       const { session: next } = await startNewConversationWithResume(caller, current, summarizeWithLlm);
       return {
-        reply: 'New conversation started with context from the previous one.',
+        reply: 'Nova conversa iniciada com resumo da conversa anterior.',
         session: next,
         wake: false,
         persist: 'result_session',

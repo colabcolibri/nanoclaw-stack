@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useDefaultGroup } from '@/contexts/AppConfigContext'
-import { RefreshCw, Smartphone, Key, Check, Copy, Activity, CheckCircle2, Radio, MessageSquare } from 'lucide-react'
+import { RefreshCw, Smartphone, Key, Check, Copy, Activity, CheckCircle2, Radio, MessageSquare, Trash2 } from 'lucide-react'
 import { ApiClient, type ConnectedChannelItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { ClearChatCostsDialog } from '@/components/service/ClearChatCostsDialog'
 import {
   formatEngageMode,
   formatSenderPolicy,
@@ -29,6 +30,7 @@ export const ServiceView: React.FC = () => {
   const [copiedCode, setCopiedCode] = useState<boolean>(false)
   const [channels, setChannels] = useState<ConnectedChannelItem[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [purgeDialogOpen, setPurgeDialogOpen] = useState(false)
 
   useEffect(() => {
     loadServiceData()
@@ -330,6 +332,41 @@ export const ServiceView: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border border-red-500/20 bg-(--bg-card) shadow-xs overflow-hidden w-full">
+        <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
+          <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-red-500" />
+            <span>Manutenção de dados</span>
+          </CardTitle>
+          <CardDescription className="text-xs text-(--text-muted) mt-1">
+            Remove todo o histórico de conversas e custos do banco. Use apenas se precisar começar do zero.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-(--text-muted) leading-relaxed max-w-2xl">
+            Apaga mensagens, contexto LLM das sessões ativas, sessões arquivadas e ledgers de token/custo.
+            Canais, agentes, usuários e configurações permanecem intactos.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setPurgeDialogOpen(true)}
+            className="shrink-0 gap-2 text-xs font-bold"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Limpar chat e custos</span>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <ClearChatCostsDialog
+        open={purgeDialogOpen}
+        onOpenChange={setPurgeDialogOpen}
+        onSuccess={() => {
+          alert('Chat e custos limpos com sucesso.')
+        }}
+      />
     </div>
   )
 }

@@ -31,6 +31,11 @@ public struct ChatThread: Identifiable, Codable, Equatable {
         return sessionId.replacingOccurrences(of: "sess-", with: "").prefix(12).description
     }
 
+    public var lastActiveDate: Date? {
+        guard let lastActiveAt else { return nil }
+        return ChatThread.parseDate(lastActiveAt)
+    }
+
     public var relativeTime: String {
         guard let lastActiveAt, let date = ChatThread.parseDate(lastActiveAt) else { return "" }
         let diff = Date().timeIntervalSince(date)

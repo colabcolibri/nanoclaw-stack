@@ -41,32 +41,32 @@ export class AgentRegistry {
     // 1. Productivity & Communication Department
     this.registerDepartment({
       id: 'productivity',
-      name: 'Produtividade & Comunicação',
-      description: 'Gestão de agendas, e-mails Gmail, notas e banco de dados Notion, compromissos e agendamentos.',
+      name: 'Productivity & Communication',
+      description: 'Calendars, Gmail, Notion notes/databases, appointments, and scheduling.',
       agentIds: ['productivity_attendant', 'notion_architect'],
     });
 
     // 2. Commerce & Logistics Department
     this.registerDepartment({
       id: 'commerce',
-      name: 'Comércio, Logística & Revenda',
-      description: 'Gestão de pedidos na loja Yampi, cálculo de preços de revenda/atacado e estimativa de frete Correios.',
+      name: 'Commerce, Logistics & Resale',
+      description: 'Yampi store orders, wholesale/resale pricing, and Correios shipping estimates.',
       agentIds: ['store_attendant', 'pricing_logistics_agent'],
     });
 
     // 3. Research & Intelligence Department
     this.registerDepartment({
       id: 'research_intel',
-      name: 'Pesquisa, Inteligência & Web',
-      description: 'Buscas na web em tempo real, navegação em URLs e monitoramento de métricas e custos de tokens.',
+      name: 'Research, Intelligence & Web',
+      description: 'Live web search, URL browsing, and token/cost metrics monitoring.',
       agentIds: ['web_researcher', 'system_metrics_agent'],
     });
 
     // 4. General / Operations Department
     this.registerDepartment({
       id: 'operations',
-      name: 'Operações & Sistema',
-      description: 'Operações de sistema de arquivos, comandos de infraestrutura e memória compartilhada.',
+      name: 'Operations & System',
+      description: 'Filesystem operations, infrastructure commands, and shared memory.',
       agentIds: ['system_operator'],
     });
   }
@@ -141,7 +141,7 @@ export class AgentRegistry {
       const id = parseYamlField('id') || path.basename(path.dirname(filePath));
       const name = parseYamlField('name') || id;
       const departmentId = parseYamlField('department') || parseYamlField('departmentId') || 'general';
-      const role = parseYamlField('role') || 'Agente Especialista';
+      const role = parseYamlField('role') || 'Specialist agent';
       const description = parseYamlField('description') || role;
       const model = parseYamlField('model');
       const executionProfile = parseYamlField('execution_profile');
@@ -302,7 +302,7 @@ export class AgentRegistry {
 
   static getDepartmentCatalogPrompt(cwd?: string): string {
     const depts = this.getDepartments(cwd);
-    const lines = ['## Departamentos Especializados Disponíveis:'];
+    const lines = ['## Available specialist departments:'];
     for (const d of depts) {
       lines.push(`- **[${d.id}]** ${d.name}: ${d.description}`);
     }
@@ -343,8 +343,8 @@ export class AgentRegistry {
 
   static getAgentsInDepartmentPrompt(deptId: string, cwd?: string): string {
     const agents = this.getAgentsInDepartment(deptId, cwd);
-    if (agents.length === 0) return 'Nenhum agente registrado neste departamento.';
-    const lines = [`## Especialistas no Departamento [${deptId}]:`];
+    if (agents.length === 0) return 'No agents registered in this department.';
+    const lines = [`## Specialists in department [${deptId}]:`];
     for (const a of agents) {
       const caps = a.capabilities?.length ? ` | capabilities: ${a.capabilities.join(', ')}` : '';
       lines.push(`- **[${a.id}]** ${a.name}: ${a.role}${caps}`);

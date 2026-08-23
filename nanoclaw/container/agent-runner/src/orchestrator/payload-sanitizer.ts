@@ -28,7 +28,7 @@ export class PayloadSanitizer {
    * Sanitizes any tool output dynamically and non-destructively.
    */
   static sanitize(toolName: string, rawOutput: string): string {
-    if (!rawOutput || !rawOutput.trim()) return '(retorno vazio)';
+    if (!rawOutput || !rawOutput.trim()) return '(empty result)';
 
     const trimmed = rawOutput.trim();
 
@@ -63,13 +63,13 @@ export class PayloadSanitizer {
     }
 
     // Guard against deep circular structures
-    if (depth > 6) return '[Estrutura profunda truncada]';
+    if (depth > 6) return '[deep structure truncated]';
 
     // Arrays: Bounded to prevent multi-thousand row dumps
     if (Array.isArray(node)) {
       const cleanedItems = node.slice(0, this.MAX_ARRAY_ITEMS).map((item) => this.cleanNode(item, depth + 1));
       if (node.length > this.MAX_ARRAY_ITEMS) {
-        cleanedItems.push(`...[e mais ${node.length - this.MAX_ARRAY_ITEMS} itens adicionais preservados]`);
+        cleanedItems.push(`...[${node.length - this.MAX_ARRAY_ITEMS} more items preserved]`);
       }
       return cleanedItems;
     }
@@ -96,12 +96,12 @@ export class PayloadSanitizer {
   private static cleanStringField(str: string): string {
     // Detect and collapse Base64 image/file blobs
     if (str.startsWith('data:') && str.includes(';base64,')) {
-      return `[Blob Base64 ~${Math.round(str.length / 1024)} KB omitido]`;
+      return `[Base64 blob ~${Math.round(str.length / 1024)} KB omitted]`;
     }
 
     // Detect standalone long base64 chunks (> 200 consecutive base64 chars)
     if (str.length > 200 && /^[A-Za-z0-9+/=]{200,}$/.test(str)) {
-      return `[Binário Base64 ~${Math.round(str.length / 1024)} KB omitido]`;
+      return `[Base64 binary ~${Math.round(str.length / 1024)} KB omitted]`;
     }
 
     // Strip raw <style> and <script> tags if HTML was returned
@@ -113,7 +113,7 @@ export class PayloadSanitizer {
     }
 
     if (text.length > this.MAX_STRING_FIELD_LENGTH) {
-      return text.slice(0, this.MAX_STRING_FIELD_LENGTH) + '... [texto longo resumido]';
+      return text.slice(0, this.MAX_STRING_FIELD_LENGTH) + '... [long text summarized]';
     }
 
     return text;
@@ -125,7 +125,7 @@ export class PayloadSanitizer {
   private static cleanPlainText(text: string): string {
     let clean = this.cleanStringField(text);
     if (clean.length > 2500) {
-      return clean.slice(0, 2500) + '\n... [conteúdo longo truncado de forma segura]';
+      return clean.slice(0, 2500) + '\n... [long content safely truncated]';
     }
     return clean;
   }

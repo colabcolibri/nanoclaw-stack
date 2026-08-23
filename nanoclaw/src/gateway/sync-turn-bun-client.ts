@@ -7,7 +7,6 @@ import path from 'node:path';
 import type {
   OrchestratorTurnRequest,
   OrchestratorTurnResult,
-  SummarizeRequest,
   SyncTurnRunnerRequest,
 } from './sync-turn-types.js';
 
@@ -92,8 +91,4 @@ async function invokeBunRunner<T>(payload: SyncTurnRunnerRequest): Promise<T> {
 
 export function invokeOrchestratorTurn(request: OrchestratorTurnRequest): Promise<OrchestratorTurnResult> {
   return invokeBunRunner<OrchestratorTurnResult>({ op: 'orchestrate', orchestrate: request });
-}
-
-export function invokeSummarize(request: SummarizeRequest): Promise<string> {
-  return invokeBunRunner<string>({ op: 'summarize', summarize: request });
 }

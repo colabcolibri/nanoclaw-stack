@@ -15,6 +15,7 @@ import { startActiveDeliveryPoll, startSweepDeliveryPoll, setDeliveryAdapter, st
 import { startHostSweep, stopHostSweep } from './host-sweep.js';
 import { startHostModules, stopHostModules } from './host-lifecycle.js';
 import { registerMacInternalApi } from './channels/macos/index.js';
+import { registerMotorHealth } from './motor-health.js';
 import { routeInbound } from './router.js';
 import { log } from './log.js';
 import { enforceUpgradeTripwire } from './upgrade-state.js';
@@ -90,6 +91,7 @@ async function main(): Promise<void> {
 
   // Internal sync-turn API for UI / macOS app (Node motor only).
   registerMacInternalApi();
+  registerMotorHealth();
 
   // 2. Container runtime
   ensureContainerRuntimeRunning();

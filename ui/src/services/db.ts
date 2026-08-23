@@ -535,10 +535,23 @@ export class DatabaseService {
         const text = parsed.text || parsed.content || parsed.message || (typeof parsed === "string" ? parsed : JSON.stringify(parsed));
         const senderName = parsed.author?.senderName || parsed.senderName || parsed.sender || (fallbackType === "user" ? "Usuário" : "Assistente");
         const threadId = parsed.threadId || parsed.channelId;
-        return { text, senderName, threadId };
+        return {
+          text: fallbackType === "assistant" ? this.stripDeliveryEnvelope(String(text)) : String(text),
+          senderName,
+          threadId,
+        };
       }
     } catch {}
-    return { text: raw, senderName: fallbackType === "user" ? "Usuário" : "Assistente" };
+    const text = fallbackType === "assistant" ? this.stripDeliveryEnvelope(raw) : raw;
+    return { text, senderName: fallbackType === "user" ? "Usuário" : "Assistente" };
+  }
+
+  /** Internal poll-loop envelope — not user-facing. */
+  private static stripDeliveryEnvelope(raw: string): string {
+    return raw
+      .replace(/<message[^>]*>/gi, "")
+      .replace(/<\/message>/gi, "")
+      .trim();
   }
 
   static getChatMessages(limit = 100, sessionId?: string): ChatMessageItem[] {
@@ -591,10 +604,39 @@ export class DatabaseService {
 
   static getChatThreadsForGroup(agentGroupId: string, channel?: string, limit = 50): ChatThreadItem[] {
     const threads = this.getChatThreads(limit * 4);
-    return threads
-      .filter((t) => t.agentGroupId === agentGroupId)
-      .filter((t) => !channel || t.channel === channel)
-      .slice(0, limit);
+    return this.dedupeActiveThreadsPerBinding(
+      threads
+        .filter((t) => t.agentGroupId === agentGroupId)
+        .filter((t) => !channel || t.channel === channel),
+    ).slice(0, limit);
+  }
+
+  /**
+   * UI invariant: one open conversation per (group, channel, thread).
+   * If the DB has stale duplicates, keep the newest active and treat the rest as archived in the list.
+   */
+  private static dedupeActiveThreadsPerBinding(threads: ChatThreadItem[]): ChatThreadItem[] {
+    const activeWinner = new Map<string, string>();
+    const sorted = [...threads].sort((a, b) => {
+      const tA = Date.parse(a.lastActiveAt || "") || 0;
+      const tB = Date.parse(b.lastActiveAt || "") || 0;
+      return tB - tA;
+    });
+
+    for (const thread of sorted) {
+      if (thread.status !== "active") continue;
+      const key = `${thread.agentGroupId}\0${thread.channel}\0${thread.threadId ?? ""}`;
+      if (!activeWinner.has(key)) {
+        activeWinner.set(key, thread.sessionId);
+      }
+    }
+
+    return threads.map((thread) => {
+      if (thread.status !== "active") return thread;
+      const key = `${thread.agentGroupId}\0${thread.channel}\0${thread.threadId ?? ""}`;
+      if (activeWinner.get(key) === thread.sessionId) return thread;
+      return { ...thread, status: "archived" as const };
+    });
   }
 
   static extractSessionFromDbPath(dbPath: string): { agentGroupId: string; sessionId: string } | null {

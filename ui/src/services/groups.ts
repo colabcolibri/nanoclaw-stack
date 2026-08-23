@@ -142,7 +142,16 @@ function buildContainerDocsCatalog(): Record<string, ContainerDocMeta> {
     "instructions.prepend.md": {
       title: "🧠 SOUL — identidade & voz (instructions.prepend.md)",
       category: "⭐ 1. Principais (Edição Frequente)",
-      fallback: "",
+      fallback: `# Identity
+
+Name, tone, and how you speak to the user.
+
+## Response formatting
+
+When a reply is more than a short line, structure it with Markdown (headings, bullets, **bold**) so it's easy to read — keep it proportional; don't over-format simple answers.
+
+When the answer uses web search or verified URLs, include those links in the message as Markdown \`[label](url)\`. Do not drop URLs from search results.
+`,
     },
     "instructions.context.md": {
       title: "📋 Contexto operacional (instructions.context.md)",

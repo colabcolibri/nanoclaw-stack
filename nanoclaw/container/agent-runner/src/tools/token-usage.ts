@@ -9,23 +9,23 @@ export const tokenUsageTool: AgentTool = {
     type: 'function',
     function: {
       name: 'token_usage',
-      description: 'Consulta o extrato e histórico de consumo de tokens e custos em Reais (BRL) e Dólares (USD).',
+      description: 'Query token usage ledger and cost history in BRL and USD.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['get_summary', 'get_recent_logs'],
-            description: 'Ação: "get_summary" (totais e métricas agrupadas), "get_recent_logs" (detalhe das últimas chamadas).',
+            description: 'Action: "get_summary" (aggregated totals and metrics) or "get_recent_logs" (recent call details).',
           },
           period: {
             type: 'string',
             enum: ['today', 'yesterday', '7d', '30d', 'all'],
-            description: 'Período de consulta (padrão: "today").',
+            description: 'Query period (default: "today").',
           },
           limit: {
             type: 'number',
-            description: 'Quantidade de registros para get_recent_logs (padrão 10, max 50).',
+            description: 'Number of rows for get_recent_logs (default 10, max 50).',
           },
         },
         required: ['action'],

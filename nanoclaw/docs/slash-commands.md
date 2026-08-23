@@ -2,7 +2,7 @@
 
 User-facing slash commands (`/clear`, `/new`, `/new-resume`, …) are handled on the **host** before any message reaches the agent container. The inbound command text is **never** written to `messages_in`; only the system acknowledgement may appear in thread history.
 
-Implementation: `src/commands/` (registry, parse, execute, deliver-reply). Conversation lifecycle helpers live in `src/conversations/`.
+Implementation: `src/routing/slash-pipeline.ts` (transport), `src/commands/` (registry, parse, execute), `src/conversations/` (lifecycle).
 
 ---
 
@@ -42,12 +42,16 @@ Admin gating uses `requiresAdmin` on each definition. `command-gate.ts` reads ad
 
 ```
 Inbound text
-  → command-gate (admin / filtered platform commands)
+  → routing/slash-pipeline (gate on channel transport only)
   → parseSlashCommand()
   → registry handler execute()
   → deliverCommandReply() (if not ephemeral)
-  → optional wake container (false for lifecycle commands today)
+  → channel: deliverSessionMessages() | sync: reply in HTTP response
 ```
+
+Channel adapters call `routeInbound()` which uses `runSlashPipeline({ transport: 'channel' })`.
+Sync-turn (macOS / UI) uses `runSlashPipeline({ transport: 'sync' })` — admin gate skipped
+because the caller is already authenticated at the HTTP boundary.
 
 The user's slash message is **not** appended to the conversation. The next normal message goes to the session returned by the handler (unchanged for `/clear`, new id for `/new`).
 

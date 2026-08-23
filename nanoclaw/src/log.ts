@@ -1,5 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 const LEVELS = { debug: 20, info: 30, warn: 40, error: 50, fatal: 60 } as const;
 type Level = keyof typeof LEVELS;
+
+/** Evita import de config.js (env.ts importa log.ts — ciclo de inicialização). */
+function getLogFilePath(): string {
+  const root = process.env.NANOCLAW_PATH?.trim() || process.cwd();
+  return path.join(root, 'data', 'logs', 'nanoclaw.log');
+}
+
+let logFileReady = false;
 
 const COLORS: Record<Level, string> = {
   debug: '\x1b[34m',
@@ -30,6 +41,35 @@ function formatData(data: Record<string, unknown>): string {
   return parts.length ? ' ' + parts.join(' ') : '';
 }
 
+function formatDataPlain(data: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(data)) {
+    parts.push(`${k}=${k === 'err' ? formatErr(v) : JSON.stringify(v)}`);
+  }
+  return parts.length ? ' ' + parts.join(' ') : '';
+}
+
+function ensureLogFileReady(): void {
+  if (logFileReady) return;
+  try {
+    fs.mkdirSync(path.dirname(getLogFilePath()), { recursive: true });
+    logFileReady = true;
+  } catch {
+    // ignore — stdout logging must keep working
+  }
+}
+
+function appendLogFile(level: Level, msg: string, data?: Record<string, unknown>): void {
+  try {
+    ensureLogFileReady();
+    if (!logFileReady) return;
+    const line = `[${ts()}] ${level.toUpperCase()} ${msg}${data ? formatDataPlain(data) : ''}\n`;
+    fs.appendFileSync(getLogFilePath(), line, 'utf-8');
+  } catch {
+    // ignore — never break the logging pipeline
+  }
+}
+
 function ts(): string {
   const d = new Date();
   const hh = String(d.getHours()).padStart(2, '0');
@@ -44,6 +84,7 @@ function emit(level: Level, msg: string, data?: Record<string, unknown>): void {
   const tag = `${COLORS[level]}${level.toUpperCase()}${level === 'fatal' ? FULL_RESET : RESET}`;
   const stream = LEVELS[level] >= LEVELS.warn ? process.stderr : process.stdout;
   stream.write(`[${ts()}] ${tag} ${MSG_COLOR}${msg}${RESET}${data ? formatData(data) : ''}\n`);
+  appendLogFile(level, msg, data);
 }
 
 export const log = {

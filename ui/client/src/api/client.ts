@@ -372,7 +372,9 @@ export class ApiClient {
     return this.fetchJson('/api/security')
   }
 
-  static async getLogs(lines = 100): Promise<{ logs: string[] }> {
+  static async getLogs(
+    lines = 100,
+  ): Promise<{ logs: string[]; source?: 'journalctl' | 'file' | 'none'; error?: string }> {
     return this.fetchJson(`/api/service/logs?lines=${lines}`)
   }
 
@@ -513,6 +515,22 @@ export class ApiClient {
 
   static async restartService(): Promise<{ success: boolean }> {
     return this.fetchJson('/api/service/restart', { method: 'POST' })
+  }
+
+  static async purgeChatAndCosts(confirmation: string): Promise<{
+    success: boolean
+    result: {
+      sessionsWiped: number
+      archivedSessionsRemoved: number
+      staleFoldersRemoved: number
+      tokenLedgerRowsCleared: number
+      activeSessionsRemaining: number
+    }
+  }> {
+    return this.fetchJson('/api/maintenance/purge-chat-and-costs', {
+      method: 'POST',
+      body: JSON.stringify({ confirmation }),
+    })
   }
 
   static async generateTelegramPairing(group: string): Promise<{ code: string }> {

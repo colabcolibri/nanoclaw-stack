@@ -260,7 +260,7 @@ export class OrchestratorAgent {
     if (parsed.type === 'department_delegation' && parsed.departmentId) {
       return {
         type: 'department_delegation',
-        reasoning: parsed.reasoning || 'Delegação por LLM',
+        reasoning: parsed.reasoning || 'LLM delegation',
         departmentId: parsed.departmentId,
         agentId: parsed.agentId,
         taskDescription: parsed.taskDescription || '',

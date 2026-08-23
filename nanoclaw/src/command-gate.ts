@@ -8,6 +8,7 @@
  * - Normal messages: pass through unchanged
  */
 import { hasAdminPrivilege } from './modules/permissions/db/user-roles.js';
+import { extractMessageText, normalizeSlashToken } from './commands/parse.js';
 import { getAdminSlashTokens } from './commands/registry.js';
 
 export type GateResult = { action: 'pass' } | { action: 'filter' } | { action: 'deny'; command: string };
@@ -29,17 +30,13 @@ const ADMIN_COMMANDS = new Set([
  * admin commands.
  */
 export function gateCommand(content: string, userId: string | null, agentGroupId: string): GateResult {
-  let text: string;
-  try {
-    const parsed = JSON.parse(content);
-    text = (parsed.text || '').trim();
-  } catch {
-    text = content.trim();
-  }
+  const text = extractMessageText(content);
 
   if (!text.startsWith('/')) return { action: 'pass' };
 
-  const command = text.split(/\s/)[0].toLowerCase();
+  const rawToken = text.split(/\s+/)[0];
+  if (!rawToken) return { action: 'pass' };
+  const command = normalizeSlashToken(rawToken);
 
   if (FILTERED_COMMANDS.has(command)) return { action: 'filter' };
 

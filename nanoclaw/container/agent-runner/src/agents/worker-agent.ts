@@ -109,7 +109,7 @@ export class WorkerAgentRunner {
       }
 
       // No more tools called; worker has finished its work
-      finalSummary = ResponseParser.cleanHumanText(response.content) || 'Processamento técnico concluído.';
+      finalSummary = ResponseParser.cleanHumanText(response.content) || 'Technical processing complete.';
       break;
     }
 

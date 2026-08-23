@@ -19,8 +19,7 @@
  */
 import { getChannelAdapter, getChannelDefaults } from './channels/channel-registry.js';
 import { resolveThreadPolicy, resolveUnknownSenderPolicy } from './channels/channel-defaults.js';
-import { gateCommand } from './command-gate.js';
-import { parseSlashCommand, executeSlashCommand } from './commands/index.js';
+import { shouldForceEngageForHostSlash, runSlashPipeline } from './routing/index.js';
 import { getAgentGroup } from './db/agent-groups.js';
 import { recordDroppedMessage } from './db/dropped-messages.js';
 import {
@@ -31,7 +30,7 @@ import {
 import { findSessionForAgent } from './db/sessions.js';
 import { startTypingRefresh, stopTypingRefresh } from './modules/typing/index.js';
 import { log } from './log.js';
-import { resolveSession, writeSessionMessage, writeOutboundDirect } from './session-manager.js';
+import { resolveSession, writeSessionMessage } from './session-manager.js';
 import { wakeContainer } from './container-runner.js';
 import { getSession } from './db/sessions.js';
 import type { AgentGroup, MessagingGroup, MessagingGroupAgent } from './types.js';
@@ -151,7 +150,9 @@ export function setChannelRequestGate(fn: ChannelRequestGateFn): void {
 
 function safeParseContent(raw: string): { text?: string; sender?: string; senderId?: string } {
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as { text?: string; markdown?: string; sender?: string; senderId?: string };
+    const text = (parsed.text ?? parsed.markdown ?? '').trim();
+    return { text: text || parsed.text, sender: parsed.sender, senderId: parsed.senderId };
   } catch {
     return { text: raw };
   }
@@ -330,7 +331,9 @@ export async function routeInbound(event: InboundEvent): Promise<void> {
     );
     const effectiveThreadId = threadsEnabled ? event.threadId : null;
 
-    const engages = evaluateEngage(agent, messageText, isMention, mg, effectiveThreadId);
+    const engages =
+      shouldForceEngageForHostSlash(event.message.kind, event.message.content) ||
+      evaluateEngage(agent, messageText, isMention, mg, effectiveThreadId);
 
     const accessOk = engages && (!accessGate || accessGate(event, userId, mg, agent.agent_group_id).allowed);
     const scopeOk = engages && (!senderScopeGate || senderScopeGate(event, userId, mg, agent).allowed);
@@ -482,51 +485,31 @@ async function deliverToAgent(
     threadId: effectiveThreadId,
   };
 
-  // Command gate: classify slash commands before they reach the container.
-  // Filtered commands are dropped silently. Denied admin commands get a
-  // permission-denied response written directly to messages_out.
   if (event.message.kind === 'chat' || event.message.kind === 'chat-sdk') {
-    const gate = gateCommand(event.message.content, userId, agent.agent_group_id);
-    if (gate.action === 'filter') {
-      log.debug('Filtered command dropped by gate', { agentGroupId: agent.agent_group_id });
-      return;
-    }
-    if (gate.action === 'deny') {
-      writeOutboundDirect(session.agent_group_id, session.id, {
-        id: `deny-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        kind: 'chat',
-        platformId: deliveryAddr.platformId,
-        channelType: deliveryAddr.channelType,
-        threadId: deliveryAddr.threadId,
-        content: JSON.stringify({ text: `Permission denied: ${gate.command} requires admin access.` }),
-      });
-      log.info('Admin command denied by gate', { command: gate.command, userId, agentGroupId: agent.agent_group_id });
-      return;
-    }
-
-    const slashCommand =
-      event.message.kind === 'chat' || event.message.kind === 'chat-sdk'
-        ? parseSlashCommand(event.message.content)
-        : null;
-    if (slashCommand) {
-      const result = await executeSlashCommand(
-        slashCommand.id,
-        {
-          agentGroupId: agent.agent_group_id,
-          messagingGroupId: mg.id,
-          threadId: effectiveThreadId,
-          sessionMode: effectiveSessionMode,
-          channelType: deliveryAddr.channelType,
-          platformId: deliveryAddr.platformId,
-          userId,
-        },
-        deliveryAddr,
-      );
-      log.info('Conversation command handled', {
-        command: slashCommand.id,
-        sessionId: result.session.id,
+    const slashOutcome = await runSlashPipeline({
+      content: event.message.content,
+      caller: {
         agentGroupId: agent.agent_group_id,
-      });
+        messagingGroupId: mg.id,
+        threadId: effectiveThreadId,
+        sessionMode: effectiveSessionMode,
+        channelType: deliveryAddr.channelType,
+        platformId: deliveryAddr.platformId,
+        userId,
+      },
+      delivery: deliveryAddr,
+      userId,
+      agentGroupId: agent.agent_group_id,
+      transport: 'channel',
+      denySession: session,
+    });
+    if (slashOutcome.kind === 'filtered') {
+      return;
+    }
+    if (slashOutcome.kind === 'denied') {
+      return;
+    }
+    if (slashOutcome.kind === 'handled') {
       return;
     }
   }

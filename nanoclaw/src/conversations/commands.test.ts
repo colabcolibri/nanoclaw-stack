@@ -8,6 +8,9 @@ describe('conversation commands', () => {
     expect(parseSlashCommand('/new')).toEqual({ id: 'new', token: '/new' });
     expect(parseSlashCommand('/new-resume')).toEqual({ id: 'new-resume', token: '/new-resume' });
     expect(parseSlashCommand('/new-resume extra')).toEqual({ id: 'new-resume', token: '/new-resume' });
+    expect(parseSlashCommand('/new@barao_bot')).toEqual({ id: 'new', token: '/new' });
+    expect(parseSlashCommand(JSON.stringify({ text: '/new@barao_bot' }))).toEqual({ id: 'new', token: '/new' });
+    expect(parseSlashCommand(JSON.stringify({ markdown: '/new@barao_bot' }))).toEqual({ id: 'new', token: '/new' });
   });
 
   it('parseConversationCommand ignores non-commands', () => {
@@ -17,6 +20,8 @@ describe('conversation commands', () => {
 
   it('extractMessageText parses JSON inbound', () => {
     expect(extractMessageText(JSON.stringify({ text: '/new' }))).toBe('/new');
+    expect(extractMessageText(JSON.stringify({ markdown: '/new@barao_bot' }))).toBe('/new@barao_bot');
+    expect(extractMessageText({ markdown: '/clear' })).toBe('/clear');
   });
 
   it('isConversationCommand', () => {

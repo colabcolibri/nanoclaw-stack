@@ -4,8 +4,9 @@ import Foundation
 enum ThreadSelectionResolver {
     static func pickDefault(from threads: [ChatThread]) -> String? {
         guard !threads.isEmpty else { return nil }
-        if let active = threads.first(where: \.isActive) {
-            return active.sessionId
+        let actives = threads.filter(\.isActive)
+        if let newest = actives.max(by: { ($0.lastActiveDate ?? .distantPast) < ($1.lastActiveDate ?? .distantPast) }) {
+            return newest.sessionId
         }
         return threads.first?.sessionId
     }

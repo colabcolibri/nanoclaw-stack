@@ -11,6 +11,10 @@ import { NotionAuthService } from "../services/notion-auth.js";
 import { YampiAuthService } from "../services/yampi-auth.js";
 import { MacChannelService } from "../channels/macos/index.js";
 import { LlmModelService } from "../services/llm-models.js";
+import {
+  isValidPurgeConfirmation,
+  purgeChatAndCosts,
+} from "../services/maintenance.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   const list: Record<string, string> = {};
@@ -638,6 +642,17 @@ export class ApiRouter {
 
     if (url.pathname === "/api/service/restart" && method === "POST") {
       return jsonResponse(await SystemService.restartNanoClaw());
+    }
+
+    if (url.pathname === "/api/maintenance/purge-chat-and-costs" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { confirmation?: unknown };
+      if (!isValidPurgeConfirmation(body.confirmation)) {
+        return jsonResponse(
+          { error: 'Confirmação inválida. Digite "confirmar" para prosseguir.' },
+          400,
+        );
+      }
+      return jsonResponse({ success: true, result: purgeChatAndCosts() });
     }
 
     if (url.pathname === "/api/channels/connected" && method === "GET") {

@@ -27,11 +27,15 @@ export interface SyncResetResult {
 export interface OrchestratorTurnRequest {
   prompt: string;
   groupDir: string;
-  groupFolder: string;
   threadId: string;
-  channel: SyncChannel;
   userMsgId: string;
   history: Array<{ role: string; content: string }>;
+  personaInstructions: string;
+  systemInstructions: string;
+  coreMemory: string;
+  defaultModel: string;
+  orchestratorModel?: string;
+  senderModel?: string;
   registryPath: string;
   projectRoot: string;
 }
@@ -41,18 +45,9 @@ export interface OrchestratorTurnResult {
   toolsExecutedCount: number;
 }
 
-export interface SummarizeRequest {
-  messages: Array<{ role: string; text: string }>;
-  groupDir: string;
-  defaultModel: string;
-  registryPath: string;
-  projectRoot: string;
-}
-
-export type SyncTurnRunnerOp = 'orchestrate' | 'summarize';
+export type SyncTurnRunnerOp = 'orchestrate';
 
 export interface SyncTurnRunnerRequest {
   op: SyncTurnRunnerOp;
   orchestrate?: OrchestratorTurnRequest;
-  summarize?: SummarizeRequest;
 }

@@ -15,6 +15,7 @@ import {
   type Adapter,
   type ConcurrencyStrategy,
   type Message as ChatMessage,
+  type SlashCommandEvent,
 } from 'chat';
 import { log } from '../log.js';
 import { SqliteStateAdapter } from '../state-sqlite.js';
@@ -22,6 +23,46 @@ import { registerWebhookAdapter } from '../webhook-server.js';
 import { getAskQuestionRender } from '../db/sessions.js';
 import { normalizeOptions, type NormalizedOption } from './ask-question.js';
 import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from './adapter.js';
+
+type TelegramSlashRaw = {
+  message_id?: number;
+  date?: number;
+  chat?: { id: number | string; type?: string };
+};
+
+/**
+ * Telegram (and other Chat SDK adapters) detect `bot_command` entities and
+ * dispatch via `onSlashCommand`, skipping `onDirectMessage` / `onNewMessage`.
+ * Forward slash commands into the host router so `/new`, `/clear`, etc. work.
+ */
+export function slashCommandToInbound(event: SlashCommandEvent): InboundMessage {
+  const fullText = event.text.trim() ? `${event.command} ${event.text.trim()}` : event.command;
+  const raw = event.raw as TelegramSlashRaw | undefined;
+  const chatInfo = raw?.chat;
+  const isGroup = chatInfo?.type !== undefined && chatInfo.type !== 'private';
+  const msgId =
+    raw?.message_id !== undefined && chatInfo?.id !== undefined
+      ? `${chatInfo.id}:${raw.message_id}`
+      : `slash-${Date.now()}`;
+  const timestamp =
+    raw?.date !== undefined ? new Date(raw.date * 1000).toISOString() : new Date().toISOString();
+  const author = event.user;
+  const name = author.fullName ?? author.userName;
+  return {
+    id: msgId,
+    kind: 'chat-sdk',
+    content: {
+      text: fullText,
+      author,
+      senderId: author.userId,
+      sender: name,
+      senderName: name,
+    },
+    timestamp,
+    isMention: true,
+    isGroup,
+  };
+}
 
 /** Adapter with optional gateway support (e.g., Discord). */
 interface GatewayAdapter extends Adapter {
@@ -278,6 +319,21 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
       // only resolves channel ids and sets the platform-confirmed isMention
       // flag that routeInbound evaluates; the router calls back into
       // bridge.subscribe(...) when a mention-sticky wiring engages.
+
+      // Telegram bot commands (`bot_command` entity) never reach onDirectMessage —
+      // the adapter calls Chat.processSlashCommand instead. Catch-all here so
+      // host slash commands (/new, /clear, …) reach routeInbound.
+      chat.onSlashCommand(async (event) => {
+        const threadId = event.channel.id;
+        const channelId = adapter.channelIdFromThreadId(threadId);
+        log.info('Inbound slash command received', {
+          adapter: adapter.name,
+          channelId,
+          command: event.command,
+          threadId,
+        });
+        await setupConfig.onInbound(channelId, threadId, slashCommandToInbound(event));
+      });
 
       // Subscribed threads — every message in a thread we've previously
       // engaged. Carry the SDK's `message.isMention` through so mention-mode

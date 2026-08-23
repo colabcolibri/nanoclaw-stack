@@ -134,55 +134,55 @@ export const googleGmailTool: AgentTool = {
     type: 'function',
     function: {
       name: 'google_gmail',
-      description: 'Gerencia e-mails no Gmail (listar, ler conteúdo, criar rascunho, enviar resposta).',
+      description: 'List and read Gmail messages, create drafts, and send replies.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['list_messages', 'read_message', 'create_draft', 'send_message', 'list_drafts', 'delete_draft'],
-            description: 'Ação: "list_messages" (busca/inbox), "read_message" (lê thread/corpo), "create_draft" (cria rascunho), "send_message" (envia resposta).',
+            description: 'Action: "list_messages" (search/inbox), "read_message" (read thread/body), "create_draft" (create draft), "send_message" (send reply).',
           },
           folder: {
             type: 'string',
             enum: ['inbox', 'sent', 'starred', 'all'],
-            description: 'Pasta (padrão: inbox).',
+            description: 'Mailbox folder (default: inbox).',
           },
           query: {
             type: 'string',
-            description: 'Filtro Gmail (ex: "is:unread", "newer_than:2d", "from:x").',
+            description: 'Gmail search filter (e.g. "is:unread", "newer_than:2d", "from:x").',
           },
           max_results: {
             type: 'number',
-            description: 'Limite de conversas (padrão 8, max 25).',
+            description: 'Maximum conversations to return (default 8, max 25).',
           },
           thread_id: {
             type: 'string',
-            description: 'ID da thread para ler ou responder.',
+            description: 'Thread ID to read or reply to.',
           },
           message_id: {
             type: 'string',
-            description: 'ID da mensagem.',
+            description: 'Message ID.',
           },
           draft_id: {
             type: 'string',
-            description: 'ID do rascunho.',
+            description: 'Draft ID.',
           },
           to: {
             type: 'string',
-            description: 'Destinatário.',
+            description: 'Recipient.',
           },
           subject: {
             type: 'string',
-            description: 'Assunto.',
+            description: 'Subject line.',
           },
           body: {
             type: 'string',
-            description: 'Corpo do e-mail.',
+            description: 'Email body.',
           },
           from_alias: {
             type: 'string',
-            description: 'Assinatura/remetente.',
+            description: 'From alias or signature line.',
           },
         },
         required: ['action'],

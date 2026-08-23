@@ -47,7 +47,7 @@ describe('Multi-Agent & Department Architecture', () => {
 
     const prodDept = AgentRegistry.getDepartment('productivity');
     expect(prodDept).toBeDefined();
-    expect(prodDept?.name).toContain('Produtividade');
+    expect(prodDept?.name).toContain('Productivity');
 
     const prodAgents = AgentRegistry.getAgentsInDepartment('productivity');
     expect(prodAgents.length).toBeGreaterThanOrEqual(2);

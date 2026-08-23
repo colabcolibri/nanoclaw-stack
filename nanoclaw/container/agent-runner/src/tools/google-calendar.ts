@@ -7,42 +7,42 @@ export const googleCalendarTool: AgentTool = {
     type: 'function',
     function: {
       name: 'google_calendar',
-      description: 'Consulta e gerencia eventos no Google Calendar.',
+      description: 'Query and manage Google Calendar events.',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['list_calendars', 'list_events', 'create_event', 'search_events'],
-            description: 'Ação: "list_events" (agenda do dia/período), "create_event" (agendar), "search_events" (busca texto).',
+            description: 'Action: "list_events" (day/range agenda), "create_event" (schedule), "search_events" (text search).',
           },
           calendar_id: {
             type: 'string',
-            description: 'ID do calendário ("primary" ou ID específico).',
+            description: 'Calendar ID ("primary" or specific ID).',
           },
           query: {
             type: 'string',
-            description: 'Termo de busca ou título do evento.',
+            description: 'Search term or event title.',
           },
           date: {
             type: 'string',
-            description: 'Data alvo (YYYY-MM-DD).',
+            description: 'Target date (YYYY-MM-DD).',
           },
           start_time: {
             type: 'string',
-            description: 'Início ISO 8601.',
+            description: 'Start time (ISO 8601).',
           },
           end_time: {
             type: 'string',
-            description: 'Término ISO 8601.',
+            description: 'End time (ISO 8601).',
           },
           description: {
             type: 'string',
-            description: 'Descrição do evento.',
+            description: 'Event description.',
           },
           location: {
             type: 'string',
-            description: 'Local ou link de reunião.',
+            description: 'Location or meeting link.',
           },
         },
         required: ['action'],
