@@ -1,47 +1,31 @@
 /**
- * Bun subprocess entry for sync-turn (Node motor cannot load bun:sqlite from agent-runner).
- * stdin: JSON { op: 'turn', input } | { op: 'reset', channel, groupFolder, userId?, mode? }
+ * Bun subprocess — orchestrator + summarize only (no central v2.db / better-sqlite3).
+ * stdin: JSON SyncTurnRunnerRequest
  * stdout: single JSON line { ok, result? | error? }
  */
-import { bootstrapSyncTurnWorker } from '../src/gateway/sync-turn-bootstrap.ts';
 import {
-  processSyncTurn,
-  resetSyncSession,
-  type SyncChannel,
-  type SyncTurnInput,
-} from '../src/gateway/sync-turn-gateway-impl.ts';
+  runOrchestratorTurn,
+  runSummarize,
+} from '../src/gateway/sync-turn-orchestrator-worker.ts';
+import type { SyncTurnRunnerRequest } from '../src/gateway/sync-turn-types.ts';
 
 function emit(body: Record<string, unknown>): void {
   console.log(JSON.stringify(body));
 }
 
 async function main(): Promise<void> {
-  bootstrapSyncTurnWorker();
-
   const raw = await Bun.stdin.text();
-  const req = JSON.parse(raw.trim() || '{}') as {
-    op?: string;
-    input?: SyncTurnInput;
-    channel?: SyncChannel;
-    groupFolder?: string;
-    userId?: string;
-    mode?: 'new' | 'new-resume';
-  };
+  const req = JSON.parse(raw.trim() || '{}') as SyncTurnRunnerRequest;
 
-  if (req.op === 'turn' && req.input) {
-    const result = await processSyncTurn(req.input);
+  if (req.op === 'orchestrate' && req.orchestrate) {
+    const result = await runOrchestratorTurn(req.orchestrate);
     emit({ ok: true, result });
     return;
   }
 
-  if (req.op === 'reset' && req.channel && req.groupFolder) {
-    const result = await resetSyncSession(
-      req.channel,
-      req.groupFolder,
-      req.userId ?? 'default',
-      req.mode ?? 'new',
-    );
-    emit({ ok: true, result });
+  if (req.op === 'summarize' && req.summarize) {
+    const summary = await runSummarize(req.summarize);
+    emit({ ok: true, result: summary });
     return;
   }
 
