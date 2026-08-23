@@ -1,6 +1,6 @@
 ---
 name: yampi-store
-description: Atendimento inteligente de e-commerce, consulta de produtos, disponibilidade de estoque e rastreamento de pedidos da loja virtual Yampi com trava de privacidade.
+description: Yampi orders, products, stock and tracking via yampi_store API.
 domain: ecommerce_logistics
 tools:
   - yampi_store
@@ -8,20 +8,23 @@ keywords:
   - yampi
   - loja
   - pedido
-  - pedidos
   - rastreio
-  - rastreamento
   - estoque
-  - catalogo
 ---
 
-# Habilidade de Operações da Loja Virtual Yampi
+# Yampi store
 
-Esta habilidade orienta o assistente a consultar pedidos, status de entrega e estoque de produtos da loja virtual Yampi com segurança e trava de privacidade.
+## Decision map
 
-## 🛠️ Operações:
+| Intent | Call |
+| :--- | :--- |
+| Order lookup | `yampi_store(action: "get_order", client_email?, order_number?)` |
+| Product search | `yampi_store(action: "search_products", query: "...")` |
+| Stock check | `yampi_store(action: "check_product_quantity", product_id: "...")` |
 
-1. **Rastreamento de Pedido:** `yampi_store(action: "get_order", client_email: "...", order_number: "...")`
-2. **Busca de Produtos:** `yampi_store(action: "search_products", query: "...")`
-3. **Checagem de Estoque:** `yampi_store(action: "check_product_quantity", product_id: "...")`
-4. **Links Oficiais:** Sempre forneça o link oficial de rastreamento (`tracking_url`) para o cliente.
+## Rules
+
+1. CALL API before quoting order status, prices, or stock.
+2. Always include official `tracking_url` when present.
+3. Respect privacy gates in API response — do not leak blocked fields.
+4. DONE + raw structured fields. No assumptions.

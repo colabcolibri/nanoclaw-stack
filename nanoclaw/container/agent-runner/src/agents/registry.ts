@@ -105,8 +105,9 @@ export class AgentRegistry {
       path.join(process.cwd(), 'container', 'agents'),
     ];
 
+    // Group overrides must win over shared /app/agents (last registration wins).
     if (cwd) {
-      candidateDirs.unshift(path.join(cwd, 'agents'));
+      candidateDirs.push(path.join(cwd, 'agents'));
     }
 
     for (const baseDir of candidateDirs) {

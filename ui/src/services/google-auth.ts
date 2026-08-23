@@ -3,6 +3,14 @@ import path from "node:path";
 import { CONFIG } from "../config.js";
 import { GroupManager } from "./groups.js";
 
+function resolvePublicBaseUrl(): string {
+  return CONFIG.UI_PUBLIC_URL.replace(/\/+$/, "");
+}
+
+function resolveGoogleRedirectUri(): string {
+  return `${resolvePublicBaseUrl()}/api/integrations/google/callback`;
+}
+
 export class GoogleAuthService {
   private static getTokensPath(folder: string): string {
     return path.join(CONFIG.GROUPS_PATH, path.basename(folder), "google_tokens.json");
@@ -20,12 +28,9 @@ export class GoogleAuthService {
     return { clientId, clientSecret };
   }
 
-  static getAuthUrl(folder: string, reqHost: string): string {
+  static getAuthUrl(folder: string): string {
     const { clientId } = this.getCredentials(folder);
-    if (!reqHost?.trim()) {
-      throw new Error("Host da requisição é obrigatório para OAuth Google.");
-    }
-    const redirectUri = `https://${reqHost.trim()}/api/integrations/google/callback`;
+    const redirectUri = resolveGoogleRedirectUri();
 
     const scopes = [
       "https://www.googleapis.com/auth/calendar",
@@ -49,12 +54,9 @@ export class GoogleAuthService {
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
-  static async handleCallback(code: string, folder: string, reqHost: string): Promise<{ success: boolean; email?: string; error?: string }> {
+  static async handleCallback(code: string, folder: string): Promise<{ success: boolean; email?: string; error?: string }> {
     const { clientId, clientSecret } = this.getCredentials(folder);
-    if (!reqHost?.trim()) {
-      return { success: false, error: "Host da requisição é obrigatório para OAuth Google." };
-    }
-    const redirectUri = `https://${reqHost.trim()}/api/integrations/google/callback`;
+    const redirectUri = resolveGoogleRedirectUri();
 
     try {
       const res = await fetch("https://oauth2.googleapis.com/token", {

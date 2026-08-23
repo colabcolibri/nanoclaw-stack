@@ -61,6 +61,7 @@ describe('Multi-Agent & Department Architecture', () => {
     const tools = AgentRegistry.getToolsForAgent('productivity_attendant');
     const toolNames = tools.map((t) => t.function.name);
     expect(toolNames).toContain('google_gmail');
+    expect(toolNames).toContain('google_calendar');
     expect(toolNames).toContain('schedule_followup');
     expect(toolNames).toContain('retrieve_message_context');
     expect(toolNames).not.toContain('yampi_store');
@@ -68,8 +69,11 @@ describe('Multi-Agent & Department Architecture', () => {
 
     const storeToolNames = AgentRegistry.getToolsForAgent('store_attendant').map((t) => t.function.name);
     expect(storeToolNames).toContain('yampi_store');
-    expect(storeToolNames).toContain('google_gmail');
     expect(storeToolNames).not.toContain('notion');
+
+    const webToolNames = AgentRegistry.getToolsForAgent('web_researcher').map((t) => t.function.name);
+    expect(webToolNames).toContain('web_search');
+    expect(webToolNames).toContain('browse_url');
   });
 
   test('WorkerAgentRunner executes specialist in isolated sandbox and records audit trace', async () => {

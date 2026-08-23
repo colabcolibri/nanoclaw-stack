@@ -336,21 +336,19 @@ export class ApiRouter {
     // Google OAuth 2.0 Integration
     if (url.pathname === "/api/integrations/google/connect" && method === "GET") {
       const folder = resolveGroupFolder(url.searchParams.get("folder"));
-      const host = requireRequestHost(req);
-      const authUrl = GoogleAuthService.getAuthUrl(folder, host);
+      const authUrl = GoogleAuthService.getAuthUrl(folder);
       return jsonResponse({ url: authUrl });
     }
 
     if (url.pathname === "/api/integrations/google/callback" && method === "GET") {
       const code = url.searchParams.get("code");
       const folder = resolveGroupFolder(url.searchParams.get("state"));
-      const host = requireRequestHost(req);
       if (!code) {
         return new Response("Código de autorização ausente", { status: 400 });
       }
-      const res = await GoogleAuthService.handleCallback(code, folder, host);
+      const res = await GoogleAuthService.handleCallback(code, folder);
       if (res.success) {
-        return Response.redirect(`https://${host}/#mcps?google_auth=success`, 302);
+        return Response.redirect(`${CONFIG.UI_PUBLIC_URL.replace(/\/+$/, "")}/#mcps?google_auth=success`, 302);
       } else {
         return new Response(`Erro ao autenticar com o Google: ${res.error}`, { status: 500 });
       }

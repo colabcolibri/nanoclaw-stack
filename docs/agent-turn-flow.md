@@ -145,6 +145,7 @@ flowchart TD
 | `nanoclaw/container/agent-runner/src/services/memo-service.ts` | Memos + resumo semântico |
 | `nanoclaw/container/agent-runner/src/services/context-pack.ts` | O que o sender recebe de contexto |
 | `nanoclaw/container/agent-runner/src/tools/message-context.ts` | Recuperar mensagem integral |
+| `docs/agents-and-skills.md` | Criar agentes/skills (estilo AI-diretivo) |
 | `nanoclaw/src/db/session-db.ts` | Memo inbound placeholder 450 chars (host) |
 
 ---

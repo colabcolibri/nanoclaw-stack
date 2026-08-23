@@ -1,6 +1,6 @@
 ---
 name: executive-briefing
-description: Executive briefing standards, clean summaries, schedule cards, email highlights, and Markdown tables for messaging channels.
+description: Formatting rules for executive briefings over Telegram — tables, icons, source links.
 domain: executive_briefing
 tools:
   - google_gmail
@@ -11,27 +11,21 @@ keywords:
   - summary
   - report
   - schedule
-  - agenda
-  - overview
 ---
 
-# Executive Briefing & Communication Standards
+# Executive briefing (format only)
 
-This skill defines the executive visual formatting rules for reports and briefings delivered over Telegram and macOS notifications.
+Use when task asks for **formatted briefing**, not raw API dumps. Fetch data with domain tools first, then apply layout.
 
----
+## Layout rules
 
-## 🎨 Executive Guidelines:
+1. Section headers: bold + icon (`📬` mail, `📅` calendar, `⚠️` alert, `✅` done).
+2. Separate topics with `---`.
+3. Tables or bullets for structured data.
+4. Every external resource → markdown link `[Label](url)` (tracking, invoices, articles).
+5. Email refs: date + sender + subject.
 
-1. **Information Hierarchy:**
-   - Use bold section headers with functional icons (`📬`, `📅`, `⏰`, `👤`, `🔗`, `⚠️`, `✅`).
-   - Use clean horizontal dividers (`---`) between distinct topics.
-   - Use Markdown tables or bullet lists for structured data.
+## Rules
 
-2. **Mandatory Source Links & References:**
-   - **ALWAYS** include clickable Markdown reference links (`[View Document](url)` or `[Portal Link](url)`) for any external resources, invoices, tracking codes, or web articles cited.
-   - When referencing emails, cite the date, sender, and relevant transaction numbers.
-
-3. **Tone & Style:**
-   - Clear, objective, professional, and courteous.
-   - Avoid filler text, empty preambles, or bureaucratic jargon.
+- No empty preambles. Data first.
+- Professional, concise — formatting layer only; Sender may soften tone for user.

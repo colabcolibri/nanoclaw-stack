@@ -19,7 +19,8 @@ describe("SkillsManager Automated Folder Discovery & Skills on Demand", () => {
     expect(gmailSkill).toBeDefined();
     expect(gmailSkill?.domain).toBe("google_suite");
     expect(gmailSkill?.tools).toContain("google_gmail");
-    expect(gmailSkill?.instructions).toContain("Gmail Search Operator Guide");
+    expect(gmailSkill?.instructions).toContain("Decision map");
+    expect(gmailSkill?.instructions).toContain("google_gmail");
   });
 
   test("Generates compact domain-grouped catalog prompt (~100 tokens)", () => {

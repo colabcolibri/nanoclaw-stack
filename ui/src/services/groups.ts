@@ -672,7 +672,7 @@ export class GroupManager {
       { dir: path.join(CONFIG.GROUPS_PATH, path.basename(folder), "agents"), isCustom: true },
     ];
 
-    const discoveredIds = new Set<string>();
+    const agentsById = new Map<string, (typeof agents)[number]>();
 
     for (const { dir, isCustom } of candidateDirs) {
       if (!fs.existsSync(dir)) continue;
@@ -715,8 +715,7 @@ export class GroupManager {
               }
             }
 
-            discoveredIds.add(id);
-            agents.push({
+            agentsById.set(id, {
               id,
               name,
               department,
@@ -736,6 +735,8 @@ export class GroupManager {
         }
       } catch {}
     }
+
+    agents.push(...agentsById.values());
 
     // Collect all departments from agents
     const departmentsMap = new Map<string, { id: string; name: string; description: string; icon?: string }>();

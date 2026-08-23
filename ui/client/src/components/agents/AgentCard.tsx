@@ -61,16 +61,14 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--accent)]/5 blur-2xl" />
       )}
 
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="mb-5 space-y-2">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-main)] bg-[var(--bg-card-subtle)]">
             <AgentIcon className="h-5 w-5 text-[var(--accent)]" />
           </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold leading-snug text-[var(--text-main)] break-words">
-              {agent.name}
-            </h3>
-            <div className="mt-0.5 flex items-center gap-2">
+
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span
                 className={cn(
                   'h-2 w-2 shrink-0 rounded-full',
@@ -79,30 +77,34 @@ export const AgentCard: React.FC<AgentCardProps> = ({
               />
               <span
                 className={cn(
-                  'text-xs',
+                  'text-xs font-medium',
                   isOffline ? 'text-[var(--text-dim)]' : 'text-[var(--success)]'
                 )}
               >
                 {isOffline ? t('statusOffline') : t('statusOnline')}
               </span>
             </div>
-            {agent.role && (
-              <p className="mt-1 text-xs leading-snug text-[var(--text-muted)] break-words">{agent.role}</p>
-            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onMenuClick?.(e)
+              }}
+              className="rounded-lg p-1 text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]"
+              aria-label={t('inspect')}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onMenuClick?.(e)
-          }}
-          className="rounded-lg p-1 text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-card-subtle)] hover:text-[var(--text-main)]"
-          aria-label={t('inspect')}
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
+        <h3 className="text-base font-semibold leading-snug text-[var(--text-main)] break-words">
+          {agent.name}
+        </h3>
+
+        {agent.role && (
+          <p className="text-xs leading-relaxed text-[var(--text-muted)] break-words">{agent.role}</p>
+        )}
       </div>
 
       <div className="space-y-0">

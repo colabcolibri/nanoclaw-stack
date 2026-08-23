@@ -1,6 +1,6 @@
 ---
-name: web-research
-description: Real-time web search for current information, breaking news, market trends, and clean webpage extraction with zero API cost.
+name: agent-browser
+description: Live web search and URL extraction via web_search and browse_url.
 domain: web_research
 tools:
   - web_search
@@ -10,25 +10,22 @@ keywords:
   - internet
   - search
   - news
-  - google
   - research
-  - articles
-  - websites
+  - url
 ---
 
-# Web Research & Live Intelligence Skill
+# Web research
 
-This skill equips the assistant with real-time web search and clean webpage extraction capabilities.
+## Decision map
 
-## 🛠️ Available Tools:
+| Intent | Call |
+| :--- | :--- |
+| Broad lookup | `web_search(query, max_results: 5-10)` |
+| Deep read one page | `browse_url(url)` after search |
 
-1. **`web_search(query: "...", max_results: 10)`**:
-   - Performs a real-time web search.
-   - Returns page titles, authoritative URLs, and dense snippets.
-   - **Efficiency Guide**: Request `max_results: 5` to `10` to gather broad multi-source evidence in a single query rather than running repeated search rounds.
-   - Avoid executing slight query variations if initial results already contain the necessary facts.
+## Rules
 
-2. **`browse_url(url: "https://...")`**:
-   - Fetches and parses readable text directly from target webpage URLs.
-   - Automatically strips ads, scripts, navbars, and boilerplate markup.
-   - Use to dive deep into specific articles or official documentation discovered during search.
+1. One `web_search` with enough `max_results` before retrying similar queries.
+2. `browse_url` on primary sources only — not every snippet.
+3. Cite source URLs in summary. Never invent facts.
+4. DONE + bullets with links. No conversational preamble.

@@ -29,16 +29,15 @@ export class WorkerAgentRunner {
     } = {}
   ): Promise<WorkerResult> {
     const maxIterations = Math.max(1, options.maxIterations || 6);
-    const tools = AgentRegistry.getToolsForAgent(agent.id);
+    const tools = AgentRegistry.getToolsForAgent(agent.id, cwd);
+    const resolvedToolNames = tools.map((t) => t.function.name);
     const scratchpad = new ExecutionScratchpad(taskDescription, options.history || []);
     const findings: ToolFinding[] = [];
 
     const systemPrompt = [
       agent.systemPrompt,
       PromptLoader.load('core.truthfulness'),
-      '## Diretriz Técnica de Execução',
-      'Execute as ferramentas com precisão máxima.',
-      'Quando tiver coletado todas as informações ou completado a ação, responda apenas com "DONE" ou um breve resumo dos dados retornados pelas ferramentas.',
+      PromptLoader.load('worker.execution'),
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -83,8 +82,12 @@ export class WorkerAgentRunner {
         promptPreview: taskDescription.slice(0, 100),
         responsePreview: response.content ? response.content.slice(0, 100) : `Tool: ${toolCalls[0]?.name}`,
         metadata: toolCalls.length
-          ? { tools: toolCalls.map((c) => c.name), iteration: iter + 1 }
-          : { iteration: iter + 1, done: true },
+          ? {
+              tools: toolCalls.map((c) => c.name),
+              iteration: iter + 1,
+              resolvedTools: iter === 0 ? resolvedToolNames : undefined,
+            }
+          : { iteration: iter + 1, done: true, resolvedTools: iter === 0 ? resolvedToolNames : undefined },
       });
 
       if (toolCalls.length > 0) {

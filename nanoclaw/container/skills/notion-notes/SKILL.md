@@ -1,6 +1,6 @@
 ---
 name: notion-notes
-description: Smart note taking, meeting minutes organization, task creation, and database/page management in Notion.
+description: Notion search, pages, tasks and database updates via notion tool.
 domain: notion_management
 tools:
   - notion
@@ -9,16 +9,20 @@ keywords:
   - notes
   - tasks
   - database
-  - page
-  - reminders
 ---
 
-# Notion Notes & Task Management Skill
+# Notion notes
 
-This skill guides the assistant to manage workspaces, notes, and task databases in Notion.
+## Decision map
 
-## 🛠️ Operations:
-1. **Search Pages & Databases:** `notion(action: "search", query: "...")`
-2. **Create Task / Note:** `notion(action: "create_page", parent_id: "...", title: "...", content: "...")`
-3. **Update Tasks:** `notion(action: "update_page", page_id: "...", properties: { ... })`
-4. **References:** Always return page titles and Notion URLs for created or modified items.
+| Intent | Call |
+| :--- | :--- |
+| Find pages/DBs | `notion(action: "search", query: "...")` |
+| Create page/task | `notion(action: "create_page", parent_id, title, content?)` |
+| Update | `notion(action: "update_page", page_id, properties?)` |
+
+## Rules
+
+1. CALL before claiming create/update/search results.
+2. Return page title + Notion URL for every item touched.
+3. DONE + JSON or markdown table. No filler text.

@@ -106,7 +106,21 @@ lsof -ti :3001 | xargs kill
 | :--- | :--- | :--- |
 | `ui/.env` | `NANOCLAW_PATH` | caminho do checkout `nanoclaw/` (local ou `/opt/nanoclaw-stack/nanoclaw` no servidor) |
 | `ui/.env` | `NANOCLAW_DEFAULT_GROUP` | pasta do agente em `groups/` (ex.: `barao`) |
-| `ui/.env` | `UI_PUBLIC_URL` | URL pública do painel (dev: `http://localhost:3080`) |
+| `ui/.env` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (painel → MCPs → Conectar conta) |
+| `ui/.env` | `UI_PUBLIC_URL` | URL pública do painel (dev: `http://localhost:3080`) — **deve bater** com o redirect URI no Google Cloud Console |
+
+### Google OAuth no localhost (`redirect_uri_mismatch`)
+
+1. Em `ui/.env`, confirme `UI_PUBLIC_URL=http://localhost:3080` (sem barra no final).
+2. No [Google Cloud Console](https://console.cloud.google.com/) → **APIs e serviços** → **Credenciais** → seu cliente OAuth (tipo **Aplicativo da Web**).
+3. Em **URIs de redirecionamento autorizados**, adicione exatamente:
+   ```
+   http://localhost:3080/api/integrations/google/callback
+   ```
+4. Salve e aguarde ~1 minuto. Reinicie o painel (`bun run dev` no `ui/`) e tente **Conectar conta Google** de novo.
+
+O redirect usa `UI_PUBLIC_URL` + `/api/integrations/google/callback`. Se o erro persistir, compare caractere a caractere com o URI cadastrado no Console (http vs https, porta, sem path extra).
+
 | `ui/.env` | `ALLOWED_EMAIL` | email autorizado no login OTP |
 | `ui/.env` | `VITE_DEV_PORT` | porta do painel em dev (padrão `3080`) |
 | `nanoclaw/.env` | `UI_PUBLIC_URL` | mesma URL do painel — injetada no container do agente (mensagens de erro) |
