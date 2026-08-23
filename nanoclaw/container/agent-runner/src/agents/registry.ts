@@ -5,6 +5,7 @@ import type { Department, SpecialistAgent } from './types.js';
 import { ALL_TOOLS } from '../tools/index.js';
 import type { ToolDefinition } from '../tools/types.js';
 import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
+import { parseInferenceParamsYamlBlock } from '../inference-params.js';
 import { SkillsManager } from '../services/skills-manager.js';
 
 const REPO_CONTAINER_AGENTS_DIR = path.join(
@@ -147,6 +148,9 @@ export class AgentRegistry {
       const executionProfile = parseYamlField('execution_profile');
       const allowGlobalStr = parseYamlField('allow_global_skills');
       const allowGlobalSkills = allowGlobalStr !== undefined ? allowGlobalStr === 'true' : true;
+      const inferenceParsed = parseInferenceParamsYamlBlock(rawYaml);
+      const inferenceParams =
+        Object.keys(inferenceParsed).length > 0 ? inferenceParsed : undefined;
 
       // Parse skills list
       const skills: string[] = [];
@@ -179,6 +183,7 @@ export class AgentRegistry {
         agentSkills: skills,
         allowGlobalSkills,
         model,
+        inferenceParams,
         executionProfile,
         capabilities: capabilities.length > 0 ? capabilities : undefined,
       };

@@ -437,24 +437,23 @@ function syncSkillSymlinks(
     const hasGroupOverride = groupSkillsDir && fs.existsSync(path.join(groupSkillsDir, skill));
     const targetPath = hasGroupOverride ? `/workspace/agent/skills/${skill}` : `/app/skills/${skill}`;
 
-    let isSymlink = false;
-    let currentTarget = '';
+    let entry: fs.Stats | null = null;
     try {
-      isSymlink = fs.lstatSync(linkPath).isSymbolicLink();
-      if (isSymlink) {
-        currentTarget = fs.readlinkSync(linkPath);
-      }
+      entry = fs.lstatSync(linkPath);
     } catch {
-      /* missing */
+      entry = null;
     }
 
-    if (isSymlink) {
+    if (entry?.isSymbolicLink()) {
+      const currentTarget = fs.readlinkSync(linkPath);
       if (currentTarget !== targetPath) {
         fs.unlinkSync(linkPath);
         fs.symlinkSync(targetPath, linkPath);
       }
-    } else if (!fs.existsSync(linkPath)) {
+    } else if (!entry) {
       fs.symlinkSync(targetPath, linkPath);
+    } else if (!entry.isSymbolicLink()) {
+      log.warn('Shared skill not symlinked', { skill, linkPath });
     }
   }
 }

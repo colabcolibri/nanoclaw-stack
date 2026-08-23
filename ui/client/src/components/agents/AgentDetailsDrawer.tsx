@@ -6,6 +6,7 @@ import { type AgentItem, type DepartmentItem, type SkillItem, ApiClient } from '
 import { getAgentIcon, normalizeSkillName, formatAgentModelLabel } from '@/components/agents/agent-utils'
 import { AgentOverviewPanel } from '@/components/agents/AgentOverviewPanel'
 import { AgentConfigForm } from '@/components/agents/AgentConfigForm'
+import type { InferenceParamsForm } from '@/components/config/RoleInferenceParamsForm'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -48,6 +49,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   const [role, setRole] = useState('')
   const [description, setDescription] = useState('')
   const [model, setModel] = useState('')
+  const [inferenceParams, setInferenceParams] = useState<InferenceParamsForm | undefined>(undefined)
   const [allowGlobalSkills, setAllowGlobalSkills] = useState(true)
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -61,6 +63,11 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
       setRole(agent.role || '')
       setDescription(agent.description || '')
       setModel(agent.model?.trim() || '')
+      setInferenceParams(
+        agent.inferenceParams && Object.keys(agent.inferenceParams).length > 0
+          ? { ...agent.inferenceParams }
+          : undefined,
+      )
       setAllowGlobalSkills(agent.allowGlobalSkills !== false)
       setSelectedSkills(agent.skills || [])
       setSystemPrompt(agent.systemPrompt || '')
@@ -77,10 +84,21 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
       role,
       description,
       model,
+      inferenceParams,
       allowGlobalSkills,
       skills: selectedSkills,
     }),
-    [agent?.id, name, department, role, description, model, allowGlobalSkills, selectedSkills]
+    [
+      agent?.id,
+      name,
+      department,
+      role,
+      description,
+      model,
+      inferenceParams,
+      allowGlobalSkills,
+      selectedSkills,
+    ],
   )
 
   if (!agent) return null
@@ -102,6 +120,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
     role,
     description,
     model,
+    inferenceParams,
     allowGlobalSkills,
     skills: selectedSkills,
     systemPrompt,
@@ -130,6 +149,8 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
         role,
         description,
         model: model.trim() || undefined,
+        inferenceParams:
+          inferenceParams && Object.keys(inferenceParams).length > 0 ? inferenceParams : undefined,
         allowGlobalSkills,
         skills: selectedSkills,
         systemPrompt,
@@ -267,6 +288,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                     if (patch.role !== undefined) setRole(patch.role)
                     if (patch.description !== undefined) setDescription(patch.description)
                     if (patch.model !== undefined) setModel(patch.model)
+                    if ('inferenceParams' in patch) setInferenceParams(patch.inferenceParams)
                     if (patch.allowGlobalSkills !== undefined) setAllowGlobalSkills(patch.allowGlobalSkills)
                   }}
                 />

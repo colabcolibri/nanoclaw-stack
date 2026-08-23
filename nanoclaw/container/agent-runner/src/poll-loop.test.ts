@@ -455,14 +455,15 @@ describe('error result with no <message> envelope', () => {
     expect(pushes).toHaveLength(0);
   });
 
-  it('still nudges (and does not deliver) a normal unwrapped result', async () => {
+  it('delivers unwrapped chat text directly without a wrapping-retry nudge', async () => {
     const { query, pushes } = makeResultQuery({ type: 'result', text: 'bare text, no envelope' });
 
     await processQuery(query, ERR_ROUTING, ['m1'], 'claude', undefined, 'prompt', undefined);
 
-    expect(getUndeliveredMessages()).toHaveLength(0);
-    expect(pushes).toHaveLength(1);
-    expect(pushes[0]).toContain('was not delivered');
+    const out = getUndeliveredMessages();
+    expect(out).toHaveLength(1);
+    expect(JSON.parse(out[0].content).text).toBe('bare text, no envelope');
+    expect(pushes).toHaveLength(0);
   });
 });
 

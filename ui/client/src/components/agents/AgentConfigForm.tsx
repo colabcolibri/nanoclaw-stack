@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { type DepartmentItem } from '@/api/client'
 import { buildAgentYamlPreview } from '@/components/agents/agent-utils'
 import { AgentYamlPreview } from '@/components/agents/AgentYamlPreview'
+import { RoleInferenceFields } from '@/components/config/RoleInferenceFields'
+import type { InferenceParamsForm } from '@/components/config/RoleInferenceParamsForm'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,6 +24,7 @@ export interface AgentConfigFormState {
   role: string
   description: string
   model: string
+  inferenceParams?: InferenceParamsForm
   allowGlobalSkills: boolean
   skills: string[]
 }
@@ -52,6 +55,7 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
     skills: form.skills,
     allowGlobalSkills: form.allowGlobalSkills,
     model: form.model,
+    inferenceParams: form.inferenceParams,
   })
 
   return (
@@ -62,19 +66,19 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
           <Input
             value={form.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            className="text-xs"
+            className="text-sm"
           />
         </div>
 
         <div className="space-y-2">
           <Label>{t('agentSlug')}</Label>
-          <Input value={form.id} disabled className="font-mono text-xs text-(--text-dim)" />
+          <Input value={form.id} disabled className="font-mono text-sm text-(--text-dim)" />
         </div>
 
         <div className="space-y-2">
           <Label>{t('department')}</Label>
           <Select value={form.department} onValueChange={(v) => onChange({ department: v })}>
-            <SelectTrigger className="text-xs">
+            <SelectTrigger className="text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -93,21 +97,30 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
             providers={providers}
             value={form.model}
             onChange={(v) => onChange({ model: v })}
-            allowDefault
-            defaultLabel={
+            allowEmpty
+            emptyLabel={
               groupWorkerModel
                 ? `${t('modelWorkerDefault')} → ${groupWorkerModel}`
                 : t('modelWorkerDefault')
             }
-            className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 font-mono text-xs text-(--text-main)"
+            className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2.5 font-mono text-sm text-(--text-main)"
           />
-          <p className="text-[11px] leading-relaxed text-(--text-dim)">{t('dedicatedModelHint')}</p>
+          <p className="text-xs leading-relaxed text-(--text-dim)">{t('dedicatedModelHint')}</p>
         </div>
+      </div>
+
+      <div className="space-y-2 border-t border-(--border-main)/50 pt-4">
+        <Label>{t('inferenceParams')}</Label>
+        <p className="text-xs leading-relaxed text-(--text-dim)">{t('inferenceParamsHint')}</p>
+        <RoleInferenceFields
+          value={form.inferenceParams}
+          onChange={(inferenceParams) => onChange({ inferenceParams })}
+        />
       </div>
 
       <div className="space-y-2">
         <Label>{t('role')}</Label>
-        <Input value={form.role} onChange={(e) => onChange({ role: e.target.value })} className="text-xs" />
+        <Input value={form.role} onChange={(e) => onChange({ role: e.target.value })} className="text-sm" />
       </div>
 
       <div className="space-y-2">
@@ -116,7 +129,7 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
           value={form.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={3}
-          className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 text-xs text-(--text-main) focus:outline-none focus:ring-2 focus:ring-(--accent)/30"
+          className="w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:outline-none focus:ring-2 focus:ring-(--accent)/30"
         />
       </div>
 
@@ -127,9 +140,9 @@ export const AgentConfigForm: React.FC<AgentConfigFormProps> = ({
           onChange={(e) => onChange({ allowGlobalSkills: e.target.checked })}
           className="mt-0.5 h-4 w-4 rounded"
         />
-        <span className="text-xs text-(--text-main)">
+        <span className="text-sm text-(--text-main)">
           <span className="block font-semibold">{t('allowGlobalSkills')}</span>
-          <span className="text-[11px] text-(--text-muted)">{t('allowGlobalSkillsHint')}</span>
+          <span className="text-xs text-(--text-muted)">{t('allowGlobalSkillsHint')}</span>
         </span>
       </label>
 

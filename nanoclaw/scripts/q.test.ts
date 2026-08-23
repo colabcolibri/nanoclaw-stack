@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
-import Database from 'better-sqlite3';
+import { openSqliteDatabase } from '../src/db/sqlite-compat.js';
 
 /**
  * Smoke tests for the q.ts sqlite-CLI replacement wrapper.
@@ -15,6 +15,15 @@ import Database from 'better-sqlite3';
  */
 
 const Q = path.resolve(__dirname, 'q.ts');
+const ROOT = path.resolve(__dirname, '..');
+
+function runQScript(args: string[]): { stdout: string; stderr: string; status: number } {
+  const r = spawnSync(process.execPath, ['--import', 'tsx', Q, ...args], {
+    encoding: 'utf-8',
+    cwd: ROOT,
+  });
+  return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', status: r.status ?? -1 };
+}
 
 describe('scripts/q.ts', () => {
   let tempDir: string;
@@ -23,7 +32,7 @@ describe('scripts/q.ts', () => {
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'q-test-'));
     dbPath = path.join(tempDir, 'test.db');
-    const db = new Database(dbPath);
+    const db = openSqliteDatabase(dbPath);
     db.exec(`
       CREATE TABLE t (id INTEGER, name TEXT, note TEXT);
       INSERT INTO t (id, name, note) VALUES (1, 'alice', 'hi'), (2, 'bob', NULL);
@@ -36,11 +45,7 @@ describe('scripts/q.ts', () => {
   });
 
   function run(sql: string): { stdout: string; stderr: string; status: number } {
-    const r = spawnSync('pnpm', ['exec', 'tsx', Q, dbPath, sql], {
-      encoding: 'utf-8',
-      cwd: path.resolve(__dirname, '..'),
-    });
-    return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', status: r.status ?? -1 };
+    return runQScript([dbPath, sql]);
   }
 
   it('SELECT prints pipe-separated rows in default order', () => {
@@ -66,7 +71,7 @@ describe('scripts/q.ts', () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toBe('');
 
-    const db = new Database(dbPath, { readonly: true });
+    const db = openSqliteDatabase(dbPath);
     const row = db.prepare('SELECT name FROM t WHERE id = 3').get() as { name: string };
     db.close();
     expect(row.name).toBe('carol');
@@ -76,9 +81,9 @@ describe('scripts/q.ts', () => {
     const r = run("DELETE FROM t WHERE id = 1; INSERT INTO t (id, name) VALUES (9, 'zed');");
     expect(r.status).toBe(0);
 
-    const db = new Database(dbPath, { readonly: true });
+    const db = openSqliteDatabase(dbPath);
     const ids = (db.prepare('SELECT id FROM t ORDER BY id').all() as { id: number }[]).map(
-      (r) => r.id,
+      (row) => row.id,
     );
     db.close();
     expect(ids).toEqual([2, 9]);
@@ -89,17 +94,14 @@ describe('scripts/q.ts', () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toBe('');
 
-    const db = new Database(dbPath, { readonly: true });
+    const db = openSqliteDatabase(dbPath);
     const rows = db.prepare('SELECT name FROM t').all() as { name: string }[];
     db.close();
     expect(rows).toEqual([{ name: 'bob' }]);
   });
 
   it('exits 2 with usage when args are missing', () => {
-    const r = spawnSync('pnpm', ['exec', 'tsx', Q], {
-      encoding: 'utf-8',
-      cwd: path.resolve(__dirname, '..'),
-    });
+    const r = runQScript([]);
     expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/Usage/);
   });

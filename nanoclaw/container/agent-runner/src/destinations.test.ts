@@ -21,43 +21,41 @@ function seedDestination(name: string, displayName: string, channelType: string,
 }
 
 describe('buildSystemPromptAddendum — multi-destination routing guidance', () => {
-  it('includes default-routing nudge when there are >1 destinations', () => {
+  it('lists all destinations when there are >1', () => {
     seedDestination('casa', 'Casa', 'whatsapp', 'group-1@g.us');
     seedDestination('whatsapp-mg-17780', 'whatsapp-mg-17780', 'whatsapp', 'phone-2@s.whatsapp.net');
 
     const prompt = buildSystemPromptAddendum('Casa');
 
-    expect(prompt).toContain('default to addressing the destination it came `from`');
-    expect(prompt).toContain('from="name"');
+    expect(prompt).toContain('You can send messages to the following destinations');
     expect(prompt).toContain('`casa`');
     expect(prompt).toContain('`whatsapp-mg-17780`');
+    expect(prompt).toContain('invoke the required tools directly via function calling');
   });
 
-  it('describes message wrapping for a single destination', () => {
+  it('describes the single destination by name', () => {
     seedDestination('casa', 'Casa', 'whatsapp', 'group-1@g.us');
 
     const prompt = buildSystemPromptAddendum('Casa');
 
-    expect(prompt).toContain('Wrap each delivered message');
-    expect(prompt).toContain('<message to="name">');
-    expect(prompt).toContain('`casa`');
+    expect(prompt).toContain('Your destination is `casa`');
+    expect(prompt).toContain('whatsapp · Casa');
   });
 
   it('handles the no-destination case without crashing', () => {
     const prompt = buildSystemPromptAddendum('Casa');
 
     expect(prompt).toContain('no configured destinations');
-    expect(prompt).not.toContain('default to addressing');
+    expect(prompt).not.toContain('Your destination is');
   });
 
-  it('includes default-routing and wrapping instructions for single destination', () => {
+  it('includes tool-calling guidance for single destination chat sessions', () => {
     seedDestination('casa', 'Casa', 'whatsapp', 'group-1@g.us');
 
     const prompt = buildSystemPromptAddendum('Casa');
 
-    expect(prompt).toContain('Wrap each delivered message');
-    expect(prompt).toContain('<message to="name">');
-    expect(prompt).toContain('default to addressing the destination it came `from`');
+    expect(prompt).toContain('Your destination is `casa`');
+    expect(prompt).toContain('invoke the required tools directly via function calling');
     expect(prompt).toContain('`casa`');
   });
 

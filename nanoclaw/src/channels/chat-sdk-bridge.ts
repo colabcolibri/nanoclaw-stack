@@ -12,6 +12,7 @@ import {
   CardText,
   Actions,
   Button,
+  LinkButton,
   type Adapter,
   type ConcurrencyStrategy,
   type Message as ChatMessage,
@@ -20,7 +21,7 @@ import {
 import { log } from '../log.js';
 import { SqliteStateAdapter } from '../state-sqlite.js';
 import { registerWebhookAdapter } from '../webhook-server.js';
-import { getAskQuestionRender } from '../db/sessions.js';
+import { resolveQuestionRender } from './question-render-registry.js';
 import { normalizeOptions, type NormalizedOption } from './ask-question.js';
 import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from './adapter.js';
 
@@ -62,6 +63,129 @@ export function slashCommandToInbound(event: SlashCommandEvent): InboundMessage 
     isMention: true,
     isGroup,
   };
+}
+
+const SLACK_TS_RE = /^\d+\.\d+$/;
+const APP_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+export interface AppContextEntity {
+  type: string;
+  id: string;
+}
+
+export interface AgentDmOpenedEvent {
+  instance: string;
+  channelId: string;
+}
+
+interface CachedAppContext {
+  entities: AppContextEntity[];
+  expiresAt: number;
+}
+
+const appContextCache = new Map<string, CachedAppContext>();
+let agentDmOpenedHandler: (event: AgentDmOpenedEvent) => void = () => {};
+
+function normalizeChannelKey(channelId: string): string {
+  const colon = channelId.indexOf(':');
+  return colon >= 0 ? channelId.slice(colon + 1) : channelId;
+}
+
+function appContextKey(instance: string, channelId: string, userId: string): string {
+  return `${instance}:${normalizeChannelKey(channelId)}:${userId}`;
+}
+
+export function cacheAppContext(
+  instance: string,
+  channelId: string,
+  userId: string,
+  entities: AppContextEntity[],
+  now = Date.now(),
+): void {
+  appContextCache.set(appContextKey(instance, channelId, userId), {
+    entities,
+    expiresAt: now + APP_CONTEXT_TTL_MS,
+  });
+}
+
+export function takeAppContext(
+  instance: string,
+  channelId: string,
+  userId: string,
+  now = Date.now(),
+): AppContextEntity[] | undefined {
+  const entry = appContextCache.get(appContextKey(instance, channelId, userId));
+  if (!entry) return undefined;
+  appContextCache.delete(appContextKey(instance, channelId, userId));
+  if (now > entry.expiresAt) return undefined;
+  return entry.entities;
+}
+
+export function attachAppContext(
+  content: Record<string, unknown>,
+  instance: string,
+  channelId: string,
+  userId: string | undefined,
+): void {
+  if (content.app_context !== undefined || !userId) return;
+  const entities = takeAppContext(instance, channelId, userId);
+  if (entities) content.app_context = { entities };
+}
+
+export function appContextEntities(event: {
+  context?: {
+    channelId?: string;
+    entities?: Array<{ type?: string; id?: string }>;
+  };
+}): AppContextEntity[] {
+  const ctx = event.context;
+  if (!ctx) return [];
+  if (Array.isArray(ctx.entities)) {
+    return ctx.entities
+      .filter((entity): entity is { type: string; id: string } => typeof entity.type === 'string' && typeof entity.id === 'string')
+      .map((entity) => ({ type: entity.type, id: entity.id }));
+  }
+  if (ctx.channelId) return [{ type: 'channel', id: ctx.channelId }];
+  return [];
+}
+
+export function setAgentDmOpenedHandler(handler: (event: AgentDmOpenedEvent) => void): void {
+  agentDmOpenedHandler = handler;
+}
+
+/** Roots agent-view DM threads on the message ts when the SDK leaves threadTs empty. */
+export function normalizeDmThreadId(threadId: string, messageId: string): string {
+  if (!messageId || !SLACK_TS_RE.test(messageId)) return threadId;
+  if (threadId.endsWith(':')) return `${threadId}${messageId}`;
+  return threadId;
+}
+
+interface DisplayCardInput {
+  title?: string;
+  description?: string;
+  children?: string[];
+  actions?: Array<{ label: string; url?: string }>;
+}
+
+function hasDisplayCardBody(card: DisplayCardInput): boolean {
+  if (card.title?.trim()) return true;
+  if (card.description?.trim()) return true;
+  if (card.children?.some((line) => line.trim())) return true;
+  if (card.actions?.some((action) => action.url)) return true;
+  return false;
+}
+
+function buildDisplayCard(cardInput: DisplayCardInput) {
+  const children: ReturnType<typeof CardText>[] = [];
+  if (cardInput.description) children.push(CardText(cardInput.description));
+  for (const line of cardInput.children ?? []) {
+    if (line) children.push(CardText(line));
+  }
+  const linkActions = (cardInput.actions ?? []).filter((action) => action.url);
+  if (linkActions.length > 0) {
+    children.push(Actions(linkActions.map((action) => LinkButton({ label: action.label, url: action.url! }))));
+  }
+  return Card({ title: cardInput.title ?? '', children });
 }
 
 /** Adapter with optional gateway support (e.g., Discord). */
@@ -192,6 +316,8 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
     );
   }
   const transformText = (t: string): string => (config.transformOutboundText ? config.transformOutboundText(t) : t);
+  const instanceKey = () => config.instance ?? adapter.name;
+  const stateNamespace = config.instance && config.instance !== adapter.name ? config.instance : undefined;
   let chat: Chat;
   let state: SqliteStateAdapter;
   let setupConfig: ChannelSetup;
@@ -293,7 +419,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
     };
   }
 
-  const bridge: ChannelAdapter = {
+  const bridge: ChannelAdapter & { _chat?: Chat } = {
     name: config.instance ?? adapter.name,
     channelType: adapter.name, // unchanged — semantic platform key
     instance: config.instance, // undefined ⇒ default instance (keyed by channelType)
@@ -303,7 +429,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
     async setup(hostConfig: ChannelSetup) {
       setupConfig = hostConfig;
 
-      state = new SqliteStateAdapter();
+      state = new SqliteStateAdapter(stateNamespace);
 
       chat = new Chat({
         adapters: { [adapter.name]: adapter },
@@ -333,6 +459,21 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
           threadId,
         });
         await setupConfig.onInbound(channelId, threadId, slashCommandToInbound(event));
+      });
+
+      chat.onAssistantContextChanged(async (event) => {
+        const entities = appContextEntities(event);
+        if (entities.length) cacheAppContext(instanceKey(), event.channelId, event.userId, entities);
+      });
+
+      chat.onAssistantThreadStarted(async (event) => {
+        const entities = appContextEntities(event);
+        if (entities.length) cacheAppContext(instanceKey(), event.channelId, event.userId, entities);
+        try {
+          agentDmOpenedHandler({ instance: instanceKey(), channelId: event.channelId });
+        } catch (err) {
+          log.error('Agent-DM opened handler failed', { err });
+        }
       });
 
       // Subscribed threads — every message in a thread we've previously
@@ -367,7 +508,10 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
           sender: (message.author as any)?.fullName ?? (message.author as any)?.userId ?? 'unknown',
           threadId: thread.id,
         });
-        await setupConfig.onInbound(channelId, thread.id, await messageToInbound(message, true, false));
+        const inbound = await messageToInbound(message, true, false);
+        const userId = (message.author as { userId?: string })?.userId;
+        attachAppContext(inbound.content as Record<string, unknown>, instanceKey(), thread.id, userId);
+        await setupConfig.onInbound(channelId, thread.id, inbound);
       });
 
       // Plain messages in unsubscribed threads.
@@ -395,7 +539,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         const userId = event.user?.userId || '';
 
         // Resolve render metadata BEFORE dispatching onAction (which deletes the row).
-        const render = getAskQuestionRender(questionId);
+        const render = resolveQuestionRender(questionId);
         // New format: button id/value is an integer index into options (kept
         // short to fit Telegram's 64-byte callback_data cap). Old format:
         // the full value is embedded in actionId/value directly.
@@ -404,12 +548,27 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         const matched = render?.options.find((o) => o.value === selectedOption);
         const selectedLabel = matched?.selectedLabel ?? selectedOption ?? '(clicked)';
 
+        const actor = event.user?.userName ?? event.user?.fullName;
+        const resolution = actor ? `${selectedLabel} by ${actor}` : selectedLabel;
+
         // Update the card to show the selected answer and remove buttons
         try {
           const tid = event.threadId;
-          await adapter.editMessage(tid, event.messageId, {
-            markdown: `${title}\n\n${selectedLabel}`,
-          });
+          if (render?.question) {
+            await adapter.editMessage(tid, event.messageId, {
+              card: Card({
+                title: render.title ?? title,
+                children: [
+                  CardText(render.question),
+                  CardText(resolution, { style: 'muted' }),
+                ],
+              }),
+            });
+          } else {
+            await adapter.editMessage(tid, event.messageId, {
+              markdown: `${title}\n\n${resolution}`,
+            });
+          }
         } catch (err) {
           log.warn('Failed to update card after action', { err });
         }
@@ -464,9 +623,10 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         log.info('Gateway listener started', { adapter: adapter.name });
       } else {
         // Non-gateway adapters (Slack, Teams, GitHub, etc.) — register on the shared webhook server
-        registerWebhookAdapter(chat, adapter.name);
+        registerWebhookAdapter(chat, adapter.name, config.instance ?? adapter.name);
       }
 
+      bridge._chat = chat;
       log.info('Chat SDK bridge initialized', { adapter: adapter.name });
     },
 
@@ -477,6 +637,21 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
       const content = message.content as Record<string, unknown>;
 
       if (content.operation === 'edit' && content.messageId) {
+        const terminalCard = content.terminalCard as
+          | { title?: string; question?: string; resolution?: string }
+          | undefined;
+        if (terminalCard?.title) {
+          await adapter.editMessage(tid, content.messageId as string, {
+            card: Card({
+              title: terminalCard.title,
+              children: [
+                CardText(terminalCard.question ?? ''),
+                CardText(terminalCard.resolution ?? '', { style: 'muted' }),
+              ],
+            }),
+          });
+          return;
+        }
         await adapter.editMessage(tid, content.messageId as string, {
           markdown: transformText((content.text as string) || (content.markdown as string) || ''),
         });
@@ -509,7 +684,12 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
               // well past that. The onAction handlers resolve the index back
               // to the real value via getAskQuestionRender(questionId).
               options.map((opt, idx) =>
-                Button({ id: `ncq:${questionId}:${idx}`, label: opt.label, value: String(idx) }),
+                Button({
+                  id: `ncq:${questionId}:${idx}`,
+                  label: opt.label,
+                  value: String(idx),
+                  ...(opt.style ? { style: opt.style } : {}),
+                }),
               ),
             ),
           ],
@@ -517,6 +697,17 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         const result = await adapter.postMessage(tid, {
           card,
           fallbackText: `${title}\n\n${question}\nOptions: ${options.map((o) => o.label).join(', ')}`,
+        });
+        return result?.id;
+      }
+
+      if (content.type === 'card' && content.card) {
+        const cardInput = content.card as DisplayCardInput;
+        if (!hasDisplayCardBody(cardInput)) return;
+        const card = buildDisplayCard(cardInput);
+        const result = await adapter.postMessage(tid, {
+          card,
+          fallbackText: (content.fallbackText as string) || cardInput.title || '',
         });
         return result?.id;
       }
@@ -683,7 +874,7 @@ async function handleForwardedEvent(
       const originalEmbeds =
         ((interaction.message as Record<string, unknown>)?.embeds as Array<Record<string, unknown>>) || [];
       const originalDescription = (originalEmbeds[0]?.description as string) || '';
-      const render = questionId ? getAskQuestionRender(questionId) : undefined;
+      const render = questionId ? resolveQuestionRender(questionId) : undefined;
       // Discord custom_id mirrors the new index-based encoding (see Button
       // construction). Decode back to the real option value for downstream.
       const selectedOption = resolveSelectedOption(render, tail, tail);

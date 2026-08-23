@@ -162,11 +162,30 @@ export class CurrencyService {
       this.cachedRate = fromDisk;
       return this.cachedRate;
     }
+    if (process.env.NANOCLAW_TEST_USD_BRL_RATE) {
+      const testRate = Number(process.env.NANOCLAW_TEST_USD_BRL_RATE);
+      if (Number.isFinite(testRate) && testRate > 0) {
+        this.cachedRate = testRate;
+        return testRate;
+      }
+    }
     // Dispara a busca em background para popular imediatamente
     this.getUsdToBrlRate().catch(() => {});
     throw new Error(
       'Cotação USD/BRL indisponível. Aguarde a busca em background ou verifique conectividade.',
     );
+  }
+
+  /** @internal Apenas para testes unitários. */
+  static seedRateForTests(rate: number): void {
+    this.cachedRate = rate;
+    this.lastFetched = Date.now();
+  }
+
+  /** @internal Apenas para testes unitários. */
+  static resetForTests(): void {
+    this.cachedRate = null;
+    this.lastFetched = 0;
   }
 
   /**

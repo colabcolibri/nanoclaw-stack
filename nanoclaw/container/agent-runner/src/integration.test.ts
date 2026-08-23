@@ -114,20 +114,20 @@ describe('poll loop integration', () => {
     await loopPromise.catch(() => {});
   });
 
-  it('bare text produces no outbound messages (scratchpad only)', async () => {
+  it('bare text is delivered to the active channel (sender / direct path)', async () => {
     insertMessage('m1', { sender: 'Alice', text: 'hello' }, { platformId: 'chan-1', channelType: 'discord' });
 
-    // Agent responds with bare text — no <message to="..."> wrapping
     const provider = new MockProvider({}, () => 'I am thinking about this...');
     const controller = new AbortController();
     const loopPromise = runPollLoopWithTimeout(provider, controller.signal, 2000);
 
-    // Wait long enough for the poll loop to process
-    await sleep(1000);
+    await waitFor(() => getUndeliveredMessages().length > 0, 2000);
     controller.abort();
 
     const out = getUndeliveredMessages();
-    expect(out).toHaveLength(0);
+    expect(out).toHaveLength(1);
+    expect(JSON.parse(out[0].content).text).toBe('I am thinking about this...');
+    expect(out[0].platform_id).toBe('chan-1');
 
     await loopPromise.catch(() => {});
   });
@@ -358,27 +358,23 @@ describe('poll loop — exchange hook (onExchangeComplete)', () => {
     await loopPromise.catch(() => {});
   });
 
-  it('does not report the internal wrapping-retry nudge as a user prompt', async () => {
+  it('delivers unwrapped text directly without a wrapping-retry nudge', async () => {
     insertMessage('m1', { sender: 'Alice', text: 'wrap this later' }, { platformId: 'chan-1', channelType: 'discord' });
 
-    let calls = 0;
-    const provider = new HookedMockProvider({}, () => {
-      calls += 1;
-      // First result is unwrapped (triggers the retry nudge), second is wrapped.
-      return calls === 1 ? 'unwrapped text' : '<message to="discord-test">wrapped now</message>';
-    });
+    const provider = new HookedMockProvider({}, () => 'unwrapped text');
     const controller = new AbortController();
     const loopPromise = runPollLoopWithTimeout(provider, controller.signal, 3000);
 
-    await waitFor(() => provider.exchanges.length >= 2, 3000);
+    await waitFor(() => provider.exchanges.length > 0, 3000);
     controller.abort();
 
-    // Both exchanges attribute themselves to the real user prompt, never the nudge.
-    for (const exchange of provider.exchanges) {
-      expect(exchange.prompt).not.toContain('Your response was not delivered');
-      expect(exchange.prompt).toContain('wrap this later');
-    }
-    expect(provider.exchanges.map((e) => e.status)).toEqual(['undelivered', 'completed']);
+    expect(provider.exchanges).toHaveLength(1);
+    expect(provider.exchanges[0].prompt).toContain('wrap this later');
+    expect(provider.exchanges[0].status).toBe('completed');
+
+    const out = getUndeliveredMessages();
+    expect(out).toHaveLength(1);
+    expect(JSON.parse(out[0].content).text).toBe('unwrapped text');
 
     await loopPromise.catch(() => {});
   });

@@ -649,10 +649,8 @@ function deliverErrorResult(text: string, routing: RoutingContext): void {
 /**
  * Parse the agent's final text for <message to="name">...</message> blocks
  * and dispatch each one to its resolved destination. Text outside of blocks
- * (including <internal>...</internal>) is scratchpad — logged but not sent.
- *
- * The agent must always wrap output in <message to="name">...</message>
- * blocks, even with a single destination. Bare text is scratchpad only.
+ * (including <internal>...</internal>) is delivered to the active channel when
+ * no explicit blocks matched (sender / mock path).
  */
 export interface TaskMessageBlock {
   to: string;
@@ -698,18 +696,8 @@ export function dispatchResultText(
     }
     const dest = findByName(toName);
     if (!dest) {
-      log(`Unknown destination in <message to="${toName}">, delivering to active channel`);
-      writeMessageOut({
-        id: generateId(),
-        in_reply_to: routing.inReplyTo,
-        kind: 'chat',
-        platform_id: routing.platformId,
-        channel_type: routing.channelType,
-        thread_id: routing.threadId,
-        content: JSON.stringify({ text: body }),
-        memo: takeTurnMemo(),
-      });
-      sent++;
+      log(`Unknown destination in <message to="${toName}"> — dropped`);
+      scratchpadParts.push(`[not delivered — unknown destination "${toName}"] ${body}`);
       continue;
     }
     sendToDestination(dest, body, routing, takeTurnMemo());

@@ -2,42 +2,32 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useDefaultGroup } from '@/contexts/AppConfigContext'
 import { useTranslation } from 'react-i18next'
 import {
-  Sliders,
   Save,
   CheckCircle2,
   AlertCircle,
-  Coins,
   Cpu,
   MapPin,
   Clock,
   UserRound,
-  Sparkles,
 } from 'lucide-react'
 import { ApiClient } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimezoneSelect } from '@/components/config/TimezoneSelect'
 import { ConfigSectionCard } from '@/components/config/ConfigSectionCard'
+import { configTypography as ty } from '@/components/config/config-typography'
 import { GroupRoleModelCard } from '@/components/config/GroupRoleModelCard'
-import { RoleInferenceParamsForm, type RoleInferenceParamsState } from '@/components/config/RoleInferenceParamsForm'
+import type { InferenceParamsForm, InferenceRole, RoleInferenceParamsState } from '@/components/config/RoleInferenceParamsForm'
 import { useLlmRegistry } from '@/hooks/useLlmRegistry'
 import { findModelInProviders } from '@/lib/model-registry'
 import { cn } from '@/lib/utils'
 
 export type { ModelItem, ModelPricing, ProviderMeta } from '@/lib/model-registry'
-
-const DEFAULT_PRICING = {
-  inputPerMillion: 0,
-  outputPerMillion: 0,
-  cacheWritePerMillion: 0,
-  cacheHitPerMillion: 0,
-  contextWindow: '128k',
-  savingsPct: 0,
-}
 
 interface GroupConfigState {
   name: string
@@ -87,12 +77,6 @@ export const ConfigView: React.FC = () => {
   const [usdToBrlRate, setUsdToBrlRate] = useState(5.5)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [effectiveModels, setEffectiveModels] = useState<{
-    model?: string
-    orchestratorModel?: string
-    senderModel?: string
-    memoModel?: string
-  }>({})
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   const loadConfig = async () => {
@@ -112,7 +96,6 @@ export const ConfigView: React.FC = () => {
           country,
           timezone: data.config.timezone || 'Europe/Brussels',
         })
-        setEffectiveModels(data.config.effectiveModels ?? {})
       }
     } catch {
       /* ignore */
@@ -144,6 +127,19 @@ export const ConfigView: React.FC = () => {
   }, [providers, group])
 
   const handleSave = async () => {
+    const missing = [
+      !config.model.trim() && 'Worker',
+      !config.orchestratorModel.trim() && t('roleOrchestrator'),
+      !config.senderModel.trim() && 'Sender',
+      !config.memoModel.trim() && 'Memo',
+    ].filter(Boolean) as string[]
+
+    if (missing.length > 0) {
+      setToast({ text: t('modelRequired'), type: 'error' })
+      setTimeout(() => setToast(null), 4000)
+      return
+    }
+
     setIsSaving(true)
     try {
       await ApiClient.saveConfig(group, {
@@ -169,56 +165,66 @@ export const ConfigView: React.FC = () => {
     }
   }
 
+  const setRoleInference = (role: InferenceRole, params: InferenceParamsForm | undefined) => {
+    setConfig((c) => {
+      const next = { ...c.roleInferenceParams }
+      if (!params || Object.keys(params).length === 0) {
+        delete next[role]
+      } else {
+        next[role] = params
+      }
+      return { ...c, roleInferenceParams: next }
+    })
+  }
+
   const roleModels = useMemo(
-    () => [
-      {
-        key: 'worker',
-        label: 'Worker',
-        hint: t('roleWorkerHint'),
-        modelId: config.model,
-        effectiveId: effectiveModels.model,
-        accentClass: 'text-sky-500',
-        defaultLabel: effectiveModels.model
-          ? `${t('defaultCatalog')} → ${effectiveModels.model}`
-          : t('defaultWorker'),
-        onChange: (model: string) => setConfig((c) => ({ ...c, model })),
-      },
-      {
-        key: 'orchestrator',
-        label: t('roleOrchestrator'),
-        hint: t('roleOrchestratorHint'),
-        modelId: config.orchestratorModel,
-        effectiveId: effectiveModels.orchestratorModel,
-        accentClass: 'text-purple-500',
-        defaultLabel: t('defaultOrchestrator'),
-        onChange: (orchestratorModel: string) => setConfig((c) => ({ ...c, orchestratorModel })),
-      },
-      {
-        key: 'sender',
-        label: 'Sender',
-        hint: t('roleSenderHint'),
-        modelId: config.senderModel,
-        effectiveId: effectiveModels.senderModel,
-        accentClass: 'text-emerald-500',
-        defaultLabel: t('defaultSender'),
-        onChange: (senderModel: string) => setConfig((c) => ({ ...c, senderModel })),
-      },
-      {
-        key: 'memo',
-        label: 'Memo',
-        hint: t('roleMemoHint'),
-        modelId: config.memoModel,
-        effectiveId: effectiveModels.memoModel,
-        accentClass: 'text-amber-500',
-        defaultLabel: t('defaultMemo'),
-        onChange: (memoModel: string) => setConfig((c) => ({ ...c, memoModel })),
-      },
-    ],
-    [config, effectiveModels, t],
+    () =>
+      [
+        {
+          key: 'worker' as const,
+          label: 'Worker',
+          hint: t('roleWorkerHint'),
+          modelId: config.model,
+          accentClass: 'text-sky-500',
+          onModelChange: (model: string) => setConfig((c) => ({ ...c, model })),
+        },
+        {
+          key: 'orchestrator' as const,
+          label: t('roleOrchestrator'),
+          hint: t('roleOrchestratorHint'),
+          modelId: config.orchestratorModel,
+          accentClass: 'text-purple-500',
+          onModelChange: (orchestratorModel: string) => setConfig((c) => ({ ...c, orchestratorModel })),
+        },
+        {
+          key: 'sender' as const,
+          label: 'Sender',
+          hint: t('roleSenderHint'),
+          modelId: config.senderModel,
+          accentClass: 'text-emerald-500',
+          onModelChange: (senderModel: string) => setConfig((c) => ({ ...c, senderModel })),
+        },
+        {
+          key: 'memo' as const,
+          label: 'Memo',
+          hint: t('roleMemoHint'),
+          modelId: config.memoModel,
+          accentClass: 'text-amber-500',
+          onModelChange: (memoModel: string) => setConfig((c) => ({ ...c, memoModel })),
+        },
+      ] satisfies Array<{
+        key: InferenceRole
+        label: string
+        hint: string
+        modelId: string
+        accentClass: string
+        onModelChange: (id: string) => void
+      }>,
+    [config, t],
   )
 
   const inputClass =
-    'w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3.5 py-2.5 text-xs text-(--text-input) focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500'
+    'w-full rounded-lg border border-(--border-main) bg-(--bg-input) px-3.5 py-2.5 text-sm text-(--text-input) focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500'
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
@@ -259,19 +265,16 @@ export const ConfigView: React.FC = () => {
 
       {!isLoading && (
         <div className="flex flex-wrap gap-2">
-          {roleModels.map((role) => {
-            const id = role.modelId || role.effectiveId || '…'
-            return (
-              <Badge
-                key={role.key}
-                variant="outline"
-                className="max-w-full truncate font-mono text-[10px] font-normal"
-              >
-                <span className={cn('mr-1.5 font-semibold', role.accentClass)}>{role.label}</span>
-                {role.modelId ? id : `padrão → ${id}`}
-              </Badge>
-            )
-          })}
+          {roleModels.map((role) => (
+            <Badge
+              key={role.key}
+              variant={role.modelId.trim() ? 'outline' : 'warning'}
+              className="max-w-full truncate font-mono font-normal"
+            >
+              <span className={cn('mr-1.5 font-semibold', role.accentClass)}>{role.label}</span>
+              {role.modelId.trim() || t('chipRequired')}
+            </Badge>
+          ))}
         </div>
       )}
 
@@ -285,17 +288,11 @@ export const ConfigView: React.FC = () => {
         <Tabs defaultValue="general" className="w-full min-w-0">
           <div className="overflow-x-auto overflow-y-hidden pb-1">
             <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-1 rounded-lg p-1 sm:min-w-0">
-              <TabsTrigger value="general" className="text-xs">
+              <TabsTrigger value="general" className="text-sm">
                 {t('tabGeneral')}
               </TabsTrigger>
-              <TabsTrigger value="models" className="text-xs">
+              <TabsTrigger value="models" className="text-sm">
                 {t('tabModels')}
-              </TabsTrigger>
-              <TabsTrigger value="inference" className="text-xs">
-                {t('tabInference')}
-              </TabsTrigger>
-              <TabsTrigger value="costs" className="text-xs">
-                {t('tabCosts')}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -308,16 +305,16 @@ export const ConfigView: React.FC = () => {
                 icon={UserRound}
                 iconClassName="text-sky-500"
               >
-                <label className="mb-1.5 block text-xs font-semibold text-(--text-main)">
-                  {t('assistantName')}
-                </label>
+                <div className="space-y-2">
+                <Label>{t('assistantName')}</Label>
                 <Input
                   type="text"
                   value={config.name}
                   onChange={(e) => setConfig({ ...config, name: e.target.value })}
                   placeholder="Barão"
-                  className="text-xs"
+                  className="text-sm"
                 />
+                </div>
               </ConfigSectionCard>
 
               <ConfigSectionCard
@@ -327,11 +324,11 @@ export const ConfigView: React.FC = () => {
                 iconClassName="text-rose-500"
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-(--text-main)">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-500" />
                       {t('city')}
-                    </label>
+                    </Label>
                     <input
                       type="text"
                       className={inputClass}
@@ -340,11 +337,11 @@ export const ConfigView: React.FC = () => {
                       placeholder={t('cityPlaceholder')}
                     />
                   </div>
-                  <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-(--text-main)">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-amber-500" />
                       {t('country')}
-                    </label>
+                    </Label>
                     <input
                       type="text"
                       className={inputClass}
@@ -353,11 +350,11 @@ export const ConfigView: React.FC = () => {
                       placeholder={t('countryPlaceholder')}
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-(--text-main)">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5 text-indigo-500" />
                       {t('timezone')}
-                    </label>
+                    </Label>
                     <TimezoneSelect
                       value={config.timezone}
                       onChange={(timezone) => setConfig({ ...config, timezone })}
@@ -375,82 +372,36 @@ export const ConfigView: React.FC = () => {
               icon={Cpu}
               iconClassName="text-sky-500"
             >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {roleModels.map((role) => (
-                  <GroupRoleModelCard
-                    key={role.key}
-                    label={role.label}
-                    hint={role.hint}
-                    accentClass={role.accentClass}
-                    value={role.modelId}
-                    effectiveId={role.effectiveId}
-                    providers={providers}
-                    disabled={isLoadingModels}
-                    defaultLabel={role.defaultLabel}
-                    onChange={role.onChange}
-                  />
-                ))}
-              </div>
-            </ConfigSectionCard>
-          </TabsContent>
-
-          <TabsContent value="inference" className="mt-4 space-y-4">
-            <ConfigSectionCard
-              title={t('sectionInference')}
-              description={t('sectionInferenceDesc')}
-              icon={Sliders}
-              iconClassName="text-indigo-500"
-            >
-              <RoleInferenceParamsForm
-                value={config.roleInferenceParams}
-                onChange={(roleInferenceParams) => setConfig({ ...config, roleInferenceParams })}
-              />
-            </ConfigSectionCard>
-          </TabsContent>
-
-          <TabsContent value="costs" className="mt-4 space-y-4">
-            <ConfigSectionCard
-              title={t('sectionCosts')}
-              description={t('sectionCostsDesc')}
-              icon={Coins}
-              iconClassName="text-amber-500"
-            >
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs text-(--text-muted)">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                  {t('costsReference')}
-                </div>
-                <span className="font-mono text-[10px] text-(--text-dim)">
-                  1 USD = R$ {usdToBrlRate.toFixed(2)}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {roleModels.map((role) => {
-                  const displayId = role.modelId || role.effectiveId || ''
-                  const modelObj = findModelInProviders(providers, displayId)
-                  const pricing = modelObj?.pricing || DEFAULT_PRICING
+                  const modelObj = role.modelId.trim()
+                    ? findModelInProviders(providers, role.modelId.trim())
+                    : undefined
                   return (
-                    <div
+                    <GroupRoleModelCard
                       key={role.key}
-                      className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle)/40 p-4"
-                    >
-                      <div className={cn('text-[10px] font-bold uppercase tracking-wider', role.accentClass)}>
-                        {role.label}
-                      </div>
-                      <p className="mt-1 truncate font-mono text-[10px] text-(--text-dim)">
-                        {role.modelId ? role.modelId : `padrão → ${role.effectiveId || '…'}`}
-                      </p>
-                      <p className="mt-3 font-mono text-xs text-(--text-main)">
-                        in ${pricing.inputPerMillion.toFixed(3)} · out ${pricing.outputPerMillion.toFixed(3)}
-                      </p>
-                      <p className="mt-1 font-mono text-[10px] text-(--text-dim)">
-                        ~R$ {(pricing.inputPerMillion * usdToBrlRate).toFixed(2)} / R${' '}
-                        {(pricing.outputPerMillion * usdToBrlRate).toFixed(2)} / 1M
-                      </p>
-                    </div>
+                      role={role.key}
+                      label={role.label}
+                      hint={role.hint}
+                      accentClass={role.accentClass}
+                      value={role.modelId}
+                      inferenceParams={config.roleInferenceParams[role.key]}
+                      pricing={modelObj?.pricing ?? null}
+                      usdToBrlRate={usdToBrlRate}
+                      providers={providers}
+                      disabled={isLoadingModels}
+                      onModelChange={role.onModelChange}
+                      onInferenceChange={(params) => setRoleInference(role.key, params)}
+                    />
                   )
                 })}
               </div>
+              <footer className="mt-5 space-y-1 border-t border-(--border-main)/50 pt-4">
+                <p className={ty.footnote}>{t('inferenceInlineHint')}</p>
+                <p className={ty.footnote}>
+                  {t('costsFootnote', { rate: usdToBrlRate.toFixed(2) })}
+                </p>
+              </footer>
             </ConfigSectionCard>
           </TabsContent>
         </Tabs>

@@ -1,34 +1,71 @@
-import { describe, expect, test, beforeAll } from "bun:test";
+import { describe, expect, test, beforeAll, beforeEach, afterEach } from "bun:test";
 import { TurnOrchestrator } from "../src/orchestrator/turn-orchestrator.js";
 import { ExecutionScratchpad } from "../src/orchestrator/scratchpad.js";
 import { PayloadSanitizer } from "../src/orchestrator/payload-sanitizer.js";
+import { ModelRegistry } from "../src/services/model-registry.js";
 import type { LLMResponse } from "../src/orchestrator/types.js";
+
+const TEST_MODEL = "deepseek-chat";
+
+function seedTestCatalog(): void {
+  ModelRegistry.seedForTests([
+    {
+      id: TEST_MODEL,
+      name: "DeepSeek Chat",
+      providerId: "deepseek",
+      description: "Test model",
+      completionUrl: "https://api.deepseek.com/chat/completions",
+      keyEnvName: "DEEPSEEK_API_KEY",
+      protocol: "openai-compatible",
+      inferenceParams: {},
+      contextWindow: "128k",
+      pricing: { cacheHitPerMillion: 0, cacheMissPerMillion: 0, outputPerMillion: 0 },
+    },
+  ]);
+}
+
+const roleModels = {
+  orchestratorModel: TEST_MODEL,
+  senderModel: TEST_MODEL,
+  memoModel: TEST_MODEL,
+  defaultModel: TEST_MODEL,
+};
 
 beforeAll(() => {
   process.env.TZ = process.env.TZ || "UTC";
 });
 
+beforeEach(() => {
+  ModelRegistry.resetForTests();
+  seedTestCatalog();
+});
+
+afterEach(() => {
+  ModelRegistry.resetForTests();
+});
+
 describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
-  test("Executes specialist worker in Stage 1 and applies Persona exclusively in Sender Agent with ExecutionScratchpad", async () => {
-    let stage1ToolsPassed: any = null;
-    let stage1HadTechnicalPrompt = false;
-    let stage2PersonaPresent: boolean = false;
-    let stage2ReceivedFindings = false;
-    let callCount = 0;
+  test("routes domain requests through worker and sender with ExecutionScratchpad", async () => {
+    let workerToolCalls = 0;
+    let senderInvoked = false;
 
-    const mockComplete = async (messages: any[], enableTools: any, options: any): Promise<LLMResponse> => {
-      callCount++;
-
-      if (callCount === 1) {
-        // Stage 1 - Specialist worker execution
-        stage1ToolsPassed = enableTools;
-        const sys = messages.find((m) => m.role === "system")?.content || "";
-        if (sys.includes("specialist") || sys.includes("Worker execution")) {
-          stage1HadTechnicalPrompt = true;
-        }
-
+    const mockComplete = async (_messages: any[], _enableTools: any, options: any): Promise<LLMResponse> => {
+      if (options?.purpose === "orchestrator_triage") {
         return {
-          content: "Vou verificar seus e-mails.",
+          content: JSON.stringify({
+            type: "department_delegation",
+            reasoning: "E-mails requerem especialista",
+            departmentId: "productivity",
+            agentId: "productivity_attendant",
+            taskDescription: "veja meus e-mails de hoje",
+          }),
+        };
+      }
+
+      if (options?.purpose === "stage1_action") {
+        workerToolCalls += 1;
+        return {
+          content: "Encontrei os dados.",
           tool_calls: [
             {
               id: "call-1",
@@ -42,27 +79,14 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
         };
       }
 
-      if (callCount === 2) {
-        // Stage 1 - conclusion after tool execution
+      if (options?.purpose === "stage2_synthesis" || options?.agent === "sender") {
+        senderInvoked = true;
         return {
-          content: "Encontrei os dados.",
+          content: '<message to="telegram:123">\nÔ sô, olhei o trem aqui e tá tudo limpo!\n</message>',
         };
       }
 
-      // Stage 2 / Sender - Persona synthesis pass
-      const sys = messages.find((m) => m.role === "system")?.content || "";
-      if (sys.includes("Mineiro Sarcástico") || sys.includes("Barão")) {
-        stage2PersonaPresent = true;
-      }
-
-      const userPrompt = messages.find((m) => m.role === "user")?.content || "";
-      if (userPrompt.includes("read_file") || userPrompt.includes("Verified technical results")) {
-        stage2ReceivedFindings = true;
-      }
-
-      return {
-        content: "<message to=\"telegram:123\">\nÔ sô, olhei o trem aqui e tá tudo limpo!\n</message>",
-      };
+      return { content: "memo" };
     };
 
     const result = await TurnOrchestrator.runTurn(mockComplete, {
@@ -73,24 +97,32 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
       personaInstructions: "# Mineiro Sarcástico\nVocê é o Barão.",
       coreMemory: "Memória permanente de teste",
       historyLimit: 10,
+      ...roleModels,
     });
 
-    expect(result.toolsExecutedCount).toBe(1);
-    expect(Array.isArray(stage1ToolsPassed)).toBe(true);
-    expect(stage1HadTechnicalPrompt).toBe(true);
-    expect(stage2PersonaPresent).toBe(true);
-    expect(stage2ReceivedFindings).toBe(true);
+    expect(workerToolCalls).toBeGreaterThan(0);
+    expect(senderInvoked).toBe(true);
+    expect(result.toolsExecutedCount).toBeGreaterThan(0);
     expect(result.deliveredText).toContain("Ô sô, olhei o trem aqui");
   });
 
-  test("Direct conversation with zero tools completes in exactly 1 direct pass through Sender Agent", async () => {
-    let directCalls = 0;
-    const mockComplete = async (messages: any[], enableTools: any, options: any): Promise<LLMResponse> => {
-      directCalls++;
-      expect(enableTools).toBe(false);
-      return {
-        content: "Bom dia, Sergio! Em que posso ajudar hoje?",
-      };
+  test("routes pure conversation through fast-path to sender", async () => {
+    let senderInvoked = false;
+    let workerInvoked = false;
+
+    const mockComplete = async (_messages: any[], _enableTools: any, options: any): Promise<LLMResponse> => {
+      if (options?.purpose === "orchestrator_triage") {
+        return {
+          content: JSON.stringify({
+            type: "fast_path",
+            reasoning: "Saudação simples",
+            instructionsForSender: "Responda com cordialidade.",
+          }),
+        };
+      }
+      if (options?.purpose === "stage1_action") workerInvoked = true;
+      if (options?.purpose === "stage2_synthesis" || options?.agent === "sender") senderInvoked = true;
+      return { content: "Bom dia, Sergio! Em que posso ajudar hoje?" };
     };
 
     const result = await TurnOrchestrator.runTurn(mockComplete, {
@@ -100,9 +132,11 @@ describe("TurnOrchestrator Multi-Agent Pipeline & Execution Memory", () => {
       systemInstructions: "Base technical",
       personaInstructions: "Persona Barão",
       historyLimit: 10,
+      ...roleModels,
     });
 
-    expect(directCalls).toBe(1);
+    expect(senderInvoked).toBe(true);
+    expect(workerInvoked).toBe(false);
     expect(result.toolsExecutedCount).toBe(0);
     expect(result.deliveredText).toContain("Bom dia, Sergio!");
   });

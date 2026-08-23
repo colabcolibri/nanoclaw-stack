@@ -34,9 +34,9 @@ export const ConfigSectionCard: React.FC<ConfigSectionCardProps> = ({
           </div>
         )}
         <div className="min-w-0 space-y-0.5">
-          <CardTitle className="text-sm font-semibold text-(--text-main)">{title}</CardTitle>
+          <CardTitle className="text-base font-semibold text-(--text-main)">{title}</CardTitle>
           {description && (
-            <CardDescription className="text-xs leading-relaxed text-(--text-muted)">
+            <CardDescription className="text-sm leading-relaxed text-(--text-muted)">
               {description}
             </CardDescription>
           )}

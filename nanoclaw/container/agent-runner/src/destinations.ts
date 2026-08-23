@@ -60,12 +60,6 @@ export function findByName(name: string): DestinationEntry | undefined {
     .get(name, name) as DestRow | undefined;
   if (row) return rowToEntry(row);
 
-  // 3. If there is only one destination registered, route to it safely
-  const all = db.prepare('SELECT * FROM destinations').all() as DestRow[];
-  if (all.length === 1 && all[0]) {
-    return rowToEntry(all[0]);
-  }
-
   return undefined;
 }
 

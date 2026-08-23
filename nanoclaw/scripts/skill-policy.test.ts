@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { gatePolicy, extractOfferUrl, type GateDecision } from './skill-policy.js';
 import { parseDirectives } from './skill-directives.js';
+
+const channelSkillsReady = ['teams', 'telegram', 'signal', 'whatsapp', 'imessage', 'discord', 'slack'].every((channel) =>
+  existsSync(join(process.cwd(), `.claude/skills/add-${channel}/SKILL.md`)),
+);
 
 // The parity fixtures are the REAL in-tree channel skills: the policy's whole
 // claim is that it reproduces (and deliberately extends — the readiness pauses,
@@ -27,7 +31,7 @@ function operatorBody(md: string, n: number): string {
   return ops[n].body.join('\n');
 }
 
-describe('gatePolicy — §5.1 parity table (real skills)', () => {
+describe.skipIf(!channelSkillsReady)('gatePolicy — §5.1 parity table (real skills)', () => {
   it('teams: one gate — the install-in-Teams operator pauses before the DM-open fetches', () => {
     // Operators in order (CLI-first flow): prerequisites, the detected-owner
     // note, the wire-declined note (when:wire_owner=no), install-in-Teams.
@@ -141,7 +145,7 @@ describe('gatePolicy — rules on synthetic fixtures', () => {
 
 // §5.2 URL-offer inventory — every operator body in the tree, plus the
 // normative negative fixture (slack's placeholder URL).
-describe('extractOfferUrl — §5.2 inventory', () => {
+describe.skipIf(!channelSkillsReady)('extractOfferUrl — §5.2 inventory', () => {
   it('teams: raw bodies stay offer-free — the install link is a {{var}} until substitution', () => {
     const md = loadSkill('teams');
     // The install block's URL is {{install_link}} in the AUTHORED body — no

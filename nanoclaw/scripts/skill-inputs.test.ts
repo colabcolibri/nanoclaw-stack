@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -40,7 +40,9 @@ describe('inputsFromEnv (docs/skill-engine-seam.md §6)', () => {
   // The round-trip proof for one real skill: env → inputsFromEnv → applySkill
   // goes fully green for add-slack (webhook leg) with stubbed exec — the exact
   // pipeline-consumer path the seam doc's §6 contract describes.
-  it('round-trips the env convention through a full programmatic apply of add-slack', async () => {
+  it.skipIf(!existsSync(join(process.cwd(), '.claude/skills/add-slack/SKILL.md')))(
+    'round-trips the env convention through a full programmatic apply of add-slack',
+    async () => {
     const skillDir = join(process.cwd(), '.claude/skills/add-slack');
     const md = readFileSync(join(skillDir, 'SKILL.md'), 'utf8');
     const inputs = inputsFromEnv(md, {

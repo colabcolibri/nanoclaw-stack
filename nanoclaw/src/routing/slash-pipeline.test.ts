@@ -152,8 +152,8 @@ describe('runSlashPipeline', () => {
     expect(outcome.kind).toBe('handled');
     if (outcome.kind !== 'handled') return;
 
-    expect(outcome.result.reply).toBe('New conversation started.');
-    expect(delivered).toContain('New conversation started.');
+    expect(outcome.result.reply).toBe('Nova conversa iniciada. A conversa anterior foi arquivada.');
+    expect(delivered).toContain('Nova conversa iniciada. A conversa anterior foi arquivada.');
 
     const after = findSessionForAgent('ag-1', 'mg-tg', null);
     expect(after?.id).toBe(outcome.result.session.id);
@@ -161,7 +161,7 @@ describe('runSlashPipeline', () => {
       const outDb = new Database(outboundDbPath('ag-1', after.id));
       const row = outDb.prepare('SELECT content FROM messages_out LIMIT 1').get() as { content: string };
       outDb.close();
-      expect(JSON.parse(row.content).text).toBe('New conversation started.');
+      expect(JSON.parse(row.content).text).toBe('Nova conversa iniciada. A conversa anterior foi arquivada.');
     }
   });
 
@@ -190,7 +190,7 @@ describe('runSlashPipeline', () => {
 
     expect(outcome.kind).toBe('handled');
     if (outcome.kind === 'handled') {
-      expect(outcome.result.reply).toBe('New conversation started.');
+      expect(outcome.result.reply).toBe('Nova conversa iniciada. A conversa anterior foi arquivada.');
     }
   });
 

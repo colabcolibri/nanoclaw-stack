@@ -66,6 +66,10 @@ export class WorkerAgentRunner {
         department: agent.departmentId,
         iteration: iter + 1,
         model: resolvedModel,
+        inferenceOverride:
+          agent.inferenceParams && Object.keys(agent.inferenceParams).length > 0
+            ? agent.inferenceParams
+            : undefined,
         messageId: options.messageId,
         supervisorStep: options.supervisorStep,
       });

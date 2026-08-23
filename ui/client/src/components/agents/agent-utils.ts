@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { type AgentItem, type SkillItem } from '@/api/client'
+import type { InferenceParamsForm } from '@/components/config/RoleInferenceParamsForm'
 
 const DEPT_ICONS: Record<string, LucideIcon> = {
   productivity: Calendar,
@@ -81,6 +82,7 @@ export interface AgentYamlFields {
   skills: string[]
   allowGlobalSkills: boolean
   model?: string
+  inferenceParams?: InferenceParamsForm
 }
 
 export function buildAgentYamlPreview(fields: AgentYamlFields): string {
@@ -100,6 +102,26 @@ export function buildAgentYamlPreview(fields: AgentYamlFields): string {
   ]
 
   if (fields.model?.trim()) lines.push(`model: ${fields.model.trim()}`)
+
+  const inferenceKeys: Array<keyof InferenceParamsForm> = [
+    'temperature',
+    'maxTokens',
+    'topP',
+    'topK',
+    'frequencyPenalty',
+    'presencePenalty',
+  ]
+  const inferenceLines: string[] = []
+  for (const key of inferenceKeys) {
+    const value = fields.inferenceParams?.[key]
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      inferenceLines.push(`  ${key}: ${value}`)
+    }
+  }
+  if (inferenceLines.length > 0) {
+    lines.push('inference:')
+    lines.push(...inferenceLines)
+  }
 
   return lines.join('\n')
 }

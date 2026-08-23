@@ -1,4 +1,5 @@
 import type { ToolDefinition } from '../tools/types.js';
+import type { InferenceParams } from '../inference-params.js';
 import type { LLMCompletionFn, LLMResponse } from '../orchestrator/types.js';
 import type { ContextPlan } from '../services/context-pack.js';
 import type { AgentCapability, WorkerCompletion } from '../execution/types.js';
@@ -20,6 +21,8 @@ export interface SpecialistAgent {
   agentSkills: string[]; // Specific tool/skill names exclusive to this agent
   allowGlobalSkills?: boolean; // If true, agent can also use global utility skills (default: true)
   model?: string;
+  /** Override de inference params deste especialista (vence o papel worker do grupo). */
+  inferenceParams?: InferenceParams;
   /** Declarative worker loop profile (see execution/profiles.ts). */
   executionProfile?: string;
   /** Stable capability ids for routing and supervisor termination. */

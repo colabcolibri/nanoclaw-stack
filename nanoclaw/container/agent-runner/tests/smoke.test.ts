@@ -1,11 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { AGENT_TOOLS } from "../src/tools/index.js";
 import { ResalePricingEngine } from "../src/services/pricing.js";
 import { MemoryManager } from "../src/services/memory.js";
 import { TokenLedger } from "../src/services/token-ledger.js";
 import { MemoService } from "../src/services/memo-service.js";
+import { CurrencyService } from "../src/services/currency.js";
 
 describe("Agent Runner Smoke & Regression Tests", () => {
+  beforeEach(() => {
+    CurrencyService.seedRateForTests(5.5);
+  });
+
+  afterEach(() => {
+    CurrencyService.resetForTests();
+  });
   test("All agent tools are properly defined and typed", () => {
     expect(Array.isArray(AGENT_TOOLS)).toBe(true);
     expect(AGENT_TOOLS.length).toBeGreaterThan(0);

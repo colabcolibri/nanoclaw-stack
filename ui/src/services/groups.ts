@@ -4,48 +4,12 @@ import { CONFIG } from "../config.js";
 import { DatabaseService } from "./db.js";
 import { LlmCredentialsService } from "./llm-credentials.js";
 import { LlmModelService } from "./llm-models.js";
-import { alignRoleModelsWithProvider } from "../../../nanoclaw/src/container-config.js";
-import type { MaterializedLlmRegistry } from "../../../nanoclaw/src/llm-models-materialize.js";
-
-function loadMaterializedRegistry(): MaterializedLlmRegistry | null {
-  const registryPath = path.join(CONFIG.DATA_PATH, "llm-models.json");
-  if (!fs.existsSync(registryPath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(registryPath, "utf-8")) as MaterializedLlmRegistry;
-  } catch {
-    return null;
-  }
-}
-
-function resolveEffectiveRoleModels(
-  provider: string | null,
-  overrides: { model?: string; orchestratorModel?: string; senderModel?: string; memoModel?: string },
-): { model: string; orchestratorModel: string; senderModel: string; memoModel: string } | null {
-  if (!provider) return null;
-  const registry = loadMaterializedRegistry();
-  if (!registry) return null;
-  const aligned = alignRoleModelsWithProvider(
-    {
-      mcpServers: {},
-      packages: { apt: [], npm: [] },
-      additionalMounts: [],
-      skills: [],
-      provider,
-      model: overrides.model,
-      orchestratorModel: overrides.orchestratorModel,
-      senderModel: overrides.senderModel,
-      memoModel: overrides.memoModel,
-    },
-    registry,
-  );
-  if (!aligned.model || !aligned.orchestratorModel || !aligned.senderModel || !aligned.memoModel) return null;
-  return {
-    model: aligned.model,
-    orchestratorModel: aligned.orchestratorModel,
-    senderModel: aligned.senderModel,
-    memoModel: aligned.memoModel,
-  };
-}
+import {
+  formatInferenceParamsYamlBlock,
+  parseInferenceParamsObject,
+  parseInferenceParamsYamlBlock,
+  type InferenceParams,
+} from "../../../nanoclaw/src/inference-params.js";
 
 function resolveProviderForModel(modelId: string): string | null {
   if (!modelId) return null;
@@ -442,28 +406,25 @@ export class GroupManager {
 
     const dbRow = DatabaseService.getContainerConfigByFolder(safeFolder);
     const envMap = this.readNanoClawEnv();
-    const storedModel = dbRow?.model ?? containerCfg.model ?? "";
-    const storedOrchestrator = dbRow?.orchestrator_model ?? containerCfg.orchestratorModel ?? "";
-    const storedSender = dbRow?.sender_model ?? containerCfg.senderModel ?? "";
-    const storedMemo = dbRow?.memo_model ?? containerCfg.memoModel ?? "";
+    // DB é a fonte de verdade quando existe linha; não misturar com fallbacks gravados no container.json.
+    const storedModel = dbRow ? (dbRow.model ?? "") : (containerCfg.model ?? "");
+    const storedOrchestrator = dbRow
+      ? (dbRow.orchestrator_model ?? "")
+      : (containerCfg.orchestratorModel ?? "");
+    const storedSender = dbRow ? (dbRow.sender_model ?? "") : (containerCfg.senderModel ?? "");
+    const storedMemo = dbRow ? (dbRow.memo_model ?? "") : (containerCfg.memoModel ?? "");
     const roleInferenceParams = (() => {
-      if (containerCfg.roleInferenceParams) return containerCfg.roleInferenceParams;
-      if (!dbRow?.role_inference_params) return {};
-      try {
-        return JSON.parse(dbRow.role_inference_params);
-      } catch {
-        return {};
+      if (dbRow?.role_inference_params) {
+        try {
+          return JSON.parse(dbRow.role_inference_params);
+        } catch {
+          return {};
+        }
       }
+      return containerCfg.roleInferenceParams ?? {};
     })();
     const derivedProvider = storedModel ? resolveProviderForModel(storedModel) : null;
     const activeProvider = containerCfg.provider ?? dbRow?.provider ?? derivedProvider ?? null;
-
-    const effective = resolveEffectiveRoleModels(activeProvider, {
-      model: storedModel,
-      orchestratorModel: storedOrchestrator,
-      senderModel: storedSender,
-      memoModel: storedMemo,
-    });
 
     const locationFields = parseLocationFields({
       city: containerCfg.city || dbRow?.city,
@@ -480,13 +441,6 @@ export class GroupManager {
       senderModel: storedSender,
       memoModel: storedMemo,
       roleInferenceParams,
-      effectiveModels: effective ?? undefined,
-      modelUsesDefault: {
-        worker: !storedModel.trim(),
-        orchestrator: !storedOrchestrator.trim(),
-        sender: !storedSender.trim(),
-        memo: !storedMemo.trim(),
-      },
       assistantName:
         containerCfg.assistantName ||
         containerCfg.groupName ||
@@ -553,29 +507,22 @@ export class GroupManager {
     merged.provider =
       newConfig.provider || current.provider || derivedProvider || merged.provider || null;
 
-    const effective = resolveEffectiveRoleModels(merged.provider, {
-      model: merged.model,
-      orchestratorModel: merged.orchestratorModel,
-      senderModel: merged.senderModel,
-      memoModel: merged.memoModel,
-    });
-
+    const requiredModels = [
+      ["model", merged.model],
+      ["orchestratorModel", merged.orchestratorModel],
+      ["senderModel", merged.senderModel],
+      ["memoModel", merged.memoModel],
+    ] as const;
+    const missing = requiredModels.filter(([, value]) => !String(value ?? "").trim()).map(([key]) => key);
+    if (missing.length > 0) {
+      throw new Error(`modelos obrigatórios não preenchidos: ${missing.join(", ")}`);
+    }
     if (!merged.provider) {
-      throw new Error("provider não configurado — defina o provider do grupo ou selecione um modelo válido");
-    }
-    if (!effective) {
-      throw new Error("não foi possível resolver modelos padrão — verifique llm-models.json e o provider do grupo");
+      throw new Error("provider não configurado — selecione um modelo válido do catálogo");
     }
 
-    const containerRuntime = {
-      ...merged,
-      model: effective.model,
-      orchestratorModel: effective.orchestratorModel,
-      senderModel: effective.senderModel,
-      memoModel: effective.memoModel,
-    };
-
-    fs.writeFileSync(configFile, JSON.stringify(containerRuntime, null, 2) + "\n", "utf-8");
+    // Persiste exatamente o que o usuário escolheu — sem fallback de catálogo.
+    fs.writeFileSync(configFile, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 
     if (merged.agentGroupId) {
       DatabaseService.updateContainerConfigFields(merged.agentGroupId, {
@@ -831,6 +778,9 @@ export class GroupManager {
             const model = parseField("model") || undefined;
             const allowGlobalStr = parseField("allow_global_skills");
             const allowGlobalSkills = allowGlobalStr !== "" ? allowGlobalStr === "true" : true;
+            const inferenceParsed = parseInferenceParamsYamlBlock(rawYaml);
+            const inferenceParams =
+              Object.keys(inferenceParsed).length > 0 ? inferenceParsed : undefined;
 
             const skills: string[] = [];
             const skillsSection = rawYaml.match(/skills:\s*\n((?:\s*-\s*.+\n?)+)/);
@@ -851,6 +801,7 @@ export class GroupManager {
               skills,
               allowGlobalSkills,
               model,
+              inferenceParams,
               systemPrompt,
               systemPromptChars: systemPrompt.length,
               systemPromptTokens: Math.ceil(systemPrompt.length / 3.8),
@@ -866,10 +817,7 @@ export class GroupManager {
     agents.push(...agentsById.values());
 
     const groupConfig = this.getConfig(folder);
-    const groupWorkerModel =
-      (groupConfig.effectiveModels?.model as string | undefined)?.trim() ||
-      String(groupConfig.model ?? "").trim() ||
-      "";
+    const groupWorkerModel = String(groupConfig.model ?? "").trim();
 
     const agentsWithEffective = agents.map((ag) => ({
       ...ag,
@@ -920,6 +868,7 @@ export class GroupManager {
       skills: string[];
       allowGlobalSkills?: boolean;
       model?: string;
+      inferenceParams?: InferenceParams | null;
       systemPrompt: string;
     }
   ): boolean {
@@ -933,6 +882,16 @@ export class GroupManager {
       ? `skills:\n${data.skills.map((s) => `  - ${s}`).join("\n")}`
       : "skills: []";
 
+    const inferenceYaml = formatInferenceParamsYamlBlock(
+      parseInferenceParamsObject(data.inferenceParams ?? {}),
+    );
+    const optionalFrontmatter = [
+      data.model?.trim() ? `model: ${data.model.trim()}` : "",
+      inferenceYaml,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     const content = `---
 id: ${safeId}
 name: "${data.name.replace(/"/g, '\\"')}"
@@ -941,8 +900,7 @@ role: "${data.role.replace(/"/g, '\\"')}"
 description: "${(data.description || data.role).replace(/"/g, '\\"')}"
 ${skillsYaml}
 allow_global_skills: ${data.allowGlobalSkills !== false}
-${data.model?.trim() ? `model: ${data.model.trim()}` : ""}
----
+${optionalFrontmatter ? `${optionalFrontmatter}\n` : ""}---
 
 ${data.systemPrompt.trim()}
 `;

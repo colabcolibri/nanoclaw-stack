@@ -125,6 +125,15 @@ export interface AgentItem {
   skills: string[]
   allowGlobalSkills: boolean
   model?: string
+  /** Override de inference params (temperature, topK, etc.) neste agente. */
+  inferenceParams?: {
+    temperature?: number
+    maxTokens?: number
+    topP?: number
+    topK?: number
+    frequencyPenalty?: number
+    presencePenalty?: number
+  }
   /** Modelo efetivo (override do agente ou worker do grupo). */
   effectiveModel?: string
   systemPrompt: string

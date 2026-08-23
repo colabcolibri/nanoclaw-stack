@@ -7,10 +7,13 @@
  * and rendering.
  */
 
+const ALLOWED_OPTION_STYLES = new Set(['primary', 'danger', 'default']);
+
 export interface OptionInput {
   label: string;
   selectedLabel?: string;
   value?: string;
+  style?: string;
 }
 
 export type RawOption = string | OptionInput;
@@ -19,6 +22,12 @@ export interface NormalizedOption {
   label: string;
   selectedLabel: string;
   value: string;
+  style?: 'primary' | 'danger' | 'default';
+}
+
+function normalizeStyle(style: unknown): NormalizedOption['style'] {
+  if (typeof style !== 'string') return undefined;
+  return ALLOWED_OPTION_STYLES.has(style) ? (style as NormalizedOption['style']) : undefined;
 }
 
 export function normalizeOption(raw: RawOption): NormalizedOption {
@@ -30,6 +39,7 @@ export function normalizeOption(raw: RawOption): NormalizedOption {
     label,
     selectedLabel: raw.selectedLabel ?? label,
     value: raw.value ?? label,
+    style: normalizeStyle(raw.style),
   };
 }
 

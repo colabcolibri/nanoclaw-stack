@@ -8,8 +8,16 @@ interface ModelSelectProps {
   className?: string
   id?: string
   disabled?: boolean
-  /** Quando true, primeira opção = padrão do catálogo (value ""). */
+  /**
+   * Opção vazia explícita (value "").
+   * Em config do grupo: placeholder obrigatório (“selecione”).
+   * Em agentes: “herdar worker do grupo” via allowDefault.
+   */
+  allowEmpty?: boolean
+  emptyLabel?: string
+  /** @deprecated use allowEmpty + emptyLabel */
   allowDefault?: boolean
+  /** @deprecated use emptyLabel */
   defaultLabel?: string
 }
 
@@ -21,9 +29,13 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
   className,
   id,
   disabled,
+  allowEmpty,
+  emptyLabel,
   allowDefault = false,
   defaultLabel = 'Padrão (catálogo)',
 }) => {
+  const showEmpty = allowEmpty ?? allowDefault
+  const emptyOptionLabel = emptyLabel ?? defaultLabel
   const entries = Object.entries(providers)
 
   if (entries.length === 0) {
@@ -42,7 +54,8 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
       className={className}
       disabled={disabled}
     >
-      {allowDefault && <option value="">{defaultLabel}</option>}
+      {showEmpty && <option value="">{emptyOptionLabel}</option>}
+      {!showEmpty && !value && <option value="">Selecione um modelo...</option>}
       {entries.map(([pKey, pMeta]) => (
         <optgroup key={pKey} label={pMeta.name}>
           {pMeta.models.map((m) => (
