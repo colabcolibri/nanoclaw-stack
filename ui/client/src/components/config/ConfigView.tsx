@@ -187,7 +187,7 @@ export const ConfigView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
                   <span>{t('city')}</span>
                 </label>
@@ -200,7 +200,7 @@ export const ConfigView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-amber-500" />
                   <span>{t('country')}</span>
                 </label>
@@ -213,7 +213,7 @@ export const ConfigView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-(--text-main) mb-1.5 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
                   <span>{t('timezone')}</span>
                 </label>

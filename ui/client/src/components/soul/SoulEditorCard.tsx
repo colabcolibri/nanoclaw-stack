@@ -83,7 +83,7 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
         )}
 
         <div className="grid min-h-[min(70dvh,42rem)] flex-1 grid-cols-1 divide-y divide-(--border-main) lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-          <div className="flex min-h-[280px] flex-col">
+          <div className="flex min-h-70 flex-col">
             <div className="border-b border-(--border-main) bg-(--bg-card-subtle) px-4 py-2.5 sm:px-5">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">
                 {t('editorTab')}
@@ -100,7 +100,7 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
               </div>
             ) : (
               <textarea
-                className="min-h-[240px] flex-1 resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-(--text-main) outline-none placeholder:text-(--text-dim) sm:p-5"
+                className="min-h-60 flex-1 resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-(--text-main) outline-none placeholder:text-(--text-dim) sm:p-5"
                 value={content}
                 onChange={(e) => onContentChange(e.target.value)}
                 placeholder={t('editorPlaceholder')}
@@ -109,7 +109,7 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
             )}
           </div>
 
-          <div className="flex min-h-[280px] flex-col bg-(--bg-card-subtle)">
+          <div className="flex min-h-70 flex-col bg-(--bg-card-subtle)">
             <div className="flex items-center gap-2 border-b border-(--border-main) bg-(--bg-card-subtle) px-4 py-2.5 sm:px-5">
               <Eye className="h-3.5 w-3.5 text-(--text-dim)" />
               <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">

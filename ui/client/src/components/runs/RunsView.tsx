@@ -478,7 +478,7 @@ export const RunsView: React.FC = () => {
 
               {selectedRun.output && selectedRun.output !== selectedRun.prompt && (
                 <div>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase font-mono block mb-1 flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase font-mono mb-1 flex items-center gap-1">
                     <Send className="w-3.5 h-3.5" />
                     <span>Saída / Resultado:</span>
                   </span>
