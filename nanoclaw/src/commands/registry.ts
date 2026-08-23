@@ -6,10 +6,22 @@ import {
 } from '../conversations/lifecycle.js';
 import type { CommandExecutionContext, CommandExecutionResult, SlashCommandDefinition } from './types.js';
 
+/** Telegram Bot API: lowercase letters, digits, underscores only (no hyphens). */
+export function toTelegramCommandName(id: string): string {
+  return id.replace(/-/g, '_');
+}
+
+/** User-facing slash tokens for a canonical id (adds Telegram-safe alias when id contains hyphens). */
+export function slashAliases(id: string): string[] {
+  const canonical = `/${id}`;
+  const telegram = `/${toTelegramCommandName(id)}`;
+  return telegram === canonical ? [canonical] : [canonical, telegram];
+}
+
 const definitions: SlashCommandDefinition[] = [
   {
     id: 'clear',
-    aliases: ['/clear'],
+    aliases: slashAliases('clear'),
     description: 'Clear LLM context for the current conversation (history kept for audit).',
     telegramDescription: 'Clear model context (keeps audit log)',
     category: 'conversation',
@@ -27,7 +39,7 @@ const definitions: SlashCommandDefinition[] = [
   },
   {
     id: 'new',
-    aliases: ['/new'],
+    aliases: slashAliases('new'),
     description: 'Start a new conversation (archives the current session).',
     telegramDescription: 'Start a new conversation',
     category: 'conversation',
@@ -45,7 +57,7 @@ const definitions: SlashCommandDefinition[] = [
   },
   {
     id: 'new-resume',
-    aliases: ['/new-resume'],
+    aliases: slashAliases('new-resume'),
     description: 'Start a new conversation with a summary from the previous one.',
     telegramDescription: 'New conversation with prior context',
     category: 'conversation',
@@ -86,12 +98,12 @@ export function getAdminSlashTokens(): string[] {
   return definitions.filter((d) => d.requiresAdmin).flatMap((d) => d.aliases);
 }
 
-/** Telegram Bot API menu — same ids/aliases as slash commands, without leading slash. */
+/** Telegram Bot API menu — canonical ids mapped to Telegram-safe names (underscores). */
 export function getTelegramBotCommands(): { command: string; description: string }[] {
   return definitions
     .filter((d) => d.telegramDescription)
     .map((d) => ({
-      command: d.id,
+      command: toTelegramCommandName(d.id),
       description: d.telegramDescription!.slice(0, 256),
     }));
 }

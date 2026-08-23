@@ -2,6 +2,7 @@ import { ApiClient, type ScheduledTask } from '@/api/client'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -166,7 +167,7 @@ export const SchedulesView: React.FC = () => {
         <CardContent className="p-6 space-y-6">
           {/* Informational Banner */}
           <div className="p-4 rounded-xl bg-(--accent-subtle) border border-(--accent-border) text-xs text-(--text-main) space-y-2">
-            <div className="font-bold text-(--accent) flex items-center gap-2">
+            <div className="font-bold text-primary flex items-center gap-2">
               <Lightbulb className="w-4 h-4" />
               <span>Como funcionam as rotinas ativas no NanoClaw:</span>
             </div>
@@ -194,12 +195,12 @@ export const SchedulesView: React.FC = () => {
                 return (
                   <div
                     key={task.id}
-                    className="p-5 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) hover:border-(--border-accent) transition-all flex flex-col gap-4 shadow-2xs"
+                    className="p-5 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) hover:border-(--border-primary) transition-all flex flex-col gap-4 shadow-2xs"
                   >
                     {/* Header Row */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-(--border-main) pb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-primary border border-(--accent-border) flex items-center justify-center shrink-0 shadow-xs">
                           {task.isRecurring ? <Repeat className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                         </div>
                         <div>
@@ -207,10 +208,10 @@ export const SchedulesView: React.FC = () => {
                             <strong className="text-sm text-(--text-main) font-bold">
                               {task.isRecurring ? 'Rotina Recorrente (Cron)' : task.kind || 'Tarefa Agendada'}
                             </strong>
-                            <Badge variant="success" className="text-[10px] font-mono">
+                            <StatusBadge className="text-[10px] font-mono">
                               <CheckCircle2 className="w-3 h-3" />
                               <span>{task.status?.toUpperCase() || 'PENDING'}</span>
-                            </Badge>
+                            </StatusBadge>
                             {task.channelType && (
                               <Badge variant="outline" className="text-[10px] uppercase font-mono">
                                 <span>{task.channelType}</span>
@@ -271,7 +272,7 @@ export const SchedulesView: React.FC = () => {
                           <span className="text-[10px] font-bold text-(--text-dim) uppercase block font-mono">
                             Periodicidade (Cron)
                           </span>
-                          <span className="font-bold text-(--accent) font-mono block mt-0.5">
+                          <span className="font-bold text-primary font-mono block mt-0.5">
                             {task.recurrence}
                           </span>
                           <span className="text-[11px] text-(--text-muted) mt-0.5 block">
@@ -315,7 +316,7 @@ export const SchedulesView: React.FC = () => {
                         {displayPrompt.length > 200 && (
                           <button
                             onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                            className="text-[11px] font-semibold text-(--accent) flex items-center gap-1 cursor-pointer hover:underline"
+                            className="text-[11px] font-semibold text-primary flex items-center gap-1 cursor-pointer hover:underline"
                           >
                             <span>{isExpanded ? 'Recolher' : 'Expandir Texto'}</span>
                             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -347,7 +348,7 @@ export const SchedulesView: React.FC = () => {
             {/* Header */}
             <div className="p-5 border-b border-(--border-main) bg-(--bg-card-subtle) flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-primary border border-(--accent-border) flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
@@ -370,7 +371,7 @@ export const SchedulesView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 pb-3 border-b border-(--border-main)">
                 <div>
                   <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Recorrência</span>
-                  <span className="font-bold text-(--accent) font-mono">{viewingTask.recurrence || 'One-shot'}</span>
+                  <span className="font-bold text-primary font-mono">{viewingTask.recurrence || 'One-shot'}</span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Próxima Execução</span>
@@ -554,7 +555,7 @@ export const SchedulesView: React.FC = () => {
 
             <div className="p-3 rounded-lg bg-(--bg-input) border border-(--border-main) text-xs text-(--text-dim) font-mono">
               <div className="text-[10px] font-bold uppercase text-(--text-dim)">Periodicidade:</div>
-              <div className="text-(--accent) font-bold">{deletingTask.recurrence || 'One-shot'}</div>
+              <div className="text-primary font-bold">{deletingTask.recurrence || 'One-shot'}</div>
               <div className="mt-1 text-[11px] line-clamp-2 text-(--text-muted)">{deletingTask.cleanPrompt || deletingTask.prompt}</div>
             </div>
 

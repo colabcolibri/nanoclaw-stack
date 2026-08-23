@@ -5,43 +5,49 @@
  * shared between host and container. Callers own the connection lifecycle
  * (open-write-close per op). See session-manager.ts header for invariants.
  */
-import Database from 'better-sqlite3';
-
 import { INBOUND_SCHEMA, OUTBOUND_SCHEMA } from './schema.js';
+import { openSqliteDatabase, type SqliteDatabase } from './sqlite-compat.js';
+
+type SessionDbMode = 'inbound' | 'outbound-readonly' | 'outbound-rw';
+
+function applySessionDbPragmas(db: SqliteDatabase, mode: SessionDbMode): void {
+  if (mode !== 'outbound-readonly') {
+    db.pragma('journal_mode = DELETE');
+  }
+  db.pragma('busy_timeout = 5000');
+}
 
 /** Apply the inbound or outbound schema to a DB file. Idempotent. */
 export function ensureSchema(dbPath: string, schema: 'inbound' | 'outbound'): void {
-  const db = new Database(dbPath);
+  const db = openSqliteDatabase(dbPath);
   db.pragma('journal_mode = DELETE');
   db.exec(schema === 'inbound' ? INBOUND_SCHEMA : OUTBOUND_SCHEMA);
   db.close();
 }
 
 /** Open the inbound DB for a session (host reads/writes). */
-export function openInboundDb(dbPath: string): Database.Database {
-  const db = new Database(dbPath);
-  db.pragma('journal_mode = DELETE');
-  db.pragma('busy_timeout = 5000');
+export function openInboundDb(dbPath: string): SqliteDatabase {
+  const db = openSqliteDatabase(dbPath);
+  applySessionDbPragmas(db, 'inbound');
   return db;
 }
 
 /** Open the outbound DB for a session (host reads only). */
-export function openOutboundDb(dbPath: string): Database.Database {
-  const db = new Database(dbPath, { readonly: true });
-  db.pragma('busy_timeout = 5000');
+export function openOutboundDb(dbPath: string): SqliteDatabase {
+  const db = openSqliteDatabase(dbPath, { readonly: true });
+  applySessionDbPragmas(db, 'outbound-readonly');
   return db;
 }
 
 /** Open the outbound DB for a session with write access. Only safe to call when no container is running. */
-export function openOutboundDbRw(dbPath: string): Database.Database {
-  const db = new Database(dbPath);
-  db.pragma('journal_mode = DELETE');
-  db.pragma('busy_timeout = 5000');
+export function openOutboundDbRw(dbPath: string): SqliteDatabase {
+  const db = openSqliteDatabase(dbPath);
+  applySessionDbPragmas(db, 'outbound-rw');
   return db;
 }
 
 export function upsertSessionRouting(
-  db: Database.Database,
+  db: SqliteDatabase,
   routing: { channel_type: string | null; platform_id: string | null; thread_id: string | null },
 ): void {
   db.prepare(
@@ -63,7 +69,7 @@ export interface DestinationRow {
   agent_group_id: string | null;
 }
 
-export function replaceDestinations(db: Database.Database, entries: DestinationRow[]): void {
+export function replaceDestinations(db: SqliteDatabase, entries: DestinationRow[]): void {
   const tx = db.transaction((rows: DestinationRow[]) => {
     db.prepare('DELETE FROM destinations').run();
     const stmt = db.prepare(
@@ -86,13 +92,13 @@ export function replaceDestinations(db: Database.Database, entries: DestinationR
  * host-writes-even-seq invariant without duplicating the logic. Not part of
  * the general public API — imported by `src/modules/scheduling/db.ts` only.
  */
-export function nextEvenSeq(db: Database.Database): number {
+export function nextEvenSeq(db: SqliteDatabase): number {
   const maxSeq = (db.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_in').get() as { m: number }).m;
   return maxSeq < 2 ? 2 : maxSeq + 2 - (maxSeq % 2);
 }
 
 export function insertMessage(
-  db: Database.Database,
+  db: SqliteDatabase,
   message: {
     id: string;
     kind: string;
@@ -146,7 +152,7 @@ export function insertMessage(
   });
 }
 
-export function countDueMessages(db: Database.Database): number {
+export function countDueMessages(db: SqliteDatabase): number {
   return (
     db
       .prepare(
@@ -159,17 +165,17 @@ export function countDueMessages(db: Database.Database): number {
   ).count;
 }
 
-export function markMessageFailed(db: Database.Database, messageId: string): void {
+export function markMessageFailed(db: SqliteDatabase, messageId: string): void {
   db.prepare("UPDATE messages_in SET status = 'failed' WHERE id = ?").run(messageId);
 }
 
-export function retryWithBackoff(db: Database.Database, messageId: string, backoffSec: number): void {
+export function retryWithBackoff(db: SqliteDatabase, messageId: string, backoffSec: number): void {
   const processAfter = new Date(Date.now() + backoffSec * 1000).toISOString();
   db.prepare('UPDATE messages_in SET tries = tries + 1, process_after = ? WHERE id = ?').run(processAfter, messageId);
 }
 
 export function getMessageForRetry(
-  db: Database.Database,
+  db: SqliteDatabase,
   messageId: string,
   status: string,
 ): { id: string; tries: number; processAfter: string | null } | undefined {
@@ -178,7 +184,7 @@ export function getMessageForRetry(
     .get(messageId, status) as { id: string; tries: number; processAfter: string | null } | undefined;
 }
 
-export function syncProcessingAcks(inDb: Database.Database, outDb: Database.Database): void {
+export function syncProcessingAcks(inDb: SqliteDatabase, outDb: SqliteDatabase): void {
   const completed = outDb
     .prepare(
       "SELECT message_id, status FROM processing_ack WHERE status IN ('completed', 'failed', 'script-skip:error')",
@@ -209,7 +215,7 @@ export interface ProcessingClaim {
 }
 
 /** Return processing_ack rows still in 'processing' with their claim timestamps. */
-export function getProcessingClaims(outDb: Database.Database): ProcessingClaim[] {
+export function getProcessingClaims(outDb: SqliteDatabase): ProcessingClaim[] {
   return outDb
     .prepare("SELECT message_id, status_changed FROM processing_ack WHERE status = 'processing'")
     .all() as ProcessingClaim[];
@@ -224,7 +230,7 @@ export function getProcessingClaims(outDb: Database.Database): ProcessingClaim[]
  * Safe because the host only writes to outbound.db when no container is
  * running (we just killed it). Returns the number of rows deleted.
  */
-export function deleteOrphanProcessingClaims(outDb: Database.Database): number {
+export function deleteOrphanProcessingClaims(outDb: SqliteDatabase): number {
   return outDb.prepare("DELETE FROM processing_ack WHERE status = 'processing'").run().changes;
 }
 
@@ -240,7 +246,7 @@ export interface ContainerState {
  * active. Host sweep reads this to widen stuck-detection tolerance while
  * Bash is running with a long declared timeout.
  */
-export function getContainerState(outDb: Database.Database): ContainerState | null {
+export function getContainerState(outDb: SqliteDatabase): ContainerState | null {
   try {
     const row = outDb
       .prepare(
@@ -269,7 +275,7 @@ export interface OutboundMessage {
   in_reply_to: string | null;
 }
 
-export function getDueOutboundMessages(db: Database.Database): OutboundMessage[] {
+export function getDueOutboundMessages(db: SqliteDatabase): OutboundMessage[] {
   return db
     .prepare(
       `SELECT * FROM messages_out
@@ -283,7 +289,7 @@ export function getDueOutboundMessages(db: Database.Database): OutboundMessage[]
 // delivered
 // ---------------------------------------------------------------------------
 
-export function getDeliveredIds(db: Database.Database): Set<string> {
+export function getDeliveredIds(db: SqliteDatabase): Set<string> {
   return new Set(
     (db.prepare('SELECT message_out_id FROM delivered').all() as Array<{ message_out_id: string }>).map(
       (r) => r.message_out_id,
@@ -291,20 +297,20 @@ export function getDeliveredIds(db: Database.Database): Set<string> {
   );
 }
 
-export function markDelivered(db: Database.Database, messageOutId: string, platformMessageId: string | null): void {
+export function markDelivered(db: SqliteDatabase, messageOutId: string, platformMessageId: string | null): void {
   db.prepare(
     "INSERT OR IGNORE INTO delivered (message_out_id, platform_message_id, status, delivered_at) VALUES (?, ?, 'delivered', ?)",
   ).run(messageOutId, platformMessageId ?? null, new Date().toISOString());
 }
 
-export function markDeliveryFailed(db: Database.Database, messageOutId: string): void {
+export function markDeliveryFailed(db: SqliteDatabase, messageOutId: string): void {
   db.prepare(
     "INSERT OR IGNORE INTO delivered (message_out_id, platform_message_id, status, delivered_at) VALUES (?, NULL, 'failed', ?)",
   ).run(messageOutId, new Date().toISOString());
 }
 
 /** Ensure the delivered table has columns added after initial schema. */
-export function migrateDeliveredTable(db: Database.Database): void {
+export function migrateDeliveredTable(db: SqliteDatabase): void {
   const cols = new Set(
     (db.prepare("PRAGMA table_info('delivered')").all() as Array<{ name: string }>).map((c) => c.name),
   );
@@ -321,7 +327,7 @@ export function migrateDeliveredTable(db: Database.Database): void {
 // upgrade path for old installs (there is no central migration for session
 // DBs). No-op on fresh installs where the columns are in the baseline schema.
 // Backfills existing rows so invariants hold (series_id = id).
-export function migrateMessagesInTable(db: Database.Database): void {
+export function migrateMessagesInTable(db: SqliteDatabase): void {
   const cols = new Set(
     (db.prepare("PRAGMA table_info('messages_in')").all() as Array<{ name: string }>).map((c) => c.name),
   );
@@ -353,7 +359,7 @@ export function migrateMessagesInTable(db: Database.Database): void {
  * pre-migration a2a inbound). Used by a2a routing to route replies back to
  * the originating session.
  */
-export function getInboundSourceSessionId(db: Database.Database, messageId: string): string | null {
+export function getInboundSourceSessionId(db: SqliteDatabase, messageId: string): string | null {
   const row = db.prepare('SELECT source_session_id FROM messages_in WHERE id = ?').get(messageId) as
     | { source_session_id: string | null }
     | undefined;
@@ -371,7 +377,7 @@ export function getInboundSourceSessionId(db: Database.Database, messageId: stri
  * Returns null when no prior a2a inbound from that peer carries a
  * non-null source_session_id (typical for pre-migration installs).
  */
-export function getMostRecentPeerSourceSessionId(db: Database.Database, peerAgentGroupId: string): string | null {
+export function getMostRecentPeerSourceSessionId(db: SqliteDatabase, peerAgentGroupId: string): string | null {
   const row = db
     .prepare(
       `SELECT source_session_id FROM messages_in

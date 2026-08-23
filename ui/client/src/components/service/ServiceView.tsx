@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ChannelBadge, resolveChannelKind } from '@/components/templates/ChannelBadge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { ClearChatCostsDialog } from '@/components/service/ClearChatCostsDialog'
 import {
@@ -119,10 +121,17 @@ export const ServiceView: React.FC = () => {
                 <Activity className="w-4 h-4 text-emerald-500" />
                 <span>Daemon do Host & Contêineres Docker</span>
               </CardTitle>
-              <Badge variant={statusInfo.active ? 'success' : 'destructive'}>
-                <CheckCircle2 className="w-3 h-3" />
-                <span>{statusInfo.active ? 'Daemon Online' : 'Daemon Inativo'}</span>
-              </Badge>
+              {statusInfo.active ? (
+                <StatusBadge>
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Daemon Online</span>
+                </StatusBadge>
+              ) : (
+                <Badge variant="destructive">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Daemon Inativo</span>
+                </Badge>
+              )}
             </div>
             <CardDescription className="text-xs text-(--text-muted) mt-1">
               Controle de processos em segundo plano e contêineres Docker isolados sob demanda.
@@ -169,11 +178,11 @@ export const ServiceView: React.FC = () => {
                         key={i}
                         className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) font-mono text-xs text-(--text-main) flex items-center justify-between gap-2 shadow-xs"
                       >
-                        <span className="font-semibold text-(--accent)">{text}</span>
-                        <Badge variant="success" className="text-[10px] py-0 px-2 shrink-0">
+                        <span className="font-semibold text-primary">{text}</span>
+                        <StatusBadge className="text-[10px] py-0 px-2 shrink-0">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Ativo</span>
-                        </Badge>
+                        </StatusBadge>
                       </div>
                     )
                   })
@@ -198,7 +207,7 @@ export const ServiceView: React.FC = () => {
           <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-(--accent)" />
+                <Smartphone className="w-4 h-4 text-primary" />
                 <span>Pareamento do Telegram</span>
               </CardTitle>
               <Badge variant="default">1-Clique</Badge>
@@ -214,7 +223,7 @@ export const ServiceView: React.FC = () => {
             </p>
 
             <div className="p-5 rounded-2xl bg-(--bg-card-subtle) border border-(--border-main) flex items-center justify-between gap-3 shadow-xs">
-              <span className="font-mono text-base sm:text-lg font-bold text-(--accent) tracking-wider">
+              <span className="font-mono text-base sm:text-lg font-bold text-primary tracking-wider">
                 {pairingCode || 'Clique abaixo para gerar'}
               </span>
 
@@ -248,7 +257,7 @@ export const ServiceView: React.FC = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-sm sm:text-base font-bold text-(--text-main) flex items-center gap-2">
-                <Radio className="w-4 h-4 text-(--accent)" />
+                <Radio className="w-4 h-4 text-primary" />
                 <span>Canais conectados</span>
               </CardTitle>
               <CardDescription className="text-xs text-(--text-muted) mt-1">
@@ -284,15 +293,21 @@ export const ServiceView: React.FC = () => {
                         <p className="truncate text-sm font-bold text-(--text-main)">{displayName}</p>
                         <p className="truncate font-mono text-[10px] text-(--text-dim) mt-0.5">{channel.platformId}</p>
                       </div>
-                      <Badge variant={isDenied ? 'destructive' : 'success'} className="shrink-0 text-[10px]">
-                        {isDenied ? 'Negado' : 'Conectado'}
-                      </Badge>
+                      {isDenied ? (
+                        <Badge variant="destructive" className="shrink-0 text-[10px]">
+                          Negado
+                        </Badge>
+                      ) : (
+                        <StatusBadge className="shrink-0 text-[10px]">
+                          Conectado
+                        </StatusBadge>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="telegram" className="text-[10px]">
+                      <ChannelBadge channel={resolveChannelKind(channel.channelType)} className="text-[10px]">
                         {getChannelLabel(channel.channelType)}
-                      </Badge>
+                      </ChannelBadge>
                       {channel.isGroup && (
                         <Badge variant="secondary" className="text-[10px]">
                           Grupo

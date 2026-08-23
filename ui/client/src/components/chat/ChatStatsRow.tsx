@@ -35,7 +35,7 @@ export const ChatStatsRow: React.FC<ChatStatsRowProps> = ({
         outbound: stats?.totalOutbound || 0,
       }),
       icon: MessageSquare,
-      iconClass: 'text-(--accent)',
+      iconClass: 'text-primary',
     },
     {
       label: t('statsTokens'),

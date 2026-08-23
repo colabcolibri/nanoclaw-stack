@@ -12,8 +12,10 @@ export {
   getSlashCommandByToken,
   getSlashCommandDefinitions,
   getTelegramBotCommands,
+  slashAliases,
+  toTelegramCommandName,
 } from './registry.js';
-export { extractMessageText, isRegisteredSlashCommand, parseSlashCommand } from './parse.js';
+export { extractMessageText, isRegisteredSlashCommand, normalizeSlashToken, parseSlashCommand, peekSlashToken, unregisteredSlashToken } from './parse.js';
 export { deliverCommandReply, resolvePersistSessionId } from './deliver-reply.js';
 export { executeSlashCommand } from './execute.js';
 

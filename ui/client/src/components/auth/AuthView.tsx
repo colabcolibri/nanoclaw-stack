@@ -50,8 +50,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-(--bg-page) text-(--text-main) flex items-center justify-center p-4 transition-colors">
       <Card className="w-full max-w-md border-(--border-main) bg-(--bg-card) shadow-2xl overflow-hidden">
         <CardHeader className="p-6 text-center border-b border-(--border-main) bg-(--bg-card-subtle)">
-          <div className="w-12 h-12 rounded-2xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <Zap className="w-6 h-6 text-(--accent)" />
+          <div className="w-12 h-12 rounded-2xl bg-(--accent-subtle) text-primary border border-(--accent-border) flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Zap className="w-6 h-6 text-primary" />
           </div>
           <CardTitle className="text-xl font-bold text-(--text-main)">
             NanoClaw UAI

@@ -1,10 +1,10 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 import type { Migration } from './index.js';
 
 export const migration014: Migration = {
   version: 14,
   name: 'container-configs',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       CREATE TABLE container_configs (
         agent_group_id        TEXT PRIMARY KEY REFERENCES agent_groups(id) ON DELETE CASCADE,

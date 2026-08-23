@@ -88,7 +88,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
               className={cn(
                 'flex-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors',
                 statusFilter === filter
-                  ? 'bg-(--accent) text-white shadow-sm'
+                  ? 'bg-primary text-white shadow-sm'
                   : 'text-(--text-muted) hover:bg-(--bg-card-subtle) hover:text-(--text-main)',
               )}
             >

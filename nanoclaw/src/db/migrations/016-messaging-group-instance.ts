@@ -25,14 +25,14 @@
  * denied_at) — verified against PRAGMA table_info on a freshly-migrated DB.
  * A recreate with a stale column list silently drops data.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 import type { Migration } from './index.js';
 
 export const migration016: Migration = {
   version: 16,
   name: 'messaging-group-instance',
   disableForeignKeys: true,
-  up: (db: Database.Database) => {
+  up: (db: SqliteDatabase) => {
     // Idempotency guard per the 012 pattern.
     const cols = db.prepare("PRAGMA table_info('messaging_groups')").all() as Array<{ name: string }>;
     if (cols.some((c) => c.name === 'instance')) return;

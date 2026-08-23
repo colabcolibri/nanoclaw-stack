@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 
 import type { Migration } from './index.js';
 
@@ -6,7 +6,7 @@ import type { Migration } from './index.js';
 export const migration017: Migration = {
   version: 17,
   name: 'agent-message-policies',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       CREATE TABLE agent_message_policies (
         from_agent_group_id TEXT NOT NULL REFERENCES agent_groups(id),

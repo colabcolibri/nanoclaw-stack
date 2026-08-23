@@ -1,11 +1,11 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 
 import type { Migration } from './index.js';
 
 export const migration001: Migration = {
   version: 1,
   name: 'initial-v2-schema',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       CREATE TABLE agent_groups (
         id               TEXT PRIMARY KEY,

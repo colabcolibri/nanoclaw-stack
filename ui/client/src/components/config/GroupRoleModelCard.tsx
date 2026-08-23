@@ -7,6 +7,7 @@ import { configTypography as ty } from '@/components/config/config-typography'
 import type { InferenceParamsForm, InferenceRole } from '@/components/config/RoleInferenceParamsForm'
 import type { ModelPricing, ProviderMeta } from '@/lib/model-registry'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
@@ -55,9 +56,9 @@ export const GroupRoleModelCard: React.FC<GroupRoleModelCardProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <h3 className={cn(ty.cardTitle, accentClass)}>{label}</h3>
           {isEmpty ? (
-            <Badge variant="warning" className="font-normal">
+            <StatusBadge variant="warning" className="font-normal">
               {t('chipRequired')}
-            </Badge>
+            </StatusBadge>
           ) : hasInferenceOverrides ? (
             <Badge
               variant="outline"

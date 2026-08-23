@@ -26,8 +26,12 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { ExpandableTextBlock } from '@/components/common/ExpandableTextBlock'
 import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
+import { PaginatedListSection } from '@/components/templates/PaginatedListSection'
+import { usePagination } from '@/hooks/usePagination'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const RunsView: React.FC = () => {
@@ -54,8 +58,8 @@ export const RunsView: React.FC = () => {
     try {
       const [cronRes, runsRes, auditRes] = await Promise.all([
         ApiClient.getCronLogs().catch(() => ({ logs: [] })),
-        ApiClient.getRuns(150).catch(() => ({ runs: [] })),
-        ApiClient.getAuditTraces(300).catch(() => ({ traces: [] })),
+        ApiClient.getRuns(DEFAULT_PAGE_SIZE).catch(() => ({ runs: [] })),
+        ApiClient.getAuditTraces(DEFAULT_PAGE_SIZE).catch(() => ({ traces: [] })),
       ])
       setCronLogs(cronRes.logs || [])
       setDetailedRuns(runsRes.runs || [])
@@ -185,6 +189,18 @@ export const RunsView: React.FC = () => {
     })
   }, [cronLogs, detailedRuns, auditTraces, filterType, searchQuery])
 
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems,
+    rangeStart,
+    rangeEnd,
+  } = usePagination(unifiedRuns)
+
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
@@ -216,7 +232,7 @@ export const RunsView: React.FC = () => {
                 : 'bg-(--bg-input) text-(--text-muted) hover:text-(--text-main)'
             }`}
           >
-            Todos ({unifiedRuns.length})
+            Todos ({totalItems})
           </button>
           <button
             onClick={() => setFilterType('cron')}
@@ -301,14 +317,26 @@ export const RunsView: React.FC = () => {
       {/* RUNS LIST */}
       <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden w-full">
         <CardContent className="p-6 space-y-4">
-          {unifiedRuns.length === 0 ? (
+          {totalItems === 0 ? (
             <EmptyState
               icon={<Activity className="w-8 h-8 text-(--text-dim)" />}
               title="Nenhuma execução encontrada"
               description="Nenhum log corresponde aos filtros de busca selecionados."
             />
           ) : (
-            unifiedRuns.map((run) => {
+            <>
+            <PaginatedListSection
+              listClassName="space-y-4"
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            >
+            {paginatedItems.map((run) => {
               const isExpanded = expandedRunId === run.id
 
               let badgeColor = 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
@@ -333,7 +361,7 @@ export const RunsView: React.FC = () => {
               return (
                 <div
                   key={run.id}
-                  className="p-4 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) hover:border-(--border-accent) transition-all flex flex-col gap-3 shadow-2xs"
+                  className="p-4 rounded-xl border border-(--border-main) bg-(--bg-card-subtle) hover:border-(--border-primary) transition-all flex flex-col gap-3 shadow-2xs"
                 >
                   {/* Top Row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-(--border-main) pb-3">
@@ -347,10 +375,10 @@ export const RunsView: React.FC = () => {
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${badgeColor}`}>
                             {run.category}
                           </span>
-                          <Badge variant="success" className="text-[10px] font-mono">
+                          <StatusBadge className="text-[10px] font-mono">
                             <CheckCircle2 className="w-3 h-3" />
                             <span>{run.status?.toUpperCase() || 'COMPLETED'}</span>
-                          </Badge>
+                          </StatusBadge>
                           {run.cron && (
                             <Badge variant="outline" className="text-[10px] font-mono">
                               <span>{run.cron}</span>
@@ -386,7 +414,7 @@ export const RunsView: React.FC = () => {
                       {run.prompt && run.prompt.length > 180 && (
                         <button
                           onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
-                          className="text-[10px] font-semibold text-(--accent) flex items-center gap-1 cursor-pointer hover:underline"
+                          className="text-[10px] font-semibold text-primary flex items-center gap-1 cursor-pointer hover:underline"
                         >
                           <span>{isExpanded ? 'Recolher' : 'Expandir'}</span>
                           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -412,7 +440,10 @@ export const RunsView: React.FC = () => {
                   )}
                 </div>
               )
-            })
+            })}
+
+            </PaginatedListSection>
+            </>
           )}
         </CardContent>
       </Card>
@@ -453,7 +484,7 @@ export const RunsView: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-3 border-b border-(--border-main)">
                 <div>
                   <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Categoria</span>
-                  <span className="font-bold text-(--accent) font-mono">{selectedRun.category}</span>
+                  <span className="font-bold text-primary font-mono">{selectedRun.category}</span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Data & Hora</span>

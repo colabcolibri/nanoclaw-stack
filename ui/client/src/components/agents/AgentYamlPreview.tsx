@@ -14,7 +14,7 @@ export const AgentYamlPreview: React.FC<AgentYamlPreviewProps> = ({ yaml, title,
   return (
     <div className={className}>
       <div className="mb-2 flex items-center gap-2">
-        <FileCode className="h-3.5 w-3.5 text-(--accent)" />
+        <FileCode className="h-3.5 w-3.5 text-primary" />
         <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">
           {title || t('yamlFrontmatter')}
         </p>

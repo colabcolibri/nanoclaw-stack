@@ -45,3 +45,20 @@ export function parseSlashCommand(content: string | InboundTextPayload): ParsedS
 export function isRegisteredSlashCommand(content: string | InboundTextPayload): boolean {
   return parseSlashCommand(content) !== null;
 }
+
+/** First slash token when present, even if the command is not registered. */
+export function peekSlashToken(content: string | InboundTextPayload): string | null {
+  const text = extractMessageText(content);
+  if (!text.startsWith('/')) return null;
+  const rawToken = text.split(/\s+/)[0];
+  if (!rawToken) return null;
+  return normalizeSlashToken(rawToken);
+}
+
+/** Returns the normalized token when text is a slash command unknown to the host registry. */
+export function unregisteredSlashToken(content: string | InboundTextPayload): string | null {
+  const token = peekSlashToken(content);
+  if (!token) return null;
+  if (getSlashCommandByToken(token)) return null;
+  return token;
+}

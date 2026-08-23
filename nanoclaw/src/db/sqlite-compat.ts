@@ -4,6 +4,9 @@
  */
 import { DatabaseSync } from 'node:sqlite';
 
+export type OpenSqliteOptions = { readonly?: boolean };
+export type SqliteDatabase = SqliteCompatDatabase | import('better-sqlite3').Database;
+
 type Stmt = ReturnType<DatabaseSync['prepare']>;
 
 class SqliteCompatStatement {
@@ -33,8 +36,8 @@ class SqliteCompatStatement {
 export default class SqliteCompatDatabase {
   private readonly db: DatabaseSync;
 
-  constructor(path: string) {
-    this.db = new DatabaseSync(path);
+  constructor(path: string, options?: OpenSqliteOptions) {
+    this.db = options?.readonly ? new DatabaseSync(path, { readOnly: true }) : new DatabaseSync(path);
   }
 
   pragma(source: string, options?: { simple?: boolean }): unknown {
@@ -90,8 +93,8 @@ export default class SqliteCompatDatabase {
   }
 }
 
-export function createSqliteDatabase(path: string): SqliteCompatDatabase {
-  return new SqliteCompatDatabase(path);
+export function createSqliteDatabase(path: string, options?: OpenSqliteOptions): SqliteCompatDatabase {
+  return new SqliteCompatDatabase(path, options);
 }
 
 let betterSqlite3Loadable: boolean | null = null;
@@ -110,15 +113,15 @@ export function canLoadBetterSqlite3(): boolean {
   return betterSqlite3Loadable;
 }
 
-export function openSqliteDatabase(path: string): SqliteCompatDatabase | import('better-sqlite3').Database {
+export function openSqliteDatabase(path: string, options?: OpenSqliteOptions): SqliteDatabase {
   if (canLoadBetterSqlite3()) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const BetterSqlite3 = require('better-sqlite3') as typeof import('better-sqlite3');
-      return new BetterSqlite3(path);
+      return new BetterSqlite3(path, options?.readonly ? { readonly: true } : undefined);
     } catch {
       betterSqlite3Loadable = false;
     }
   }
-  return createSqliteDatabase(path);
+  return createSqliteDatabase(path, options);
 }

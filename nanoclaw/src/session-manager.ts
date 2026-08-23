@@ -10,7 +10,7 @@
  *   3. One writer per file — DELETE-mode journal-unlink isn't atomic across
  *      the mount; concurrent writers corrupt the DB.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from './db/sqlite-compat.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -388,14 +388,14 @@ function extractAttachmentFiles(
 }
 
 /** Open the inbound DB for a session (host reads/writes). */
-export function openInboundDb(agentGroupId: string, sessionId: string): Database.Database {
+export function openInboundDb(agentGroupId: string, sessionId: string): SqliteDatabase {
   const db = openInboundDbRaw(inboundDbPath(agentGroupId, sessionId));
   migrateMessagesInTable(db);
   return db;
 }
 
 /** Open a session's inbound DB, run `fn`, and always close it. */
-export function withInboundDb<T>(agentGroupId: string, sessionId: string, fn: (db: Database.Database) => T): T {
+export function withInboundDb<T>(agentGroupId: string, sessionId: string, fn: (db: SqliteDatabase) => T): T {
   const db = openInboundDb(agentGroupId, sessionId);
   try {
     return fn(db);
@@ -405,12 +405,12 @@ export function withInboundDb<T>(agentGroupId: string, sessionId: string, fn: (d
 }
 
 /** Open the outbound DB for a session (host reads only). */
-export function openOutboundDb(agentGroupId: string, sessionId: string): Database.Database {
+export function openOutboundDb(agentGroupId: string, sessionId: string): SqliteDatabase {
   return openOutboundDbRaw(outboundDbPath(agentGroupId, sessionId));
 }
 
 /** Open the outbound DB for a session with write access. Only safe to call when no container is running. */
-export function openOutboundDbRw(agentGroupId: string, sessionId: string): Database.Database {
+export function openOutboundDbRw(agentGroupId: string, sessionId: string): SqliteDatabase {
   return openOutboundDbRwRaw(outboundDbPath(agentGroupId, sessionId));
 }
 

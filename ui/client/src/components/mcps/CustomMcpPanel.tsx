@@ -24,7 +24,7 @@ export const CustomMcpPanel: React.FC<CustomMcpPanelProps> = ({
     <section className="min-w-0 rounded-xl border border-(--border-main) bg-(--bg-card)">
       <div className="border-b border-(--border-main) px-5 py-4">
         <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-(--accent)" />
+          <Wrench className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-(--text-main)">{t('custom.title')}</h2>
         </div>
         <p className="mt-1 text-xs text-(--text-muted)">{t('custom.description')}</p>
@@ -61,7 +61,7 @@ export const CustomMcpPanel: React.FC<CustomMcpPanelProps> = ({
         )}
 
         <textarea
-          className="min-h-45 w-full resize-y rounded-xl border border-(--border-main) bg-(--terminal-bg) p-4 font-mono text-xs leading-relaxed text-(--terminal-text) outline-none focus:border-(--accent) focus:ring-2 focus:ring-(--accent)/20"
+          className="min-h-45 w-full resize-y rounded-xl border border-(--border-main) bg-(--terminal-bg) p-4 font-mono text-xs leading-relaxed text-(--terminal-text) outline-none focus:border-primary focus:ring-2 focus:ring-(--accent)/20"
           value={customMcpsJson}
           onChange={(e) => onChange(e.target.value)}
           spellCheck={false}

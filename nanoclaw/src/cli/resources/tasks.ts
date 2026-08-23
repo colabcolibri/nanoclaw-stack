@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../db/sqlite-compat.js';
 
 import { GROUPS_DIR, TIMEZONE } from '../../config.js';
 import { resolveGroupTimezone } from '../../container-config.js';
@@ -102,7 +102,7 @@ function selectedSessions(args: Record<string, unknown>, ctx: CallerContext): Sc
   return getActiveSessions().map((s) => ({ id: s.id, agent_group_id: s.agent_group_id }));
 }
 
-function withInbound<T>(session: ScopedSession, fn: (db: Database.Database) => T): T | undefined {
+function withInbound<T>(session: ScopedSession, fn: (db: SqliteDatabase) => T): T | undefined {
   if (!fs.existsSync(inboundDbPath(session.agent_group_id, session.id))) return undefined;
   return withInboundDb(session.agent_group_id, session.id, fn);
 }
@@ -125,7 +125,7 @@ function toOutput(session: ScopedSession, row: TaskRow) {
   };
 }
 
-function selectLiveTasks(db: Database.Database, status?: TaskStatus): TaskRow[] {
+function selectLiveTasks(db: SqliteDatabase, status?: TaskStatus): TaskRow[] {
   const statusSql = status ? 'status = ?' : "status IN ('pending', 'paused')";
   return db
     .prepare(
@@ -139,7 +139,7 @@ function selectLiveTasks(db: Database.Database, status?: TaskStatus): TaskRow[] 
     .all(...(status ? [status] : [])) as TaskRow[];
 }
 
-function selectTask(db: Database.Database, id: string): TaskRow | undefined {
+function selectTask(db: SqliteDatabase, id: string): TaskRow | undefined {
   return db
     .prepare(
       `SELECT id AS row_id, series_id, status, process_after, recurrence, content, timestamp, tries, seq
@@ -219,7 +219,7 @@ function appendTaskLog(
  * `cancelled`, not `completed`, so they never inflate the run count.
  */
 function seriesStats(
-  db: Database.Database,
+  db: SqliteDatabase,
   seriesKey: string,
 ): { runs: number; last_run: string | null; failed_runs: number } {
   return db
@@ -250,7 +250,7 @@ function tailRunLog(agentGroupId: string, seriesKey: string, lines = 10): string
  * pointer to the agent's own run log — so `tasks list` reads as a compact
  * run-history table.
  */
-function enrichListRow(db: Database.Database, base: ReturnType<typeof toOutput>) {
+function enrichListRow(db: SqliteDatabase, base: ReturnType<typeof toOutput>) {
   const seriesKey = base.series_id;
   const stats = seriesStats(db, seriesKey);
   return {
@@ -303,7 +303,7 @@ function getTask(args: Record<string, unknown>, ctx: CallerContext) {
 function mutateTask(
   args: Record<string, unknown>,
   ctx: CallerContext,
-  fn: (db: Database.Database, id: string) => number,
+  fn: (db: SqliteDatabase, id: string) => number,
 ) {
   const id = taskId(args);
   let touched = 0;

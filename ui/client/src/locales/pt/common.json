@@ -52,6 +52,12 @@
     "governance": "Governança",
     "system": "Sistema"
   },
+  "pagination": {
+    "range": "{{start}}–{{end}} de {{total}}",
+    "perPage": "Por página",
+    "previous": "Anterior",
+    "next": "Próxima"
+  },
   "stats": {
     "totalMessages": "Total de Mensagens",
     "messagesSub": "{{inbound}} recebidas • {{outbound}} enviadas",

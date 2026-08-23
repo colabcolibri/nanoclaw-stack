@@ -197,6 +197,6 @@ describe('router slash commands', () => {
       },
     });
 
-    expect(delivered.some((t) => t.includes('Permission denied'))).toBe(true);
+    expect(delivered.some((t) => t.includes('Permissão negada'))).toBe(true);
   });
 });

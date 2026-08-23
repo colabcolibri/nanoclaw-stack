@@ -4,6 +4,8 @@ import { type SkillItem } from '@/api/client'
 import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
+import { SkillBadge } from '@/components/templates/SkillBadge'
 
 interface SkillDetailsDrawerProps {
   isOpen: boolean
@@ -49,16 +51,23 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
         {/* Top Header */}
         <div className="flex items-start justify-between border-b border-(--border-main) pb-4 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-(--accent) border border-(--accent-border) flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-(--accent-subtle) text-primary border border-(--accent-border) flex items-center justify-center shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-(--text-main)">{skill.name}</h3>
-                <Badge variant={skill.enabled ? 'success' : 'secondary'}>
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>{skill.enabled ? 'Ativa' : 'Inativa'}</span>
-                </Badge>
+                {skill.enabled ? (
+                  <StatusBadge>
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Ativa</span>
+                  </StatusBadge>
+                ) : (
+                  <Badge variant="secondary">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Inativa</span>
+                  </Badge>
+                )}
               </div>
               <p className="text-xs font-mono text-(--text-dim) mt-0.5">
                 nanoclaw/container/skills/{skill.name}/
@@ -123,18 +132,18 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
               <span className="text-[11px] uppercase font-bold text-(--text-dim) tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-(--accent)" />
+                <FileText className="w-3.5 h-3.5 text-primary" />
                 <span>Manual Principal (SKILL.md)</span>
               </span>
               <div className="flex items-center gap-1.5">
-                <Badge variant="tokens" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                <SkillBadge kind="tokens" className="text-[10px] py-0 px-2 gap-1 font-bold">
                   <Zap className="w-3 h-3 text-amber-700 dark:text-amber-300" />
                   <span>~{formatK(skillMdTokens)} tok</span>
-                </Badge>
-                <Badge variant="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                </SkillBadge>
+                <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                   <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
                   <span>{skillMdChars.toLocaleString('pt-BR')} chars</span>
-                </Badge>
+                </SkillBadge>
               </div>
             </div>
             <div className="bg-(--bg-card-subtle) border border-(--border-main) rounded-xl p-5 max-h-96 overflow-y-auto">
@@ -155,14 +164,14 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                 </span>
                 {skill.referencesTokens !== undefined && (
                   <div className="flex items-center gap-1.5">
-                    <Badge variant="tokens" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                    <SkillBadge kind="tokens" className="text-[10px] py-0 px-2 gap-1 font-bold">
                       <Zap className="w-3 h-3 text-amber-700 dark:text-amber-300" />
                       <span>~{formatK(skill.referencesTokens)} tok</span>
-                    </Badge>
-                    <Badge variant="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                    </SkillBadge>
+                    <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                       <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
                       <span>{(skill.referencesChars || 0).toLocaleString('pt-BR')} chars</span>
-                    </Badge>
+                    </SkillBadge>
                   </div>
                 )}
               </div>
@@ -214,14 +223,14 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   <span className="text-(--text-main)">Scripts & Utilitários na pasta scripts/ ({skill.scripts.length})</span>
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Badge variant="script" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                  <SkillBadge kind="script" className="text-[10px] py-0 px-2 gap-1 font-bold">
                     <Code2 className="w-3 h-3 text-purple-700 dark:text-purple-300" />
                     <span>0 tok (Execução Local)</span>
-                  </Badge>
-                  <Badge variant="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
+                  </SkillBadge>
+                  <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                     <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
                     <span>{(skill.scriptsChars || 0).toLocaleString('pt-BR')} chars</span>
-                  </Badge>
+                  </SkillBadge>
                 </div>
               </div>
               <div className="space-y-2">

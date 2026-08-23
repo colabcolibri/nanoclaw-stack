@@ -38,7 +38,7 @@ export const AgentFilterBar: React.FC<AgentFilterBarProps> = ({
             className={cn(
               'rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors',
               isActive
-                ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
+                ? 'border-(--accent-border) bg-(--accent-subtle) text-primary'
                 : 'border-(--border-main) bg-(--bg-card-subtle) text-(--text-main) hover:bg-(--bg-card)'
             )}
           >

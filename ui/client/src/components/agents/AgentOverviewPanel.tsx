@@ -78,7 +78,7 @@ export const AgentOverviewPanel: React.FC<AgentOverviewPanelProps> = ({
 
       <section className="rounded-lg border border-(--border-main)/50 bg-(--bg-card-subtle)/20 p-4">
         <div className="mb-2 flex items-center gap-2">
-          <FolderOpen className="h-3.5 w-3.5 text-(--accent)" />
+          <FolderOpen className="h-3.5 w-3.5 text-primary" />
           <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">
             {t('agentFile')}
           </p>
@@ -129,7 +129,7 @@ export const AgentOverviewPanel: React.FC<AgentOverviewPanelProps> = ({
       <section className="rounded-lg border border-(--border-main)/50 bg-(--bg-card-subtle)/20 p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <FileText className="h-3.5 w-3.5 text-(--accent)" />
+            <FileText className="h-3.5 w-3.5 text-primary" />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-(--text-muted)">
               {t('promptBody')}
             </p>

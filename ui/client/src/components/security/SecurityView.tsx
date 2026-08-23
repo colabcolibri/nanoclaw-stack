@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 
 export const SecurityView: React.FC = () => {
@@ -51,7 +52,7 @@ export const SecurityView: React.FC = () => {
         <Card className="border-(--border-main) bg-(--bg-card) shadow-xs overflow-hidden">
           <CardHeader className="p-5 bg-(--bg-card-subtle) border-b border-(--border-main)">
             <CardTitle className="text-sm font-bold text-(--text-main) flex items-center gap-2">
-              <Users className="w-4 h-4 text-(--accent)" />
+              <Users className="w-4 h-4 text-primary" />
               <span>Usuários Autorizados no Telegram / Chat</span>
             </CardTitle>
             <CardDescription className="text-xs text-(--text-muted)">
@@ -77,10 +78,10 @@ export const SecurityView: React.FC = () => {
                       {u.id || u.platformId}
                     </Badge>
                   </div>
-                  <Badge variant="success">
+                  <StatusBadge>
                     <UserCheck className="w-3 h-3" />
                     <span>Autorizado</span>
-                  </Badge>
+                  </StatusBadge>
                 </div>
               ))
             )}

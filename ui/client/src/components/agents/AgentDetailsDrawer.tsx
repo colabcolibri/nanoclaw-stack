@@ -190,7 +190,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
           <SheetHeader className="space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
             <div className="flex items-start gap-4 pr-8">
               <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
-                <AgentIcon className="h-6 w-6 text-(--accent)" />
+                <AgentIcon className="h-6 w-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <SheetTitle className="mb-1 flex flex-wrap items-center gap-2 text-xl">
@@ -206,7 +206,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                 <SheetDescription asChild>
                   <div className="space-y-1">
                     <p className="font-mono text-xs text-(--text-dim) break-all">ID: {agent.id}</p>
-                    <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-(--accent)">
+                    <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-primary">
                       <Cpu className="h-3 w-3 shrink-0" />
                       <span className="break-all">{modelDisplay}</span>
                     </p>
@@ -226,25 +226,25 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                 <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-5 rounded-none border-0 bg-transparent p-0 shadow-none">
                 <TabsTrigger
                   value="overview"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerOverview')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="config"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerConfig')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="skills"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerSkills')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="prompt"
-                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-(--accent) data-[state=active]:bg-transparent data-[state=active]:text-(--accent) data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
+                  className="mb-0 shrink-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 py-3 text-xs font-semibold uppercase tracking-wide shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=inactive]:text-(--text-muted) data-[state=inactive]:hover:text-(--text-main)"
                 >
                   {t('drawerPrompt')}
                 </TabsTrigger>
@@ -297,7 +297,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
               <TabsContent value="skills" className="mt-0 space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-(--text-muted)">{t('assignedSkills')}</p>
-                  <span className="font-mono text-[11px] font-semibold text-(--accent)">
+                  <span className="font-mono text-[11px] font-semibold text-primary">
                     {t('skillsSelected', { count: selectedSkills.length })}
                   </span>
                 </div>
@@ -314,14 +314,14 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                           onClick={() => handleToggleSkill(sk.name)}
                           className={`flex min-w-0 items-center gap-2.5 rounded-lg border p-2.5 text-left text-xs transition-all ${
                             isChecked
-                              ? 'border-(--accent-border) bg-(--accent-subtle) font-medium text-(--accent)'
+                              ? 'border-(--accent-border) bg-(--accent-subtle) font-medium text-primary'
                               : 'border-transparent text-(--text-muted) hover:bg-(--bg-card)'
                           }`}
                         >
                           <span
                             className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                               isChecked
-                                ? 'border-(--accent) bg-(--accent) text-white'
+                                ? 'border-primary bg-primary text-white'
                                 : 'border-(--border-main)'
                             }`}
                           >
@@ -342,7 +342,7 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                       >
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <Sparkles className="h-4 w-4 shrink-0 text-(--accent)" />
+                            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
                             <span className="break-all font-mono text-xs font-bold">{sk.name}</span>
                           </div>
                           <Badge variant="secondary" className="shrink-0 font-mono text-[10px]">

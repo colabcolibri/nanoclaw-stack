@@ -65,13 +65,13 @@ export const AgentCard: React.FC<AgentCardProps> = ({
       )}
     >
       {isSelected && (
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-(--accent)/5 blur-2xl" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-2xl" />
       )}
 
       <div className="mb-5 space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-(--border-main) bg-(--bg-card-subtle)">
-            <AgentIcon className="h-5 w-5 text-(--accent)" />
+            <AgentIcon className="h-5 w-5 text-primary" />
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -116,7 +116,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 
       <div className="space-y-0">
         <div className="flex min-w-0 items-center justify-start gap-1.5 border-b border-(--border-main)/50 py-2">
-          <DeptIcon className="h-4 w-4 shrink-0 text-(--accent)" />
+          <DeptIcon className="h-4 w-4 shrink-0 text-primary" />
           <span className="min-w-0 text-sm leading-snug text-(--text-main) wrap-break-word">
             {department?.name || agent.department}
           </span>
@@ -144,7 +144,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           <span
             className={cn(
               'min-w-0 break-all text-right font-mono text-xs',
-              isSelected ? 'text-(--accent)' : 'text-(--text-main)'
+              isSelected ? 'text-primary' : 'text-(--text-main)'
             )}
           >
             {formatTokenCount(contextTokens)} {t('tokensUnit')}
@@ -156,7 +156,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         <div
           className={cn(
             'h-full rounded-full transition-all',
-            isSelected ? 'bg-(--accent)' : 'bg-(--text-muted)'
+            isSelected ? 'bg-primary' : 'bg-(--text-muted)'
           )}
           style={{ width: `${Math.max(4, usagePercent)}%` }}
         />

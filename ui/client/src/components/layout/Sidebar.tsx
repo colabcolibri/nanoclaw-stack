@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       >
         <div className={cn('flex min-w-0 items-center', isCollapsed ? 'justify-center' : 'gap-3')}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--accent-border) bg-(--accent-subtle) text-(--accent)">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--accent-border) bg-(--accent-subtle) text-primary">
             <Zap className="h-4 w-4" />
           </div>
           {!isCollapsed && (

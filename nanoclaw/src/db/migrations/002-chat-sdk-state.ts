@@ -1,11 +1,11 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 
 import type { Migration } from './index.js';
 
 export const migration002: Migration = {
   version: 2,
   name: 'chat-sdk-state',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       CREATE TABLE chat_sdk_kv (
         key TEXT PRIMARY KEY,

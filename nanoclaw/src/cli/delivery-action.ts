@@ -5,7 +5,7 @@
  * the delivery poll picks it up and calls this handler. We dispatch
  * the command and write the response back to inbound.db.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../db/sqlite-compat.js';
 
 import { registerDeliveryAction } from '../delivery.js';
 import { unguarded } from '../guard/index.js';

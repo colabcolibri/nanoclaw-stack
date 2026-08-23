@@ -87,7 +87,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = ({
                       className={cn(
                         'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors',
                         selected
-                          ? 'bg-(--accent-subtle) text-(--accent)'
+                          ? 'bg-(--accent-subtle) text-primary'
                           : 'text-(--text-main) hover:bg-(--bg-card-subtle)'
                       )}
                     >

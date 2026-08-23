@@ -94,7 +94,7 @@ No changes needed in `command-gate.ts` or `router.ts` unless the command needs s
 Telegram bot menus must stay in sync with the same registry:
 
 - User types `/new` or picks **new** from the menu → same string → same `parseSlashCommand()` path.
-- `getTelegramBotCommands()` exports `{ command, description }[]` for `setMyCommands` (`command` is the canonical `id`, no leading slash).
+- `getTelegramBotCommands()` exports `{ command, description }[]` for `setMyCommands` (`command` is the canonical `id` with hyphens replaced by underscores — Telegram allows only `[a-z0-9_]`). `slashAliases(id)` adds the Telegram-safe token automatically when the id contains hyphens (e.g. `new-resume` → `/new_resume`).
 
 Platform-only Telegram commands (`/start`, `/help`, …) remain in `FILTERED_COMMANDS` inside `command-gate.ts` — they are not part of our expandable registry.
 

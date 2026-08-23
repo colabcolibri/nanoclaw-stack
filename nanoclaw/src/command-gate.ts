@@ -4,7 +4,7 @@
  *
  * - Filtered commands: dropped silently (never reach the container)
  * - Admin commands: checked against user_roles; denied senders get a
- *   "Permission denied" response written directly to messages_out
+ *   resposta "Permissão negada" escrita diretamente em messages_out
  * - Normal messages: pass through unchanged
  */
 import { hasAdminPrivilege } from './modules/permissions/db/user-roles.js';

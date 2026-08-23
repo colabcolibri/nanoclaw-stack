@@ -48,7 +48,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
           <SheetHeader className="shrink-0 space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
             <div className="flex items-start gap-4 pr-8">
               <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
-                <Braces className="h-5 w-5 text-(--accent)" />
+                <Braces className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <SheetTitle className="mb-1 text-lg leading-snug">
@@ -71,7 +71,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
 
                   {message.model && (
                     <Field label={t('messageModel')} mono>
-                      <span className="break-all text-(--accent)">{message.model}</span>
+                      <span className="break-all text-primary">{message.model}</span>
                     </Field>
                   )}
 

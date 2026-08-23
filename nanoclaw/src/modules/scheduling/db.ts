@@ -10,7 +10,7 @@
  * sharing series_id. Matching by id alone would only hit the completed row
  * the agent remembers, missing the live next occurrence.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../../db/sqlite-compat.js';
 
 import { nextEvenSeq } from '../../db/session-db.js';
 
@@ -44,7 +44,7 @@ export function parseTaskContent(raw: string): TaskContent {
  * an isolated system session), so those columns are always NULL.
  */
 export function insertTaskRow(
-  db: Database.Database,
+  db: SqliteDatabase,
   row: {
     id: string;
     seriesId: string;
@@ -68,7 +68,7 @@ export function insertTaskRow(
 // Cancel marks the live row 'cancelled' (not 'completed') so a never-fired
 // occurrence is distinguishable from a real run and never inflates run history;
 // recurrence is cleared so the series isn't re-armed by handleRecurrence.
-export function cancelTask(db: Database.Database, taskId: string): number {
+export function cancelTask(db: SqliteDatabase, taskId: string): number {
   return db
     .prepare(
       "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status IN ('pending', 'paused')",
@@ -76,7 +76,7 @@ export function cancelTask(db: Database.Database, taskId: string): number {
     .run(taskId, taskId).changes;
 }
 
-export function cancelAllTasks(db: Database.Database): number {
+export function cancelAllTasks(db: SqliteDatabase): number {
   return db
     .prepare(
       "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE kind = 'task' AND status IN ('pending', 'paused')",
@@ -84,7 +84,7 @@ export function cancelAllTasks(db: Database.Database): number {
     .run().changes;
 }
 
-export function pauseTask(db: Database.Database, taskId: string): number {
+export function pauseTask(db: SqliteDatabase, taskId: string): number {
   return db
     .prepare(
       "UPDATE messages_in SET status = 'paused' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'pending'",
@@ -92,7 +92,7 @@ export function pauseTask(db: Database.Database, taskId: string): number {
     .run(taskId, taskId).changes;
 }
 
-export function resumeTask(db: Database.Database, taskId: string): number {
+export function resumeTask(db: SqliteDatabase, taskId: string): number {
   return db
     .prepare(
       "UPDATE messages_in SET status = 'pending' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'paused'",
@@ -100,7 +100,7 @@ export function resumeTask(db: Database.Database, taskId: string): number {
     .run(taskId, taskId).changes;
 }
 
-export function deleteTask(db: Database.Database, taskId: string): number {
+export function deleteTask(db: SqliteDatabase, taskId: string): number {
   return db.prepare("DELETE FROM messages_in WHERE (id = ? OR series_id = ?) AND kind = 'task'").run(taskId, taskId)
     .changes;
 }
@@ -116,7 +116,7 @@ export interface TaskUpdate {
 // clobbering other fields. Matches by id OR series_id so the live next
 // occurrence of a recurring task is updated, not just the completed row the
 // agent last saw. Returns the number of rows touched.
-export function updateTask(db: Database.Database, taskId: string, update: TaskUpdate): number {
+export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdate): number {
   const rows = db
     .prepare(
       "SELECT id, content FROM messages_in WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status IN ('pending', 'paused')",
@@ -172,7 +172,7 @@ export interface RecurringMessage {
 // Failed occurrences (script-skip:error runs) re-arm too — a broken monitor
 // must keep its series alive so backoff can throttle it and the cap can pause
 // it; dropping the row would silently kill the series on first script error.
-export function getCompletedRecurring(db: Database.Database): RecurringMessage[] {
+export function getCompletedRecurring(db: SqliteDatabase): RecurringMessage[] {
   return db
     .prepare("SELECT * FROM messages_in WHERE status IN ('completed', 'failed') AND recurrence IS NOT NULL")
     .all() as RecurringMessage[];
@@ -186,7 +186,7 @@ export function getCompletedRecurring(db: Database.Database): RecurringMessage[]
  * failures from host-sweep's MAX_TRIES path): a series failing for either
  * reason should throttle, not spin.
  */
-export function trailingFailedRuns(db: Database.Database, seriesKey: string): number {
+export function trailingFailedRuns(db: SqliteDatabase, seriesKey: string): number {
   const rows = db
     .prepare(
       `SELECT status FROM messages_in
@@ -203,7 +203,7 @@ export function trailingFailedRuns(db: Database.Database, seriesKey: string): nu
 }
 
 export function insertRecurrence(
-  db: Database.Database,
+  db: SqliteDatabase,
   msg: RecurringMessage,
   newId: string,
   nextRun: string | null,
@@ -219,6 +219,6 @@ export function insertRecurrence(
   });
 }
 
-export function clearRecurrence(db: Database.Database, messageId: string): void {
+export function clearRecurrence(db: SqliteDatabase, messageId: string): void {
   db.prepare('UPDATE messages_in SET recurrence = NULL WHERE id = ?').run(messageId);
 }

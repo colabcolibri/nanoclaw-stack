@@ -30,7 +30,7 @@ export const ThreadListItem: React.FC<ThreadListItemProps> = ({ thread, isActive
       className={cn(
         'flex w-full min-w-0 gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-colors',
         isActive
-          ? 'border-(--accent)/40 bg-(--accent)/8 shadow-xs'
+          ? 'border-primary/40 bg-primary/8 shadow-xs'
           : 'border-transparent bg-transparent hover:border-(--border-main) hover:bg-(--bg-card-subtle)',
       )}
     >

@@ -16,7 +16,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: string |
   return (
     <div className="min-w-0 rounded-xl border border-(--border-main) bg-(--bg-card) p-4">
       <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-(--text-dim)">
-        <Icon className="h-3.5 w-3.5 text-(--accent)" />
+        <Icon className="h-3.5 w-3.5 text-primary" />
         <span className="truncate">{label}</span>
       </div>
       <p className="font-mono text-lg font-semibold text-(--text-main)">{value}</p>

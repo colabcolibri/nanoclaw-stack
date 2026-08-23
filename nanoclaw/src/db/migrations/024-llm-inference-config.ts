@@ -1,10 +1,10 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 import type { Migration } from './index.js';
 
 export const migration024: Migration = {
   version: 24,
   name: 'llm-inference-config',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       ALTER TABLE llm_providers ADD COLUMN protocol TEXT NOT NULL DEFAULT 'openai-compatible';
       ALTER TABLE llm_providers ADD COLUMN api_key_ciphertext TEXT;

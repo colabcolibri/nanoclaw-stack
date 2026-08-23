@@ -11,7 +11,7 @@
  * direct dynamic import. When scheduling moves to the modules branch in
  * PR #8, the install skill re-fills the marker on install.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../../db/sqlite-compat.js';
 import { CronExpressionParser } from 'cron-parser';
 
 import { resolveGroupTimezone } from '../../container-config.js';
@@ -47,7 +47,7 @@ function appendHostTaskNote(agentGroupId: string, seriesId: string, note: string
   }
 }
 
-export async function handleRecurrence(inDb: Database.Database, session: Session): Promise<void> {
+export async function handleRecurrence(inDb: SqliteDatabase, session: Session): Promise<void> {
   const recurring = getCompletedRecurring(inDb);
   // Resolved per call, not cached at module load: a group timezone change
   // (approved `groups config update --timezone`) must shift the series from

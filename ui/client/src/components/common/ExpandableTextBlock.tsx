@@ -72,7 +72,7 @@ export const ExpandableTextBlock: React.FC<ExpandableTextBlockProps> = ({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 gap-1 px-2 text-[10px] font-semibold text-(--accent)"
+          className="h-7 gap-1 px-2 text-[10px] font-semibold text-primary"
           onClick={() => setExpanded((prev) => !prev)}
           aria-expanded={expanded}
           aria-controls={contentId}

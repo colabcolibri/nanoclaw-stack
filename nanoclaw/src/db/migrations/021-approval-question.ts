@@ -5,13 +5,13 @@
  * after a host restart). Existing rows get an empty body and retain the old
  * title-only fallback when they resolve.
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 import type { Migration } from './index.js';
 
 export const migration021: Migration = {
   version: 21,
   name: 'approval-question-render-metadata',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`ALTER TABLE pending_approvals ADD COLUMN question TEXT NOT NULL DEFAULT ''`);
     db.exec(`ALTER TABLE pending_channel_approvals ADD COLUMN question TEXT NOT NULL DEFAULT ''`);
     db.exec(`ALTER TABLE pending_sender_approvals ADD COLUMN question TEXT NOT NULL DEFAULT ''`);

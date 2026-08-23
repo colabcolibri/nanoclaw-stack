@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -265,16 +266,27 @@ export const ConfigView: React.FC = () => {
 
       {!isLoading && (
         <div className="flex flex-wrap gap-2">
-          {roleModels.map((role) => (
-            <Badge
-              key={role.key}
-              variant={role.modelId.trim() ? 'outline' : 'warning'}
-              className="max-w-full truncate font-mono font-normal"
-            >
-              <span className={cn('mr-1.5 font-semibold', role.accentClass)}>{role.label}</span>
-              {role.modelId.trim() || t('chipRequired')}
-            </Badge>
-          ))}
+          {roleModels.map((role) =>
+            role.modelId.trim() ? (
+              <Badge
+                key={role.key}
+                variant="outline"
+                className="max-w-full truncate font-mono font-normal"
+              >
+                <span className={cn('mr-1.5 font-semibold', role.accentClass)}>{role.label}</span>
+                {role.modelId.trim()}
+              </Badge>
+            ) : (
+              <StatusBadge
+                key={role.key}
+                variant="warning"
+                className="max-w-full truncate font-mono font-normal"
+              >
+                <span className={cn('mr-1.5 font-semibold', role.accentClass)}>{role.label}</span>
+                {t('chipRequired')}
+              </StatusBadge>
+            )
+          )}
         </div>
       )}
 

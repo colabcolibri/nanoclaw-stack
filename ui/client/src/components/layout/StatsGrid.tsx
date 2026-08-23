@@ -16,7 +16,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
       label: 'Mensagens',
       value: (stats?.totalMessages || 0).toLocaleString(),
       hint: `${stats?.totalInbound || 0} in • ${stats?.totalOutbound || 0} out`,
-      icon: <MessageSquare className="h-4 w-4 text-(--accent)" />,
+      icon: <MessageSquare className="h-4 w-4 text-primary" />,
     },
     {
       label: 'Tokens',

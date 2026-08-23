@@ -18,6 +18,7 @@ import { outboundDbPath } from '../session-manager.js';
 import { createUser } from '../modules/permissions/db/users.js';
 import { grantRole } from '../modules/permissions/db/user-roles.js';
 import { setDeliveryAdapter } from '../delivery.js';
+import { log } from '../log.js';
 import { runSlashPipeline } from './slash-pipeline.js';
 
 vi.mock('../config.js', async () => {
@@ -113,6 +114,59 @@ describe('runSlashPipeline', () => {
       transport: 'channel',
     });
     expect(outcome.kind).toBe('not_slash');
+  });
+
+  it('warns when a slash command is not in the host registry', async () => {
+    const delivered: string[] = [];
+    setDeliveryAdapter({
+      async deliver(_ct, _pid, _tid, _kind, content) {
+        delivered.push(JSON.parse(content).text ?? content);
+        return 'p-1';
+      },
+    });
+    const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+    const outcome = await runSlashPipeline({
+      content: JSON.stringify({ text: '/new_resume' }),
+      caller,
+      delivery,
+      userId: 'telegram:owner',
+      agentGroupId: 'ag-1',
+      transport: 'channel',
+      denySession: {
+        id: 'sess-bootstrap',
+        agent_group_id: 'ag-1',
+        messaging_group_id: 'mg-tg',
+        thread_id: null,
+        conversation_id: null,
+        agent_provider: null,
+        status: 'active',
+        container_status: 'stopped',
+        last_active: null,
+        archived_at: null,
+        created_at: now(),
+      },
+    });
+    expect(outcome.kind).toBe('handled');
+    expect(warn).not.toHaveBeenCalledWith(
+      'Slash command not in host registry — no ack will be sent',
+      expect.anything(),
+    );
+    warn.mockClear();
+
+    const unknown = await runSlashPipeline({
+      content: JSON.stringify({ text: '/totally_unknown' }),
+      caller,
+      delivery,
+      userId: 'telegram:owner',
+      agentGroupId: 'ag-1',
+      transport: 'channel',
+    });
+    expect(unknown.kind).toBe('not_slash');
+    expect(warn).toHaveBeenCalledWith(
+      'Slash command not in host registry — no ack will be sent',
+      expect.objectContaining({ token: '/totally_unknown', channelType: 'telegram' }),
+    );
+    warn.mockRestore();
   });
 
   it('handles /new on channel transport with immediate delivery', async () => {
@@ -217,6 +271,6 @@ describe('runSlashPipeline', () => {
     });
 
     expect(outcome.kind).toBe('denied');
-    expect(delivered.some((t) => t.includes('Permission denied'))).toBe(true);
+    expect(delivered.some((t) => t.includes('Permissão negada'))).toBe(true);
   });
 });

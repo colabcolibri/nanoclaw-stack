@@ -12,6 +12,7 @@ import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -320,12 +321,15 @@ export const ModelsView: React.FC = () => {
                             {meta.keyEnvName ?? id}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={hasKey ? 'success' : 'outline'}
-                              className="text-[10px] font-semibold"
-                            >
-                              {hasKey ? 'OK' : 'Ausente'}
-                            </Badge>
+                            {hasKey ? (
+                              <StatusBadge className="text-[10px] font-semibold">
+                                OK
+                              </StatusBadge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] font-semibold">
+                                Ausente
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell className="font-mono text-[10px] text-(--text-muted) max-w-32 truncate">
                             {hasKey && status?.masked ? status.masked : '—'}

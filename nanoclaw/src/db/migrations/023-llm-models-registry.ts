@@ -1,11 +1,11 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 import type { Migration } from './index.js';
 import { LLM_MODEL_SEEDS, LLM_PROVIDER_SEEDS } from '../llm-models-seed.js';
 
 export const migration023: Migration = {
   version: 23,
   name: 'llm-models-registry',
-  up(db: Database.Database) {
+  up(db: SqliteDatabase) {
     db.exec(`
       CREATE TABLE llm_providers (
         id                  TEXT PRIMARY KEY,

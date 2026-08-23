@@ -4,7 +4,7 @@ import { Copy, Check, Braces, Bot, User, Send, Laptop, Terminal, Globe } from 'l
 import { type ChatMessage } from '@/api/client'
 import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { ChannelBadge } from '@/components/templates/ChannelBadge'
 import { cn } from '@/lib/utils'
 
 interface ChatMessageBubbleProps {
@@ -64,31 +64,31 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     switch (ch?.toLowerCase()) {
       case 'macos':
         return (
-          <Badge variant="macos" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+          <ChannelBadge channel="macos" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
             <Laptop className="h-3 w-3" />
             macOS
-          </Badge>
+          </ChannelBadge>
         )
       case 'telegram':
         return (
-          <Badge variant="telegram" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+          <ChannelBadge channel="telegram" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
             <Send className="h-3 w-3" />
             Telegram
-          </Badge>
+          </ChannelBadge>
         )
       case 'cli':
         return (
-          <Badge variant="cli" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+          <ChannelBadge channel="cli" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
             <Terminal className="h-3 w-3" />
             Terminal
-          </Badge>
+          </ChannelBadge>
         )
       default:
         return (
-          <Badge variant="web" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
+          <ChannelBadge channel="web" className="h-5 gap-1 px-1.5 text-[10px] font-semibold">
             <Globe className="h-3 w-3" />
             {ch || 'Web'}
-          </Badge>
+          </ChannelBadge>
         )
     }
   }
@@ -113,7 +113,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
             isUser
-              ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
+              ? 'border-(--accent-border) bg-(--accent-subtle) text-primary'
               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
           )}
         >
@@ -130,7 +130,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             <span
               className={cn(
                 'text-sm font-semibold',
-                isUser ? 'text-(--accent)' : 'text-(--text-main)'
+                isUser ? 'text-primary' : 'text-(--text-main)'
               )}
             >
               {isUser ? message.senderName || t('you') : t('assistant')}
@@ -186,7 +186,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-(--text-muted) hover:text-(--accent)"
+              className="h-7 w-7 text-(--text-muted) hover:text-primary"
               onClick={() => onInspect(message)}
               title={t('inspect')}
               aria-label={t('inspect')}

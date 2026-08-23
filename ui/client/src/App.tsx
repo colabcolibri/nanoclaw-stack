@@ -182,7 +182,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-(--bg-page) flex items-center justify-center text-(--text-muted) font-mono text-xs">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-(--accent) animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
           <span>Carregando painel NanoClaw...</span>
         </div>
       </div>

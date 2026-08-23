@@ -7,7 +7,7 @@
  *   - Tracks delivery in inbound.db's `delivered` table (host-owned)
  *   - Never writes to outbound.db — preserves single-writer-per-file invariant
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from './db/sqlite-compat.js';
 
 import {
   getRunningSessions,
@@ -184,8 +184,8 @@ async function drainSession(session: Session): Promise<void> {
   const agentGroup = getAgentGroup(session.agent_group_id);
   if (!agentGroup) return;
 
-  let outDb: Database.Database;
-  let inDb: Database.Database;
+  let outDb: SqliteDatabase;
+  let inDb: SqliteDatabase;
   try {
     outDb = openOutboundDb(agentGroup.id, session.id);
     inDb = openInboundDb(agentGroup.id, session.id);
@@ -278,7 +278,7 @@ async function deliverMessage(
     in_reply_to: string | null;
   },
   session: Session,
-  inDb: Database.Database,
+  inDb: SqliteDatabase,
 ): Promise<string | undefined> {
   if (!deliveryAdapter) {
     log.warn('No delivery adapter configured, dropping message', { id: msg.id });
@@ -467,7 +467,7 @@ async function deliverMessage(
 export type DeliveryActionHandler = (
   content: Record<string, unknown>,
   session: Session,
-  inDb: Database.Database,
+  inDb: SqliteDatabase,
 ) => Promise<void>;
 
 type DeliveryEntry =
@@ -551,7 +551,7 @@ export function getDeliveryAction(action: string): DeliveryActionHandler | undef
 async function handleSystemAction(
   content: Record<string, unknown>,
   session: Session,
-  inDb: Database.Database,
+  inDb: SqliteDatabase,
 ): Promise<void> {
   const action = content.action as string;
   log.info('System action from agent', { sessionId: session.id, action });

@@ -4,6 +4,8 @@ import { Bot, Folder, Globe, Sparkles } from 'lucide-react'
 import { type AgentItem, type SkillItem } from '@/api/client'
 import { getAgentsUsingSkill, formatSkillTokens } from '@/components/skills/skill-utils'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
+import { SkillBadge } from '@/components/templates/SkillBadge'
 import { cn } from '@/lib/utils'
 
 interface SkillCardProps {
@@ -48,13 +50,17 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
             </p>
           </div>
         </div>
-        <Badge
-          variant={skill.isGlobal ? 'success' : 'secondary'}
-          className="shrink-0 gap-1 text-[10px]"
-        >
-          {skill.isGlobal ? <Globe className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-          <span>{skill.isGlobal ? t('badgeGlobal') : t('badgeSpecialized')}</span>
-        </Badge>
+        {skill.isGlobal ? (
+          <StatusBadge className="shrink-0 gap-1 text-[10px]">
+            <Globe className="h-3 w-3" />
+            <span>{t('badgeGlobal')}</span>
+          </StatusBadge>
+        ) : (
+          <Badge variant="secondary" className="shrink-0 gap-1 text-[10px]">
+            <Bot className="h-3 w-3" />
+            <span>{t('badgeSpecialized')}</span>
+          </Badge>
+        )}
       </div>
 
       <div className="mb-3 border-t border-(--border-main)/60 pt-3">
@@ -83,10 +89,10 @@ export const SkillCard: React.FC<SkillCardProps> = ({ skill, agents, onClick }) 
           ~{formatSkillTokens(skill.totalTokens || 0)} {t('tokens')}
         </span>
         {refCount > 0 && (
-          <Badge variant="ref" className="gap-1 px-1.5 py-0 text-[9px] font-mono">
+          <SkillBadge kind="ref" className="gap-1 px-1.5 py-0 text-[9px] font-mono">
             <Folder className="h-2.5 w-2.5" />
             {refCount} {t('refs')}
-          </Badge>
+          </SkillBadge>
         )}
         {scriptCount > 0 && (
           <span className="font-mono">

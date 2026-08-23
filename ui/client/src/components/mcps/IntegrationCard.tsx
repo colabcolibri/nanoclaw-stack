@@ -1,6 +1,7 @@
 import React from 'react'
 import { Settings, type LucideIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -61,9 +62,15 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       </div>
 
       <div className="mt-4 border-t border-(--border-main)/60 pt-4">
-        <Badge variant={statusVariant} className="max-w-full text-[10px] font-semibold">
-          <span className="truncate">{statusLabel}</span>
-        </Badge>
+        {statusVariant === 'success' ? (
+          <StatusBadge className="max-w-full text-[10px] font-semibold">
+            <span className="truncate">{statusLabel}</span>
+          </StatusBadge>
+        ) : (
+          <Badge variant={statusVariant} className="max-w-full text-[10px] font-semibold">
+            <span className="truncate">{statusLabel}</span>
+          </Badge>
+        )}
       </div>
 
       <div className="mt-4 flex min-w-0 flex-wrap gap-2">

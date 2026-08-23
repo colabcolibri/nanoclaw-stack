@@ -15,6 +15,7 @@ import { sanitizeTelegramLegacyMarkdown } from './markdown-sanitize.js';
 import { registerChannelAdapter } from '../channel-registry.js';
 import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from '../adapter.js';
 import { tryConsume } from './pairing.js';
+import { registerTelegramBotCommands } from './bot-commands.js';
 
 /**
  * Dedicated bot identity, non-threaded platform (supportsThreads:false), so
@@ -252,7 +253,9 @@ registerChannelAdapter('telegram', {
           ...hostConfig,
           onInbound: createPairingInterceptor(botUsernamePromise, hostConfig.onInbound, token),
         };
-        return withRetry(() => bridge.setup(intercepted), 'bridge.setup');
+        await withRetry(() => bridge.setup(intercepted), 'bridge.setup');
+        // Best-effort: menu registration must not block or fail channel startup.
+        await registerTelegramBotCommands(token);
       },
     };
     return wrapped;

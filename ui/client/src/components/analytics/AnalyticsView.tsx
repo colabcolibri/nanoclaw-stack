@@ -18,8 +18,12 @@ import { ApiClient, type ChatMessage } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ExpandableTextBlock } from '@/components/common/ExpandableTextBlock'
+import { PaginatedListSection } from '@/components/templates/PaginatedListSection'
+import { usePagination } from '@/hooks/usePagination'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
@@ -44,7 +48,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const usageData = await ApiClient.getUsage(200)
+      const usageData = await ApiClient.getUsage(DEFAULT_PAGE_SIZE)
       setMessages(usageData.logs || [])
       setStats(usageData.stats || null)
     } catch {} finally {
@@ -98,6 +102,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     )
   }
 
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems,
+    rangeStart,
+    rangeEnd,
+  } = usePagination(messages)
+
   return (
     <div className="flex flex-col gap-6 relative w-full">
       {/* Standard PageHeader */}
@@ -135,7 +151,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
             <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
               <span>Cotação: R$ {exchangeRate.toFixed(4)}</span>
-              <span className="text-[10px] text-(--accent) truncate max-w-30" title={stats?.modelName}>
+              <span className="text-[10px] text-primary truncate max-w-30" title={stats?.modelName}>
                 {stats?.modelName || 'deepseek-v4-flash'}
               </span>
             </div>
@@ -213,6 +229,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               description="Nenhuma mensagem ou chamada de API foi registrada ainda."
             />
           ) : (
+            <PaginatedListSection
+              className="px-6 pt-4"
+              listClassName="overflow-x-auto -mx-6 px-6"
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            >
             <Table className="text-xs min-w-295">
               <TableHeader className="bg-(--bg-card-subtle)">
                 <TableRow>
@@ -222,7 +250,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <TableHead className="min-w-30">Remetente</TableHead>
                   <TableHead className="min-w-36.25">
                     <div className="flex items-center gap-1">
-                      <Cpu className="w-3.5 h-3.5 text-(--accent)" />
+                      <Cpu className="w-3.5 h-3.5 text-primary" />
                       <span>Modelo</span>
                     </div>
                   </TableHead>
@@ -244,7 +272,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {messages.map((m) => {
+                {paginatedItems.map((m) => {
                   const isUser = m.type === 'user'
                   const dateStr = new Date(m.timestamp).toLocaleString('pt-BR', {
                     day: '2-digit',
@@ -269,9 +297,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       className="cursor-pointer group"
                     >
                       <TableCell>
-                        <Badge variant={isUser ? 'default' : 'success'} className="font-mono text-[10px]">
-                          {isUser ? 'ENTRADA' : 'RESPOSTA'}
-                        </Badge>
+                        {isUser ? (
+                          <Badge variant="default" className="font-mono text-[10px]">
+                            ENTRADA
+                          </Badge>
+                        ) : (
+                          <StatusBadge className="font-mono text-[10px]">
+                            RESPOSTA
+                          </StatusBadge>
+                        )}
                       </TableCell>
                       <TableCell className="font-mono text-(--text-muted) whitespace-nowrap">{dateStr}</TableCell>
                       <TableCell className="font-mono font-semibold">{m.channel}</TableCell>
@@ -305,10 +339,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {subRunsCount > 0 ? (
-                          <Badge variant="warning" className="gap-1 text-[10px] py-1 px-2.5">
+                          <StatusBadge variant="warning" className="gap-1 text-[10px] py-1 px-2.5">
                             <Layers className="w-3 h-3" />
                             <span>{subRunsCount} tool(s) executadas</span>
-                          </Badge>
+                          </StatusBadge>
                         ) : (
                           <Badge variant="secondary" className="text-[10px] py-1 px-2.5">
                             Resposta Direta
@@ -319,7 +353,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         {m.text}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-(--accent) cursor-pointer">
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 group-hover:text-primary cursor-pointer">
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </TableCell>
@@ -328,6 +362,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 })}
               </TableBody>
             </Table>
+            </PaginatedListSection>
           )}
         </CardContent>
       </Card>
@@ -347,13 +382,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <div className="flex items-start justify-between border-b border-(--border-main) pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-(--accent)" />
+                    <Sparkles className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-bold text-(--text-main)">Auditoria da Chamada & Sub-Runs</h3>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-mono text-(--text-dim)">
                     <span>ID: {selectedMessage.id}</span>
                     <span>•</span>
-                    <span className="text-(--accent) font-semibold">
+                    <span className="text-primary font-semibold">
                       Modelo: {selectedMessage.model || stats?.modelName || 'deepseek-v4-flash'}
                     </span>
                   </div>
@@ -368,7 +403,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {/* Model Card */}
                 <div className="p-3 rounded-xl bg-(--bg-card-subtle) border border-(--border-main) flex flex-col justify-between">
                   <div className="text-[10px] text-(--text-dim) uppercase font-bold flex items-center gap-1">
-                    <Cpu className="w-3 h-3 text-(--accent)" />
+                    <Cpu className="w-3 h-3 text-primary" />
                     <span>Modelo</span>
                   </div>
                   <div className="text-xs font-bold text-(--text-main) mt-1 truncate" title={selectedMessage.model || stats?.modelName}>
@@ -422,7 +457,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {/* Message Content */}
               <div className="space-y-2">
                 <div className="text-xs font-bold text-(--text-main) flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-(--accent)" />
+                  <MessageSquare className="w-4 h-4 text-primary" />
                   <span>Conteúdo da Mensagem</span>
                 </div>
                 <ExpandableTextBlock
@@ -458,10 +493,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                                 Passo #{idx + 1} • MEMO SEMÂNTICO
                               </Badge>
                             ) : step.type === 'tool_execution' ? (
-                              <Badge variant="warning" className="text-[10px] gap-1">
+                              <StatusBadge variant="warning" className="text-[10px] gap-1">
                                 <Wrench className="w-3 h-3" />
                                 Passo #{idx + 1} • TOOL RUN ({step.toolName || 'Ferramenta'})
-                              </Badge>
+                              </StatusBadge>
                             ) : (
                               <Badge variant="secondary" className="text-[10px] gap-1 bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-sky-300">
                                 <MessageSquare className="w-3 h-3 text-sky-500" />
@@ -470,12 +505,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             )}
                             {step.model && (
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-(--bg-card) border border-(--border-main) text-(--text-main) font-semibold flex items-center gap-1">
-                                <Cpu className="w-2.5 h-2.5 opacity-70 text-(--accent)" />
+                                <Cpu className="w-2.5 h-2.5 opacity-70 text-primary" />
                                 <span>{step.model}</span>
                               </span>
                             )}
                             {step.toolName && (
-                              <span className="font-bold text-(--accent) flex items-center gap-1">
+                              <span className="font-bold text-primary flex items-center gap-1">
                                 <Wrench className="w-3 h-3 text-amber-500" />
                                 <span>{step.toolName}</span>
                               </span>

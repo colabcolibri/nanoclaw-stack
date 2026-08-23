@@ -3,7 +3,7 @@
  * gate → parse → execute → deliver (channel) or return reply (sync).
  */
 import { gateCommand } from '../command-gate.js';
-import { executeSlashCommand, parseSlashCommand } from '../commands/index.js';
+import { executeSlashCommand, parseSlashCommand, unregisteredSlashToken } from '../commands/index.js';
 import type { SlashCommandResult } from '../commands/types.js';
 import type { CallerContext, DeliveryAddress, SummarizeMessagesFn } from '../conversations/types.js';
 import { deliverSessionMessages } from '../delivery.js';
@@ -61,7 +61,22 @@ function resolveCommand(input: SlashPipelineInput) {
 
 export async function runSlashPipeline(input: SlashPipelineInput): Promise<SlashPipelineOutcome> {
   const parsed = resolveCommand(input);
-  if (!parsed) return { kind: 'not_slash' };
+  if (!parsed) {
+    const unknownToken = unregisteredSlashToken(input.content);
+    if (unknownToken) {
+      log.warn('Slash command not in host registry — no ack will be sent', {
+        token: unknownToken,
+        userId: input.userId,
+        agentGroupId: input.agentGroupId,
+        messagingGroupId: input.caller.messagingGroupId,
+        channelType: input.delivery.channelType,
+        platformId: input.delivery.platformId,
+        threadId: input.delivery.threadId,
+        transport: input.transport,
+      });
+    }
+    return { kind: 'not_slash' };
+  }
 
   if (input.transport === 'channel') {
     const gateContent = input.explicitCommandId ? parsed.token : input.content;
@@ -74,7 +89,7 @@ export async function runSlashPipeline(input: SlashPipelineInput): Promise<Slash
       if (!input.denySession) {
         throw new Error('denySession is required for channel slash deny delivery');
       }
-      const reply = `Permission denied: ${gate.command} requires admin access.`;
+      const reply = `Permissão negada: ${gate.command} requer acesso de administrador.`;
       log.info('Slash command denied', slashAuditFields(input, parsed, { reason: 'admin_required' }));
       writeOutboundDirect(input.denySession.agent_group_id, input.denySession.id, {
         id: `deny-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -97,7 +112,14 @@ export async function runSlashPipeline(input: SlashPipelineInput): Promise<Slash
     await deliverSessionMessages(result.session);
   }
 
-  log.info('Slash command handled', slashAuditFields(input, parsed, { sessionId: result.session.id }));
+  log.info(
+    'Slash command handled',
+    slashAuditFields(input, parsed, {
+      sessionId: result.session.id,
+      persist: result.persist,
+      replyPreview: result.reply.slice(0, 120),
+    }),
+  );
 
   return { kind: 'handled', result };
 }

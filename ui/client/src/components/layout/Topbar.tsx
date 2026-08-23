@@ -4,6 +4,7 @@ import { Globe, LogOut, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/templates/StatusBadge'
 
 interface TopbarProps {
   agentName?: string
@@ -54,10 +55,17 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
         </Button>
 
-        <Badge variant={isOnline ? 'success' : 'secondary'} className="h-7 gap-1.5 px-2.5 text-xs">
-          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-          {agentName}
-        </Badge>
+        {isOnline ? (
+          <StatusBadge className="h-7 gap-1.5 px-2.5 text-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {agentName}
+          </StatusBadge>
+        ) : (
+          <Badge variant="secondary" className="h-7 gap-1.5 px-2.5 text-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            {agentName}
+          </Badge>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -95,7 +103,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
-          className="h-8 gap-1 px-2 text-(--destructive) hover:bg-red-500/10 hover:text-(--destructive)"
+          className="h-8 gap-1 px-2 text-destructive hover:bg-red-500/10 hover:text-destructive"
         >
           <LogOut className="h-3.5 w-3.5" />
           <span className="hidden text-xs sm:inline">{t('logout')}</span>

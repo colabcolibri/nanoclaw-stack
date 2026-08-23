@@ -299,15 +299,15 @@ export class ApiClient {
     return this.fetchJson<{ messages: ChatMessage[] }>(`/api/chat?${qs}`)
   }
 
-  static async getUsage(limit = 200): Promise<{ logs: ChatMessage[]; stats: any }> {
+  static async getUsage(limit = 96): Promise<{ logs: ChatMessage[]; stats: any }> {
     return this.fetchJson(`/api/usage?limit=${limit}`)
   }
 
-  static async getRuns(limit = 150): Promise<{ runs: IntermediateRunItem[] }> {
+  static async getRuns(limit = 96): Promise<{ runs: IntermediateRunItem[] }> {
     return this.fetchJson(`/api/runs?limit=${limit}`)
   }
 
-  static async getAuditTraces(limit = 300, group?: string): Promise<{ traces: AgentAuditTraceItem[] }> {
+  static async getAuditTraces(limit = 96, group?: string): Promise<{ traces: AgentAuditTraceItem[] }> {
     const qs = new URLSearchParams({ limit: String(limit) })
     if (group) qs.set('group', group)
     return this.fetchJson(`/api/audit-traces?${qs}`)

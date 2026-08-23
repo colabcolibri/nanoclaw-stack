@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from '../sqlite-compat.js';
 
 import { log } from '../../log.js';
 import { migration001 } from './001-initial.js';
@@ -30,7 +30,7 @@ export interface Migration {
   version: number;
   /** Permanent applied identity. Never rename a migration after release. */
   name: string;
-  up: (db: Database.Database) => void;
+  up: (db: SqliteDatabase) => void;
   /**
    * Run with foreign_keys=OFF. Required for table recreates (SQLite can't
    * drop a table-level UNIQUE without DROP+RENAME, and DROP fails FK
@@ -116,7 +116,7 @@ interface FkViolation {
 const fkIdentity = (v: FkViolation): string =>
   JSON.stringify({ table: v.table, rowid: v.rowid, parent: v.parent, fkid: v.fkid });
 
-export function runMigrations(db: Database.Database, list: readonly Migration[] = getRegisteredMigrations()): void {
+export function runMigrations(db: SqliteDatabase, list: readonly Migration[] = getRegisteredMigrations()): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
       version INTEGER PRIMARY KEY,

@@ -23,7 +23,7 @@ export const AgentTokenChart: React.FC<AgentTokenChartProps> = ({
         <h3 className="min-w-0 truncate text-xs font-semibold uppercase tracking-wide text-(--text-main)">
           {t('tokenChartTitle')}
         </h3>
-        <span className="font-mono text-xs text-(--accent)">
+        <span className="font-mono text-xs text-primary">
           {t('tokenChartTotal', { count: formatTokenCount(total) })}
         </span>
       </div>
@@ -44,8 +44,8 @@ export const AgentTokenChart: React.FC<AgentTokenChartProps> = ({
                 <div
                   className={`w-full rounded-t-sm transition-colors ${
                     isHighlight
-                      ? 'border-t border-(--accent) bg-(--accent)/80'
-                      : 'bg-(--bg-card-subtle) group-hover:bg-(--accent)/40'
+                      ? 'border-t border-primary bg-primary/80'
+                      : 'bg-(--bg-card-subtle) group-hover:bg-primary/40'
                   }`}
                   style={{ height: `${height}%` }}
                 />
@@ -53,7 +53,7 @@ export const AgentTokenChart: React.FC<AgentTokenChartProps> = ({
               <span
                 className={`text-[10px] ${
                   isHighlight
-                    ? 'font-bold text-(--accent)'
+                    ? 'font-bold text-primary'
                     : 'text-(--text-dim)'
                 }`}
               >

@@ -39,7 +39,7 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
       <CardContent className="flex min-h-0 flex-1 flex-col p-0">
         <div className="flex flex-col gap-3 border-b border-(--border-main) px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--border-main) bg-(--bg-card-subtle) text-(--accent)">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--border-main) bg-(--bg-card-subtle) text-primary">
               <FileText className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -69,7 +69,7 @@ export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({
               </Badge>
             )}
             {source === 'custom' && (
-              <Badge variant="outline" className="border-(--accent-border) text-[10px] font-semibold text-(--accent)">
+              <Badge variant="outline" className="border-(--accent-border) text-[10px] font-semibold text-primary">
                 {t('sourceCustom')}
               </Badge>
             )}

@@ -26,7 +26,7 @@
  *        → kill + reset this message + tries++. Semantics: "container
  *        claimed a message and went quiet past tolerance since the claim."
  */
-import type Database from 'better-sqlite3';
+import type { SqliteDatabase } from './db/sqlite-compat.js';
 import fs from 'fs';
 
 import { ensureEgressNetwork } from './egress-lockdown.js';
@@ -183,8 +183,8 @@ async function sweepSession(session: Session): Promise<void> {
   const inPath = inboundDbPath(agentGroup.id, session.id);
   if (!fs.existsSync(inPath)) return;
 
-  let inDb: Database.Database;
-  let outDb: Database.Database | null = null;
+  let inDb: SqliteDatabase;
+  let outDb: SqliteDatabase | null = null;
   try {
     inDb = openInboundDb(agentGroup.id, session.id);
   } catch {
@@ -282,8 +282,8 @@ function bashTimeoutMs(state: ContainerState | null): number | null {
 }
 
 function enforceRunningContainerSla(
-  inDb: Database.Database,
-  outDb: Database.Database,
+  inDb: SqliteDatabase,
+  outDb: SqliteDatabase,
   session: Session,
   agentGroupId: string,
 ): void {
@@ -318,8 +318,8 @@ function enforceRunningContainerSla(
 }
 
 export function _resetStuckProcessingRowsForTesting(
-  inDb: Database.Database,
-  outDb: Database.Database,
+  inDb: SqliteDatabase,
+  outDb: SqliteDatabase,
   session: Session,
   reason: string,
 ): void {
@@ -327,11 +327,11 @@ export function _resetStuckProcessingRowsForTesting(
 }
 
 function resetStuckProcessingRows(
-  inDb: Database.Database,
-  outDb: Database.Database,
+  inDb: SqliteDatabase,
+  outDb: SqliteDatabase,
   session: Session,
   reason: string,
-  writableOutDb?: Database.Database,
+  writableOutDb?: SqliteDatabase,
 ): void {
   const claims = getProcessingClaims(outDb);
   const now = Date.now();
@@ -369,7 +369,7 @@ function resetStuckProcessingRows(
   // freshly respawned container is stuck, and SIGKILL it before its
   // agent-runner has a chance to run clearStaleProcessingAcks() on startup.
   const ownsDb = !writableOutDb;
-  let useDb: Database.Database | null = writableOutDb ?? null;
+  let useDb: SqliteDatabase | null = writableOutDb ?? null;
   try {
     if (!useDb) useDb = openOutboundDbRw(session.agent_group_id, session.id);
     const cleared = deleteOrphanProcessingClaims(useDb);

@@ -1,4 +1,6 @@
 export { initDb, initTestDb, getDb, closeDb } from './connection.js';
+export type { OpenSqliteOptions, SqliteDatabase } from './sqlite-compat.js';
+export { canLoadBetterSqlite3, createSqliteDatabase, openSqliteDatabase } from './sqlite-compat.js';
 export { runMigrations } from './migrations/index.js';
 export {
   createAgentGroup,

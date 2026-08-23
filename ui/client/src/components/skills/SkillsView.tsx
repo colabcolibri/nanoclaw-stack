@@ -108,7 +108,7 @@ export const SkillsView: React.FC = () => {
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                 scopeFilter === chip.id
-                  ? 'border-(--accent-border) bg-(--accent-subtle) text-(--accent)'
+                  ? 'border-(--accent-border) bg-(--accent-subtle) text-primary'
                   : 'border-(--border-main) bg-(--bg-card) text-(--text-muted) hover:text-(--text-main)'
               )}
             >

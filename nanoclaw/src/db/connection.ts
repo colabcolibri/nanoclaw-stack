@@ -2,9 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { log } from '../log.js';
-import { openSqliteDatabase } from './sqlite-compat.js';
-
-type SqliteDatabase = ReturnType<typeof openSqliteDatabase>;
+import { openSqliteDatabase, type SqliteDatabase } from './sqlite-compat.js';
 
 let _db: SqliteDatabase | null = null;
 
