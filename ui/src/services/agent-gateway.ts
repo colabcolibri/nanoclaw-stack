@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { CONFIG } from "../config.js";
 import { GroupManager } from "./groups.js";
+import { ensureConversationDb, loadConversationModule, loadSessionManager } from "./conversation-bridge.js";
 
 export interface ProcessTurnInput {
   prompt: string;
@@ -9,7 +10,10 @@ export interface ProcessTurnInput {
   groupFolder?: string;
   sessionId?: string;
   senderName?: string;
+  userId?: string;
+  /** @deprecated Use conversationMode instead */
   resetSession?: boolean;
+  conversationMode?: "new" | "new-resume";
 }
 
 export interface ProcessTurnResult {
@@ -46,12 +50,6 @@ export class UnifiedAgentGateway {
       throw new Error(`Grupo de agente não encontrado para pasta: ${groupFolder}`);
     }
     return match.id;
-  }
-
-  private static getSessionDir(groupId: string, sessionId: string): string {
-    const dir = path.join(CONFIG.DATA_PATH, "v2-sessions", groupId, sessionId);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    return dir;
   }
 
   /**
@@ -196,32 +194,73 @@ export class UnifiedAgentGateway {
     const { Database } = await import("bun:sqlite");
     const groupFolder = input.groupFolder ?? CONFIG.DEFAULT_GROUP_FOLDER;
     const agentGroupId = this.resolveAgentGroupId(groupFolder);
-    const sessionId = input.sessionId || `sess-${input.channel}-sergio`;
-    const senderName = input.senderName || (input.channel === "macos" ? "MacBook (Sérgio)" : input.channel === "ios" ? "iPhone (Sérgio)" : "Sérgio");
+    const userId = input.userId?.trim() || "default";
+    const threadId = `${input.channel}:${userId}`;
+    const senderName =
+      input.senderName ||
+      (input.channel === "macos" ? "MacBook (Sérgio)" : input.channel === "ios" ? "iPhone (Sérgio)" : "Sérgio");
 
-    const sessionDir = this.getSessionDir(agentGroupId, sessionId);
-    const inDbPath = path.join(sessionDir, "inbound.db");
-    const outDbPath = path.join(sessionDir, "outbound.db");
+    await ensureConversationDb();
+    const conversations = await loadConversationModule();
+    const sessionManager = await loadSessionManager();
+    const { resolveActiveSession, readConversationHistory, parseConversationCommand, executeConversationCommand, createLlmSummarizeFn } =
+      conversations;
+    const { initSessionFolder, inboundDbPath, outboundDbPath } = sessionManager;
 
-    // Setup SQLite databases
-    const inDb = new Database(inDbPath);
-    inDb.run(`CREATE TABLE IF NOT EXISTS messages_in (
-      id TEXT PRIMARY KEY, seq INTEGER, in_reply_to TEXT, timestamp TEXT NOT NULL,
-      deliver_after TEXT, recurrence TEXT, kind TEXT NOT NULL, platform_id TEXT,
-      channel_type TEXT, thread_id TEXT, content TEXT NOT NULL
-    )`);
+    const callerContext = {
+      agentGroupId,
+      messagingGroupId: null as string | null,
+      threadId,
+      sessionMode: "per-thread" as const,
+      channelType: input.channel,
+      platformId: threadId,
+      userId,
+    };
 
-    const outDb = new Database(outDbPath);
-    outDb.run(`CREATE TABLE IF NOT EXISTS messages_out (
-      id TEXT PRIMARY KEY, seq INTEGER, in_reply_to TEXT, timestamp TEXT NOT NULL,
-      deliver_after TEXT, recurrence TEXT, kind TEXT NOT NULL, platform_id TEXT,
-      channel_type TEXT, thread_id TEXT, content TEXT NOT NULL
-    )`);
+    const delivery = {
+      channelType: input.channel,
+      platformId: threadId,
+      threadId,
+    };
 
-    if (input.resetSession) {
-      inDb.run(`DELETE FROM messages_in`);
-      outDb.run(`DELETE FROM messages_out`);
+    const buildSummarizeFn = () =>
+      createLlmSummarizeFn(async (messages) => {
+        const { completeFn } = await this.getCompletionFunction(
+          path.join(CONFIG.GROUPS_PATH, groupFolder),
+          `summarize-${Date.now()}`,
+          { defaultModel: "deepseek-chat" },
+        );
+        return completeFn(messages, undefined, { purpose: "conversation_summarize" });
+      });
+
+    const conversationMode = input.conversationMode ?? (input.resetSession ? "new" : undefined);
+    if (conversationMode) {
+      await executeConversationCommand(conversationMode, callerContext, delivery, {
+        summarizeWithLlm: conversationMode === "new-resume" ? buildSummarizeFn() : undefined,
+      });
     }
+
+    const slashCommand = parseConversationCommand(input.prompt);
+    if (slashCommand) {
+      const cmdResult = await executeConversationCommand(slashCommand, callerContext, delivery, {
+        summarizeWithLlm: slashCommand === "new-resume" ? buildSummarizeFn() : undefined,
+      });
+      return {
+        reply: cmdResult.reply,
+        timestamp: new Date().toISOString(),
+        toolsExecutedCount: 0,
+      };
+    }
+
+    const { session } = resolveActiveSession(callerContext);
+    const sessionId = session.id;
+
+    initSessionFolder(agentGroupId, sessionId);
+    const inDbPath = inboundDbPath(agentGroupId, sessionId);
+    const outDbPath = outboundDbPath(agentGroupId, sessionId);
+
+    const inDb = new Database(inDbPath);
+    const outDb = new Database(outDbPath);
 
     // 1. Record incoming user message timestamp BEFORE execution starts
     const requestTimestamp = new Date().toISOString();
@@ -233,48 +272,15 @@ export class UnifiedAgentGateway {
         requestTimestamp,
         "chat",
         input.channel,
-        `${input.channel}:sergio`,
+        threadId,
         JSON.stringify({ text: input.prompt, sender: senderName, channel: input.channel }),
       ]
     );
 
-    // 2. Read previous history for TurnOrchestrator context
-    let history: Array<{ role: string; content?: string }> = [];
-    try {
-      const inRows = inDb.query(`SELECT timestamp, content FROM messages_in ORDER BY timestamp ASC`).all() as any[];
-      const outRows = outDb.query(`SELECT timestamp, content FROM messages_out ORDER BY timestamp ASC`).all() as any[];
-
-      const combined: Array<{ timestamp: string; role: "user" | "assistant"; text: string }> = [];
-
-      for (const r of inRows) {
-        let text = r.content || "";
-        try {
-          if (text.startsWith("{")) {
-            const parsed = JSON.parse(text);
-            text = parsed.text || parsed.content || text;
-          }
-        } catch {}
-        combined.push({ timestamp: r.timestamp, role: "user", text });
-      }
-
-      for (const r of outRows) {
-        let text = (r.content || "")
-          .replace(/<message[^>]*>/gi, "")
-          .replace(/<\/message>/gi, "")
-          .trim();
-        combined.push({ timestamp: r.timestamp, role: "assistant", text });
-      }
-
-      combined.sort((a, b) => {
-        const tA = new Date(a.timestamp).getTime();
-        const tB = new Date(b.timestamp).getTime();
-        if (tA !== tB) return tA - tB;
-        if (a.role === "user" && b.role === "assistant") return -1;
-        if (a.role === "assistant" && b.role === "user") return 1;
-        return 0;
-      });
-      history = combined.slice(-30).map((c) => ({ role: c.role, content: c.text }));
-    } catch {}
+    const historyMessages = readConversationHistory(agentGroupId, sessionId, 30);
+    const history = historyMessages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role, content: m.text }));
 
     // 3. Load Persona Soul, Core Memory and role models from container.json
     const groupDir = path.join(CONFIG.GROUPS_PATH, groupFolder);
@@ -322,7 +328,7 @@ export class UnifiedAgentGateway {
     const turnResult = await TurnOrchestrator.runTurn(completeFn, {
       prompt: input.prompt,
       cwd: groupDir,
-      chatJid: `${input.channel}:sergio`,
+      chatJid: threadId,
       history,
       systemInstructions: technicalDirectives,
       personaInstructions: soulContent,
@@ -352,20 +358,21 @@ export class UnifiedAgentGateway {
         responseTimestamp,
         "chat",
         input.channel,
-        `${input.channel}:sergio`,
-        `<message to="${input.channel}:sergio">\n${cleanReply}\n</message>`,
+        threadId,
+        `<message to="${threadId}">\n${cleanReply}\n</message>`,
       ]
     );
     outDb.close();
 
-    // 7. Register in central v2.db
+    // 7. Touch central session registry
     if (fs.existsSync(CONFIG.DB_PATH)) {
       const centralDb = new Database(CONFIG.DB_PATH);
       try {
         centralDb.run(
-          `INSERT INTO sessions (id, agent_group_id, created_at, updated_at) VALUES (?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
-          [sessionId, agentGroupId, responseTimestamp, responseTimestamp]
+          `INSERT INTO sessions (id, agent_group_id, messaging_group_id, thread_id, conversation_id, status, container_status, created_at)
+           VALUES (?, ?, NULL, ?, ?, 'active', 'stopped', ?)
+           ON CONFLICT(id) DO UPDATE SET last_active = excluded.created_at`,
+          [sessionId, agentGroupId, threadId, session.conversation_id ?? sessionId, responseTimestamp]
         );
       } catch {}
       centralDb.close();
@@ -381,92 +388,53 @@ export class UnifiedAgentGateway {
   /**
    * Retrieves paginated, sorted message history for any channel session.
    */
-  static async getHistory(channel: string, groupFolder: string, limit = 50): Promise<HistoryMessage[]> {
-    const { Database } = await import("bun:sqlite");
+  static async getHistory(channel: string, groupFolder: string, limit = 50, userId = "default"): Promise<HistoryMessage[]> {
+    await ensureConversationDb();
+    const conversations = await loadConversationModule();
     const agentGroupId = this.resolveAgentGroupId(groupFolder);
-    const sessionId = `sess-${channel}-sergio`;
-    const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions", agentGroupId, sessionId);
-    if (!fs.existsSync(sessionDir)) return [];
-
-    const inDbPath = path.join(sessionDir, "inbound.db");
-    const outDbPath = path.join(sessionDir, "outbound.db");
-
-    const combined: HistoryMessage[] = [];
-
-    if (fs.existsSync(inDbPath)) {
-      try {
-        const inDb = new Database(inDbPath, { readonly: true });
-        const inRows = inDb.query(`SELECT id, timestamp, content FROM messages_in ORDER BY timestamp DESC LIMIT ?`).all(limit) as any[];
-        inDb.close();
-        for (const r of inRows) {
-          let text = r.content || "";
-          try {
-            if (text.startsWith("{")) {
-              const parsed = JSON.parse(text);
-              text = parsed.text || parsed.content || text;
-            }
-          } catch {}
-          combined.push({ id: r.id || `in-${r.timestamp}`, role: "user", text, timestamp: r.timestamp });
-        }
-      } catch {}
-    }
-
-    if (fs.existsSync(outDbPath)) {
-      try {
-        const outDb = new Database(outDbPath, { readonly: true });
-        const outRows = outDb.query(`SELECT id, timestamp, content FROM messages_out ORDER BY timestamp DESC LIMIT ?`).all(limit) as any[];
-        outDb.close();
-        for (const r of outRows) {
-          let text = (r.content || "")
-            .replace(/<message[^>]*>/gi, "")
-            .replace(/<\/message>/gi, "")
-            .trim();
-          combined.push({ id: r.id || `out-${r.timestamp}`, role: "assistant", text, timestamp: r.timestamp });
-        }
-      } catch {}
-    }
-
-    combined.sort((a, b) => {
-      const tA = new Date(a.timestamp).getTime();
-      const tB = new Date(b.timestamp).getTime();
-      if (tA !== tB) return tA - tB;
-      if (a.role === "user" && b.role === "assistant") return -1;
-      if (a.role === "assistant" && b.role === "user") return 1;
-      return 0;
+    const threadId = `${channel}:${userId}`;
+    const { session } = conversations.resolveActiveSession({
+      agentGroupId,
+      messagingGroupId: null,
+      threadId,
+      sessionMode: "per-thread",
+      channelType: channel,
+      platformId: threadId,
+      userId,
     });
 
-    return combined.slice(-limit);
+    const messages = conversations.readConversationHistory(agentGroupId, session.id, limit);
+    return messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m, i) => ({
+        id: `${m.role}-${i}-${m.timestamp}`,
+        role: m.role as "user" | "assistant",
+        text: m.text,
+        timestamp: m.timestamp,
+      }));
   }
 
   /**
-   * Resets history for any channel session.
+   * Starts a new conversation (/new) for any channel session.
    */
-  static async resetSession(channel: string, groupFolder: string): Promise<boolean> {
-    const { Database } = await import("bun:sqlite");
+  static async resetSession(channel: string, groupFolder: string, userId = "default"): Promise<boolean> {
+    await ensureConversationDb();
+    const conversations = await loadConversationModule();
     const agentGroupId = this.resolveAgentGroupId(groupFolder);
-    const sessionId = `sess-${channel}-sergio`;
-    const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions", agentGroupId, sessionId);
-    if (!fs.existsSync(sessionDir)) return true;
-
-    const inDbPath = path.join(sessionDir, "inbound.db");
-    const outDbPath = path.join(sessionDir, "outbound.db");
-
-    if (fs.existsSync(inDbPath)) {
-      try {
-        const inDb = new Database(inDbPath);
-        inDb.run(`DELETE FROM messages_in`);
-        inDb.close();
-      } catch {}
-    }
-
-    if (fs.existsSync(outDbPath)) {
-      try {
-        const outDb = new Database(outDbPath);
-        outDb.run(`DELETE FROM messages_out`);
-        outDb.close();
-      } catch {}
-    }
-
+    const threadId = `${channel}:${userId}`;
+    await conversations.executeConversationCommand(
+      "new",
+      {
+        agentGroupId,
+        messagingGroupId: null,
+        threadId,
+        sessionMode: "per-thread",
+        channelType: channel,
+        platformId: threadId,
+        userId,
+      },
+      { channelType: channel, platformId: threadId, threadId },
+    );
     return true;
   }
 }

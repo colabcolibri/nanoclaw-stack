@@ -14,13 +14,13 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/gonzalonunez/markdown-ui", from: "2.1.0")
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.1.0")
     ],
     targets: [
         .executableTarget(
             name: "BaraoApp",
             dependencies: [
-                .product(name: "MarkdownUI", package: "markdown-ui")
+                .product(name: "MarkdownUI", package: "swift-markdown-ui")
             ],
             path: "Sources/BaraoApp"
         )

@@ -101,8 +101,6 @@ function AppContent() {
   }, [])
 
   const [stats, setStats] = useState<SystemStats | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false)
   const [inspectedMessage, setInspectedMessage] = useState<ChatMessage | null>(null)
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
 
@@ -129,10 +127,9 @@ function AppContent() {
 
   const loadInitialData = async () => {
     try {
-      const [statsData, serviceData, messagesData] = await Promise.all([
+      const [statsData, serviceData] = await Promise.all([
         ApiClient.getStats(),
         ApiClient.getServiceStatus().catch(() => ({ active: true, statusText: 'Online', mainPid: 0 })),
-        ApiClient.getChatMessages(150),
       ])
 
       const isActive = serviceData?.active ?? true
@@ -159,21 +156,10 @@ function AppContent() {
         agentName: statsData.agentName || 'Barão',
         modelName: statsData.modelName,
       })
-      setMessages(messagesData.messages || [])
     } catch (err: any) {
       if (err.message === 'UNAUTHORIZED') {
         setIsAuthenticated(false)
       }
-    }
-  }
-
-  const handleRefreshChat = async () => {
-    setIsLoadingMessages(true)
-    try {
-      const data = await ApiClient.getChatMessages(150)
-      setMessages(data.messages || [])
-    } catch {} finally {
-      setIsLoadingMessages(false)
     }
   }
 
@@ -254,11 +240,8 @@ function AppContent() {
             <ContentArea width={getViewContentWidth(activeView)} className="gap-5">
               {activeView === 'chat' && (
                 <ChatView
-                  messages={messages}
                   stats={stats}
                   currency={currency}
-                  isLoading={isLoadingMessages}
-                  onRefresh={handleRefreshChat}
                   onInspectMessage={handleInspectMessage}
                 />
               )}

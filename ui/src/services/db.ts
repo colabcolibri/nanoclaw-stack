@@ -23,6 +23,8 @@ export interface ChatMessageItem {
   model?: string;
   rawJson?: any;
   threadId?: string;
+  sessionId?: string;
+  agentGroupId?: string;
   charCount?: number;
   tokens?: number;
   promptTokens?: number;
@@ -38,6 +40,19 @@ export interface ChatMessageItem {
   costBrl?: number;
   memo?: string | null;
   subRuns?: IntermediateRunItem[];
+}
+
+export interface ChatThreadItem {
+  sessionId: string;
+  agentGroupId: string;
+  threadId: string | null;
+  channel: string;
+  status: "active" | "archived" | "closed";
+  conversationId: string | null;
+  lastActiveAt: string | null;
+  messageCount: number;
+  lastPreview: string;
+  lastSenderName: string;
 }
 
 export interface IntermediateRunItem {
@@ -526,13 +541,192 @@ export class DatabaseService {
     return { text: raw, senderName: fallbackType === "user" ? "Usuário" : "Assistente" };
   }
 
-  static getChatMessages(limit = 100): ChatMessageItem[] {
-    const messages = this.getUsageLogs(limit);
+  static getChatMessages(limit = 100, sessionId?: string): ChatMessageItem[] {
+    const messages = this.getUsageLogs(limit, sessionId ? { sessionId } : undefined);
     messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     return messages.slice(-limit);
   }
 
-  static getUsageLogs(limit = 200): ChatMessageItem[] {
+  static extractSessionFromDbPath(dbPath: string): { agentGroupId: string; sessionId: string } | null {
+    const normalized = dbPath.replace(/\\/g, "/");
+    const marker = "v2-sessions/";
+    const idx = normalized.indexOf(marker);
+    if (idx < 0) return null;
+    const parts = normalized.slice(idx + marker.length).split("/");
+    if (parts.length < 3) return null;
+    const agentGroupId = parts[0];
+    const sessionId = parts[1];
+    if (!sessionId?.startsWith("sess-")) return null;
+    return { agentGroupId, sessionId };
+  }
+
+  private static deriveChannelFromThread(threadId: string | null, fallbackChannel: string): string {
+    if (!threadId) return fallbackChannel || "unknown";
+    const colon = threadId.indexOf(":");
+    if (colon > 0) return threadId.slice(0, colon);
+    return fallbackChannel || "unknown";
+  }
+
+  private static loadSessionMeta(): Map<
+    string,
+    {
+      thread_id: string | null;
+      conversation_id: string | null;
+      status: string;
+      last_active: string | null;
+      created_at: string;
+      agent_group_id: string;
+    }
+  > {
+    const meta = new Map<
+      string,
+      {
+        thread_id: string | null;
+        conversation_id: string | null;
+        status: string;
+        last_active: string | null;
+        created_at: string;
+        agent_group_id: string;
+      }
+    >();
+    if (!fs.existsSync(CONFIG.DB_PATH)) return meta;
+    try {
+      const db = new Database(CONFIG.DB_PATH, { readonly: true });
+      const rows = db
+        .query(
+          `SELECT id, agent_group_id, thread_id, conversation_id, status, last_active, created_at
+           FROM sessions
+           WHERE thread_id IS NULL OR thread_id NOT LIKE 'system:%'`,
+        )
+        .all() as {
+        id: string;
+        agent_group_id: string;
+        thread_id: string | null;
+        conversation_id: string | null;
+        status: string;
+        last_active: string | null;
+        created_at: string;
+      }[];
+      for (const row of rows) meta.set(row.id, row);
+      db.close();
+    } catch {}
+    return meta;
+  }
+
+  static getChatThreads(limit = 50): ChatThreadItem[] {
+    const sessionRoot = path.join(CONFIG.DATA_PATH, "v2-sessions");
+    const sessionMeta = this.loadSessionMeta();
+    const threads = new Map<string, ChatThreadItem>();
+
+    const ingestSession = (
+      sessionId: string,
+      agentGroupId: string,
+      sampleChannel: string,
+      sampleThreadId: string | null,
+    ) => {
+      if (threads.has(sessionId)) return;
+      const meta = sessionMeta.get(sessionId);
+      const threadId = meta?.thread_id ?? sampleThreadId;
+      if (threadId?.startsWith("system:")) return;
+
+      const channel = this.deriveChannelFromThread(threadId, sampleChannel);
+      const statusRaw = meta?.status ?? "active";
+      const status: ChatThreadItem["status"] =
+        statusRaw === "archived" || statusRaw === "closed" ? statusRaw : "active";
+
+      threads.set(sessionId, {
+        sessionId,
+        agentGroupId: meta?.agent_group_id ?? agentGroupId,
+        threadId,
+        channel,
+        status,
+        conversationId: meta?.conversation_id ?? null,
+        lastActiveAt: meta?.last_active ?? meta?.created_at ?? null,
+        messageCount: 0,
+        lastPreview: "",
+        lastSenderName: "",
+      });
+    };
+
+    if (fs.existsSync(sessionRoot)) {
+      const inbounds = glob.sync(`${sessionRoot}/**/inbound.db`);
+      const outbounds = glob.sync(`${sessionRoot}/**/outbound.db`);
+
+      for (const dbPath of [...inbounds, ...outbounds]) {
+        const loc = this.extractSessionFromDbPath(dbPath);
+        if (!loc) continue;
+        try {
+          const db = new Database(dbPath, { readonly: true });
+          const isInbound = dbPath.endsWith("inbound.db");
+          const table = isInbound ? "messages_in" : "messages_out";
+          const row = db
+            .query(
+              `SELECT timestamp, content, channel_type, thread_id FROM ${table}
+               WHERE kind IN ('chat', 'chat-sdk', 'system')
+               ORDER BY timestamp DESC LIMIT 1`,
+            )
+            .get() as { timestamp: string; content: string; channel_type: string; thread_id: string | null } | undefined;
+          db.close();
+
+          const channel = row?.channel_type || "unknown";
+          const threadId = row?.thread_id ?? null;
+          ingestSession(loc.sessionId, loc.agentGroupId, channel, threadId);
+
+          const thread = threads.get(loc.sessionId);
+          if (!thread) continue;
+
+          const countDb = new Database(dbPath, { readonly: true });
+          const countRow = countDb
+            .prepare(`SELECT COUNT(*) as count FROM ${table} WHERE kind IN ('chat', 'chat-sdk', 'system')`)
+            .get() as { count: number };
+          countDb.close();
+          thread.messageCount += countRow?.count ?? 0;
+
+          if (row) {
+            const parsed = this.parseMessageContent(row.content || "", isInbound ? "user" : "assistant");
+            const preview = parsed.text.replace(/\s+/g, " ").trim().slice(0, 120);
+            const rowTime = row.timestamp;
+            if (!thread.lastActiveAt || Date.parse(rowTime) >= Date.parse(thread.lastActiveAt)) {
+              thread.lastActiveAt = rowTime;
+              if (preview) thread.lastPreview = preview;
+              thread.lastSenderName = parsed.senderName;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    for (const [sessionId, meta] of sessionMeta) {
+      if (meta.thread_id?.startsWith("system:")) continue;
+      if (threads.has(sessionId)) continue;
+      const channel = this.deriveChannelFromThread(meta.thread_id, "unknown");
+      threads.set(sessionId, {
+        sessionId,
+        agentGroupId: meta.agent_group_id,
+        threadId: meta.thread_id,
+        channel,
+        status: meta.status === "archived" || meta.status === "closed" ? meta.status : "active",
+        conversationId: meta.conversation_id,
+        lastActiveAt: meta.last_active ?? meta.created_at,
+        messageCount: 0,
+        lastPreview: "",
+        lastSenderName: "",
+      });
+    }
+
+    return [...threads.values()]
+      .sort((a, b) => {
+        const tA = Date.parse(a.lastActiveAt || "") || 0;
+        const tB = Date.parse(b.lastActiveAt || "") || 0;
+        if (tA !== tB) return tB - tA;
+        if (a.status === "active" && b.status !== "active") return -1;
+        if (b.status === "active" && a.status !== "active") return 1;
+        return a.sessionId.localeCompare(b.sessionId);
+      })
+      .slice(0, limit);
+  }
+
+  static getUsageLogs(limit = 200, opts?: { sessionId?: string; agentGroupId?: string }): ChatMessageItem[] {
     const messages: ChatMessageItem[] = [];
     const sessionDir = path.join(CONFIG.DATA_PATH, "v2-sessions");
     if (!fs.existsSync(sessionDir)) return messages;
@@ -541,15 +735,23 @@ export class DatabaseService {
     const allSubRuns = this.getDetailedRuns(500);
 
     try {
-      const inbounds = glob.sync(`${sessionDir}/**/inbound.db`);
-      const outbounds = glob.sync(`${sessionDir}/**/outbound.db`);
+      const inboundGlob = opts?.sessionId
+        ? `${sessionDir}/**/${opts.sessionId}/inbound.db`
+        : `${sessionDir}/**/inbound.db`;
+      const outboundGlob = opts?.sessionId
+        ? `${sessionDir}/**/${opts.sessionId}/outbound.db`
+        : `${sessionDir}/**/outbound.db`;
+      const inbounds = glob.sync(inboundGlob);
+      const outbounds = glob.sync(outboundGlob);
       const inboundMap = new Map<string, any>();
 
       for (const inDbPath of inbounds) {
+        const sessionLoc = this.extractSessionFromDbPath(inDbPath);
         try {
           const db = new Database(inDbPath, { readonly: true });
           const rows = db.query("SELECT * FROM messages_in ORDER BY timestamp DESC LIMIT ?").all(limit) as any[];
           for (const r of rows) {
+            if (r.kind !== "chat" && r.kind !== "chat-sdk" && r.kind !== "system") continue;
             inboundMap.set(r.id, r);
             const parsed = this.parseMessageContent(r.content || "", "user");
             const charCount = parsed.text.length;
@@ -572,6 +774,8 @@ export class DatabaseService {
               text: parsed.text,
               model: defaultModel,
               threadId: parsed.threadId || r.thread_id,
+              sessionId: sessionLoc?.sessionId,
+              agentGroupId: sessionLoc?.agentGroupId,
               charCount,
               tokens: promptTokens,
               promptTokens,
@@ -590,6 +794,7 @@ export class DatabaseService {
       }
 
       for (const outDbPath of outbounds) {
+        const sessionLoc = this.extractSessionFromDbPath(outDbPath);
         try {
           const db = new Database(outDbPath, { readonly: true });
           const rows = db.query("SELECT * FROM messages_out ORDER BY timestamp DESC LIMIT ?").all(limit) as any[];
@@ -656,6 +861,8 @@ export class DatabaseService {
               text: parsed.text,
               model,
               threadId: r.thread_id,
+              sessionId: sessionLoc?.sessionId,
+              agentGroupId: sessionLoc?.agentGroupId,
               charCount,
               tokens: totalTokens,
               promptTokens,

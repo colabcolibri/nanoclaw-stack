@@ -144,10 +144,12 @@ export interface Session {
   agent_group_id: string;
   messaging_group_id: string | null;
   thread_id: string | null;
+  conversation_id?: string | null;
   agent_provider: string | null;
-  status: 'active' | 'closed';
+  status: 'active' | 'archived' | 'closed';
   container_status: 'running' | 'idle' | 'stopped';
   last_active: string | null;
+  archived_at?: string | null;
   created_at: string;
 }
 

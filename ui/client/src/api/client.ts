@@ -9,6 +9,8 @@ export interface ChatMessage {
   model?: string
   rawJson?: any
   threadId?: string
+  sessionId?: string
+  agentGroupId?: string
   charCount?: number
   tokens?: number
   promptTokens?: number
@@ -24,6 +26,19 @@ export interface ChatMessage {
   costBrl?: number
   memo?: string | null
   subRuns?: any[]
+}
+
+export interface ChatThread {
+  sessionId: string
+  agentGroupId: string
+  threadId: string | null
+  channel: string
+  status: 'active' | 'archived' | 'closed'
+  conversationId: string | null
+  lastActiveAt: string | null
+  messageCount: number
+  lastPreview: string
+  lastSenderName: string
 }
 
 export interface SystemStats {
@@ -263,8 +278,14 @@ export class ApiClient {
     return this.fetchJson('/api/stats')
   }
 
-  static async getChatMessages(limit = 150): Promise<{ messages: ChatMessage[] }> {
-    return this.fetchJson<{ messages: ChatMessage[] }>(`/api/chat?limit=${limit}`)
+  static async getChatThreads(limit = 50): Promise<{ threads: ChatThread[] }> {
+    return this.fetchJson<{ threads: ChatThread[] }>(`/api/chat/threads?limit=${limit}`)
+  }
+
+  static async getChatMessages(limit = 150, sessionId?: string): Promise<{ messages: ChatMessage[] }> {
+    const qs = new URLSearchParams({ limit: String(limit) })
+    if (sessionId) qs.set('sessionId', sessionId)
+    return this.fetchJson<{ messages: ChatMessage[] }>(`/api/chat?${qs}`)
   }
 
   static async getUsage(limit = 200): Promise<{ logs: ChatMessage[]; stats: any }> {

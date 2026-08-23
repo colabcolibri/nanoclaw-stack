@@ -22,14 +22,14 @@ public struct StatusIndicatorView: View {
                 Circle()
                     .fill(isConnected ? Color.green : Color.red)
                     .frame(width: 8, height: 8)
-                Text(isConnected ? "Online" : "Desconectado")
+                Text(isConnected ? "Conectado" : "Desconectado")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.6))
-        .cornerRadius(12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 }

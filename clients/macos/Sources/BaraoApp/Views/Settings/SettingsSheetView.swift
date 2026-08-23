@@ -42,11 +42,15 @@ public struct SettingsSheetView: View {
                             .foregroundColor(.secondary)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("URL do Servidor:")
+                            Text("URL do servidor:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("https://uai.sergioluciano.com", text: $viewModel.serverUrl)
                                 .textFieldStyle(.roundedBorder)
+                            Text("Produção: https://uai.sergioluciano.com · Local: http://localhost:3080")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
@@ -79,7 +83,7 @@ public struct SettingsSheetView: View {
                                 .help("Colar da área de transferência")
                             }
                             
-                            Text("Obtenha sua chave no painel web em https://uai.sergioluciano.com")
+                            Text("Copie a chave em Integrações → Mac no painel web (local ou produção).")
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

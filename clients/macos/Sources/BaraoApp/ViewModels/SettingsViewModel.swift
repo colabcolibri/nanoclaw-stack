@@ -49,12 +49,18 @@ public final class SettingsViewModel: ObservableObject {
             soundEffects: soundEffects,
             groupFolder: groupFolder
         )
+        serverUrl = config.serverUrl
         storage.saveConfig(config)
     }
     
     public func testConnection() async {
         isTesting = true
         testResult = nil
+        
+        let normalizedUrl = AppConfig.normalizeServerUrl(serverUrl)
+        if normalizedUrl != serverUrl {
+            serverUrl = normalizedUrl
+        }
         
         let config = AppConfig(
             serverUrl: serverUrl,
@@ -66,7 +72,7 @@ public final class SettingsViewModel: ObservableObject {
         )
         
         guard config.isValid else {
-            testResult = .failure("Preencha a URL do Servidor e a Chave de API.")
+            testResult = .failure("Preencha a URL do servidor e a chave de API.")
             isTesting = false
             return
         }
@@ -77,12 +83,36 @@ public final class SettingsViewModel: ObservableObject {
                 testResult = .success("Conectado com sucesso ao Barão!")
                 saveSettings()
             } else {
-                testResult = .failure("Não foi possível autenticar. Verifique a chave de API.")
+                testResult = .failure("Não foi possível autenticar. Verifique a chave de API do painel (Integrações → Mac).")
             }
         } catch {
-            testResult = .failure(error.localizedDescription)
+            testResult = .failure(friendlyConnectionError(error))
         }
         
         isTesting = false
+    }
+
+    private func friendlyConnectionError(_ error: Error) -> String {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorSecureConnectionFailed,
+                 NSURLErrorServerCertificateUntrusted,
+                 NSURLErrorClientCertificateRejected,
+                 NSURLErrorClientCertificateRequired:
+                return "Erro de TLS: servidores locais usam HTTP. Use http://localhost:3080 (sem o \"s\")."
+            case NSURLErrorCannotConnectToHost,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorCannotFindHost:
+                return "Não foi possível conectar ao servidor. Verifique se o painel local está rodando."
+            case NSURLErrorTimedOut:
+                return "A conexão expirou. O servidor pode estar lento ou indisponível."
+            case NSURLErrorNotConnectedToInternet:
+                return "Sem conexão com a internet. Para uso local, confira se a URL aponta ao localhost."
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
     }
 }

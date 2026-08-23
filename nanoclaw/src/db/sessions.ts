@@ -8,8 +8,8 @@ export const TASKS_SYSTEM_THREAD_ID = 'system:tasks';
 export function createSession(session: Session): void {
   getDb()
     .prepare(
-      `INSERT INTO sessions (id, agent_group_id, messaging_group_id, thread_id, agent_provider, status, container_status, last_active, created_at)
-       VALUES (@id, @agent_group_id, @messaging_group_id, @thread_id, @agent_provider, @status, @container_status, @last_active, @created_at)`,
+      `INSERT INTO sessions (id, agent_group_id, messaging_group_id, thread_id, conversation_id, agent_provider, status, container_status, last_active, archived_at, created_at)
+       VALUES (@id, @agent_group_id, @messaging_group_id, @thread_id, @conversation_id, @agent_provider, @status, @container_status, @last_active, @archived_at, @created_at)`,
     )
     .run(session);
 }
@@ -120,7 +120,9 @@ export function getRunningSessions(): Session[] {
 
 export function updateSession(
   id: string,
-  updates: Partial<Pick<Session, 'status' | 'container_status' | 'last_active' | 'agent_provider'>>,
+  updates: Partial<
+    Pick<Session, 'status' | 'container_status' | 'last_active' | 'agent_provider' | 'archived_at' | 'conversation_id'>
+  >,
 ): void {
   const fields: string[] = [];
   const values: Record<string, unknown> = { id };
@@ -140,6 +142,56 @@ export function updateSession(
 
 export function deleteSession(id: string): void {
   getDb().prepare('DELETE FROM sessions WHERE id = ?').run(id);
+}
+
+/** Active conversational session for UI/API callers without a messaging_group row. */
+export function findUiConversationSession(agentGroupId: string, threadId: string): Session | undefined {
+  return getDb()
+    .prepare(
+      `SELECT * FROM sessions
+       WHERE agent_group_id = ?
+         AND messaging_group_id IS NULL
+         AND thread_id = ?
+         AND status = 'active'
+         AND thread_id NOT LIKE 'system:%'`,
+    )
+    .get(agentGroupId, threadId) as Session | undefined;
+}
+
+export function listArchivedConversations(
+  agentGroupId: string,
+  messagingGroupId: string | null,
+  threadId: string | null,
+  limit = 20,
+): Session[] {
+  if (messagingGroupId) {
+    if (threadId) {
+      return getDb()
+        .prepare(
+          `SELECT * FROM sessions
+           WHERE agent_group_id = ? AND messaging_group_id = ? AND thread_id = ? AND status = 'archived'
+           ORDER BY archived_at DESC LIMIT ?`,
+        )
+        .all(agentGroupId, messagingGroupId, threadId, limit) as Session[];
+    }
+    return getDb()
+      .prepare(
+        `SELECT * FROM sessions
+         WHERE agent_group_id = ? AND messaging_group_id = ? AND thread_id IS NULL AND status = 'archived'
+         ORDER BY archived_at DESC LIMIT ?`,
+      )
+      .all(agentGroupId, messagingGroupId, limit) as Session[];
+  }
+  if (threadId) {
+    return getDb()
+      .prepare(
+        `SELECT * FROM sessions
+         WHERE agent_group_id = ? AND messaging_group_id IS NULL AND thread_id = ? AND status = 'archived'
+         ORDER BY archived_at DESC LIMIT ?`,
+      )
+      .all(agentGroupId, threadId, limit) as Session[];
+  }
+  return [];
 }
 
 // ── Pending Questions ──

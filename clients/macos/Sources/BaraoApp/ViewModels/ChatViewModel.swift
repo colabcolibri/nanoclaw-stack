@@ -17,6 +17,7 @@ public final class ChatViewModel: ObservableObject {
     @Published public var showErrorAlert: Bool = false
     @Published public var isConnected: Bool = false
     @Published public var isCheckingConnection: Bool = false
+    @Published public var assistantName: String = AppConstants.appName
     
     private let apiClient: ApiClientProtocol
     private let storage: StorageServiceProtocol
@@ -65,6 +66,8 @@ public final class ChatViewModel: ObservableObject {
     }
     
     public func onAppear() {
+        let config = storage.loadConfig()
+        assistantName = config.assistantName
         Task {
             await checkConnection()
             await loadHistory()
@@ -289,6 +292,8 @@ public final class ChatViewModel: ObservableObject {
     public func clearConversation() {
         let config = storage.loadConfig()
         messages.removeAll()
+        hasMoreHistory = false
+        currentHistoryLimit = 25
         Task {
             _ = try? await apiClient.resetHistory(config: config)
         }

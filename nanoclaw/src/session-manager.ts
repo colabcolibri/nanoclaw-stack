@@ -25,6 +25,7 @@ import {
   findSystemSession,
   findSessionByAgentGroup,
   findSessionForAgent,
+  findUiConversationSession,
   getSession,
   taskThreadId,
   updateSession,
@@ -70,6 +71,10 @@ function generateId(): string {
   return `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function generateConversationId(): string {
+  return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
  * Find or create a session for a messaging group + thread.
  *
@@ -99,19 +104,27 @@ export function resolveSession(
     if (existing) {
       return { session: existing, created: false };
     }
+  } else if (sessionMode === 'per-thread' && threadId) {
+    const existing = findUiConversationSession(agentGroupId, threadId);
+    if (existing) {
+      return { session: existing, created: false };
+    }
   }
 
   const id = generateId();
+  const conversationId = generateConversationId();
   const lookupThreadId = sessionMode === 'per-thread' ? threadId : null;
   const session: Session = {
     id,
     agent_group_id: agentGroupId,
     messaging_group_id: messagingGroupId,
     thread_id: lookupThreadId,
+    conversation_id: conversationId,
     agent_provider: null,
     status: 'active',
     container_status: 'stopped',
     last_active: null,
+    archived_at: null,
     created_at: new Date().toISOString(),
   };
 
@@ -135,10 +148,12 @@ export function resolveTaskSession(agentGroupId: string, seriesId: string): { se
     agent_group_id: agentGroupId,
     messaging_group_id: null,
     thread_id: threadId,
+    conversation_id: generateConversationId(),
     agent_provider: null,
     status: 'active',
     container_status: 'stopped',
     last_active: null,
+    archived_at: null,
     created_at: new Date().toISOString(),
   };
 

@@ -5,6 +5,7 @@ public struct MainWindowView: View {
     @StateObject private var chatViewModel = ChatViewModel()
     @StateObject private var settingsViewModel = SettingsViewModel()
     @State private var showSettings = false
+    @State private var showClearConfirm = false
     
     public init() {}
     
@@ -12,22 +13,22 @@ public struct MainWindowView: View {
         VStack(spacing: 0) {
             // Header Top Bar
             HStack(spacing: 12) {
-                // Window Traffic Lights / Close button
                 Button(action: {
                     NSApp.keyWindow?.orderOut(nil)
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(Color.primary.opacity(0.05), in: Circle())
                 }
                 .buttonStyle(.plain)
                 .help("Fechar janela (Cmd+W)")
                 
                 HStack(spacing: 8) {
-                    RobotAvatarView(size: 24)
-                    Text("Barão AI")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                    RobotAvatarView(size: 22)
+                    Text("Barão")
+                        .font(.system(size: 15, weight: .semibold))
                 }
                 
                 StatusIndicatorView(
@@ -37,25 +38,18 @@ public struct MainWindowView: View {
                 
                 Spacer()
                 
-                Button(action: { chatViewModel.clearConversation() }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                headerIconButton(icon: "trash", help: "Limpar histórico") {
+                    showClearConfirm = true
                 }
-                .buttonStyle(.plain)
-                .help("Limpar histórico da conversa")
+                .disabled(chatViewModel.messages.isEmpty)
                 
-                Button(action: { showSettings = true }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                headerIconButton(icon: "gearshape", help: "Configurações (Cmd+,)") {
+                    showSettings = true
                 }
-                .buttonStyle(.plain)
-                .help("Configurações (Cmd+,)")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(.bar)
             
             // Connection Setup Warning Banner
             if !chatViewModel.isConnected && !chatViewModel.isCheckingConnection {
@@ -87,10 +81,30 @@ public struct MainWindowView: View {
         .onAppear {
             chatViewModel.onAppear()
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppConstants.Notifications.openSettings)) { _ in
+            showSettings = true
+        }
         .sheet(isPresented: $showSettings, onDismiss: {
             chatViewModel.onAppear()
         }) {
             SettingsSheetView(viewModel: settingsViewModel)
+        }
+        .confirmationDialog(
+            "Limpar histórico?",
+            isPresented: $showClearConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Limpar histórico", role: .destructive) {
+                chatViewModel.clearConversation()
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Isso remove a conversa local e reinicia a sessão no servidor.")
+        }
+        .background {
+            Button("") { showSettings = true }
+                .keyboardShortcut(",", modifiers: .command)
+                .hidden()
         }
         .alert("Aviso", isPresented: $chatViewModel.showErrorAlert) {
             Button("OK", role: .cancel) {}
@@ -100,6 +114,18 @@ public struct MainWindowView: View {
         } message: {
             Text(chatViewModel.errorMessage ?? "Ocorreu um erro desconhecido.")
         }
+    }
+    
+    private func headerIconButton(icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(Color.primary.opacity(0.05), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }
 

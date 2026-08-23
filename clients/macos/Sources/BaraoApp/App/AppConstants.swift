@@ -6,8 +6,8 @@ public enum AppConstants {
     public static let appName = "Barão"
     public static let defaultServerUrl = "https://uai.sergioluciano.com"
     public static let defaultGroup = "barao"
-    public static let appVersion = "1.3.0"
-    public static let buildNumber = "4"
+    public static let appVersion = "1.3.1"
+    public static let buildNumber = "5"
     public static let bundleIdentifier = "com.colabcolibri.barao"
     
     public enum KeychainKeys {
@@ -25,8 +25,25 @@ public enum AppConstants {
     
     public enum Colors {
         public static let accentColor = Color.accentColor
-        public static let userBubble = Color.blue
+        public static let userBubble = Color.accentColor
         public static let assistantBubble = Color(nsColor: .controlBackgroundColor)
         public static let background = Color(nsColor: .windowBackgroundColor)
+        public static let chatCanvas = Color(nsColor: .textBackgroundColor)
+    }
+
+    public enum ChatDesign {
+        public static let bubbleMaxWidth: CGFloat = 340
+        public static let bubbleRadius: CGFloat = 18
+        public static let messageSpacing: CGFloat = 14
+        public static let horizontalPadding: CGFloat = 16
+        public static let userBubbleGradient = LinearGradient(
+            colors: [Color.accentColor, Color.accentColor.opacity(0.82)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    public enum Notifications {
+        public static let openSettings = Notification.Name("BaraoOpenSettings")
     }
 }

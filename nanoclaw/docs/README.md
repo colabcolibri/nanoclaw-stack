@@ -8,3 +8,4 @@ The files in this directory are original design documents and developer referenc
 |---|---|
 | [SECURITY.md](SECURITY.md) | [Security model](https://docs.nanoclaw.dev/concepts/security) |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | [Introduction](https://docs.nanoclaw.dev/introduction) |
+| [slash-commands.md](slash-commands.md) | Slash command registry, ack persist, Telegram menu |

@@ -23,7 +23,9 @@ struct BaraoApp: App {
             Divider()
             Button("Configurações...") {
                 AppDelegate.shared?.showMainWindow()
+                NotificationCenter.default.post(name: AppConstants.Notifications.openSettings, object: nil)
             }
+            .keyboardShortcut(",", modifiers: .command)
             Divider()
             Button("Encerrar Barão") {
                 NSApp.terminate(nil)

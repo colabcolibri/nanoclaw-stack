@@ -20,6 +20,7 @@
 import { getChannelAdapter, getChannelDefaults } from './channels/channel-registry.js';
 import { resolveThreadPolicy, resolveUnknownSenderPolicy } from './channels/channel-defaults.js';
 import { gateCommand } from './command-gate.js';
+import { parseSlashCommand, executeSlashCommand } from './commands/index.js';
 import { getAgentGroup } from './db/agent-groups.js';
 import { recordDroppedMessage } from './db/dropped-messages.js';
 import {
@@ -500,6 +501,32 @@ async function deliverToAgent(
         content: JSON.stringify({ text: `Permission denied: ${gate.command} requires admin access.` }),
       });
       log.info('Admin command denied by gate', { command: gate.command, userId, agentGroupId: agent.agent_group_id });
+      return;
+    }
+
+    const slashCommand =
+      event.message.kind === 'chat' || event.message.kind === 'chat-sdk'
+        ? parseSlashCommand(event.message.content)
+        : null;
+    if (slashCommand) {
+      const result = await executeSlashCommand(
+        slashCommand.id,
+        {
+          agentGroupId: agent.agent_group_id,
+          messagingGroupId: mg.id,
+          threadId: effectiveThreadId,
+          sessionMode: effectiveSessionMode,
+          channelType: deliveryAddr.channelType,
+          platformId: deliveryAddr.platformId,
+          userId,
+        },
+        deliveryAddr,
+      );
+      log.info('Conversation command handled', {
+        command: slashCommand.id,
+        sessionId: result.session.id,
+        agentGroupId: agent.agent_group_id,
+      });
       return;
     }
   }

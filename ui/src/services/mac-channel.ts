@@ -49,13 +49,14 @@ export class MacChannelService {
   static async processPrompt(
     prompt: string,
     groupFolder: string,
-    resetSession = false
+    opts?: { resetSession?: boolean; conversationMode?: "new" | "new-resume" },
   ) {
     return UnifiedAgentGateway.processTurn({
       prompt,
       channel: "macos",
       groupFolder,
-      resetSession,
+      resetSession: opts?.resetSession,
+      conversationMode: opts?.conversationMode,
     });
   }
 

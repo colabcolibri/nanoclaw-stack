@@ -114,10 +114,12 @@ CREATE TABLE sessions (
   agent_group_id     TEXT NOT NULL REFERENCES agent_groups(id),
   messaging_group_id TEXT REFERENCES messaging_groups(id),
   thread_id          TEXT,
+  conversation_id    TEXT,
   agent_provider     TEXT,
   status             TEXT DEFAULT 'active',
   container_status   TEXT DEFAULT 'stopped',
   last_active        TEXT,
+  archived_at        TEXT,
   created_at         TEXT NOT NULL
 );
 CREATE INDEX idx_sessions_agent_group ON sessions(agent_group_id);

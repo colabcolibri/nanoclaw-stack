@@ -23,6 +23,7 @@ import { migration021 } from './021-approval-question.js';
 import { migration022 } from './022-container-config-role-models.js';
 import { migration023 } from './023-llm-models-registry.js';
 import { migration024 } from './024-llm-inference-config.js';
+import { migration025 } from './025-conversation-lifecycle.js';
 
 export interface Migration {
   version: number;
@@ -70,6 +71,7 @@ export const migrations: Migration[] = [
   migration022,
   migration023,
   migration024,
+  migration025,
 ];
 
 /**

@@ -128,12 +128,19 @@ export class ApiRouter {
       }
 
       if (url.pathname === "/api/mac/prompt" && method === "POST") {
-        const body = (await req.json().catch(() => ({}))) as { prompt?: string; resetSession?: boolean };
+        const body = (await req.json().catch(() => ({}))) as {
+          prompt?: string;
+          resetSession?: boolean;
+          conversationMode?: "new" | "new-resume";
+        };
         const prompt = body.prompt?.trim();
         if (!prompt) return jsonResponse({ error: "Prompt é obrigatório." }, 400);
 
         try {
-          const result = await MacChannelService.processPrompt(prompt, folder, !!body.resetSession);
+          const result = await MacChannelService.processPrompt(prompt, folder, {
+            resetSession: !!body.resetSession,
+            conversationMode: body.conversationMode,
+          });
           return jsonResponse({
             success: true,
             reply: result.reply,
@@ -178,8 +185,30 @@ export class ApiRouter {
 
       if (url.pathname === "/api/mac/reset" && method === "POST") {
         try {
-          await MacChannelService.resetSession(folder);
-          return jsonResponse({ success: true, message: "Histórico da sessão Mac reiniciado." });
+          const body = (await req.json().catch(() => ({}))) as { mode?: "new" | "new-resume" };
+          const mode = body.mode === "new-resume" ? "new-resume" : "new";
+          const { ensureConversationDb, loadConversationModule } = await import("../services/conversation-bridge.js");
+          const { GroupManager } = await import("../services/groups.js");
+          await ensureConversationDb();
+          const conversations = await loadConversationModule();
+          const groups = GroupManager.list();
+          const match = groups.find((g) => g.folder === folder);
+          if (!match?.id) throw new Error("Grupo não encontrado.");
+          const threadId = "macos:default";
+          const result = await conversations.executeConversationCommand(
+            mode,
+            {
+              agentGroupId: match.id,
+              messagingGroupId: null,
+              threadId,
+              sessionMode: "per-thread",
+              channelType: "macos",
+              platformId: threadId,
+              userId: "default",
+            },
+            { channelType: "macos", platformId: threadId, threadId },
+          );
+          return jsonResponse({ success: true, message: result.reply });
         } catch (err: any) {
           return jsonResponse({ error: err.message || "Erro ao reiniciar sessão." }, 500);
         }
@@ -550,9 +579,15 @@ export class ApiRouter {
     }
 
     // Chat & Stats
+    if (url.pathname === "/api/chat/threads" && method === "GET") {
+      const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+      return jsonResponse({ threads: DatabaseService.getChatThreads(limit) });
+    }
+
     if (url.pathname === "/api/chat" && method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "100", 10);
-      return jsonResponse({ messages: DatabaseService.getChatMessages(limit) });
+      const sessionId = url.searchParams.get("sessionId")?.trim() || undefined;
+      return jsonResponse({ messages: DatabaseService.getChatMessages(limit, sessionId) });
     }
 
     if (url.pathname === "/api/stats" && method === "GET") {

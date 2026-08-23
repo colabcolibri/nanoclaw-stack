@@ -56,6 +56,8 @@ describe('admin gating goes through roles', () => {
     seedUser('telegram:owner');
     grantRole({ user_id: 'telegram:owner', role: 'owner', agent_group_id: null, granted_by: null, granted_at: now() });
     expect(gateCommand('/clear', 'telegram:owner', 'ag-1')).toEqual({ action: 'pass' });
+    expect(gateCommand('/new', 'telegram:owner', 'ag-1')).toEqual({ action: 'pass' });
+    expect(gateCommand('/new-resume', 'telegram:owner', 'ag-1')).toEqual({ action: 'pass' });
   });
 
   it('allows an admin command from a scoped admin of the group', () => {

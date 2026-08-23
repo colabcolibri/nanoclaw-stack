@@ -17,7 +17,7 @@ public final class KeychainStorageService: StorageServiceProtocol {
         let apiKey = getApiKey() ?? ""
         
         return AppConfig(
-            serverUrl: serverUrl,
+            serverUrl: AppConfig.normalizeServerUrl(serverUrl),
             apiKey: apiKey,
             assistantName: assistantName,
             autoSpeak: autoSpeak,
