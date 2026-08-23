@@ -18,7 +18,10 @@ import { readMaterializedLlmRegistry, materializeLlmModelsJson, type Materialize
 import {
   resolveRoleModels,
   type RoleModelRegistry,
+  type ResolvedRoleModels,
 } from '../container/agent-runner/src/services/role-models.js';
+import type { RoleInferenceOverrides } from '../container/agent-runner/src/services/inference-resolver.js';
+import { parseRoleInferenceOverridesJson } from '../container/agent-runner/src/services/inference-resolver.js';
 import { isValidTimezone } from './timezone.js';
 import { log } from './log.js';
 import type { AgentGroup, ContainerConfigRow } from './types.js';
@@ -257,6 +260,8 @@ export interface ContainerConfig {
   timezone?: string;
   orchestratorModel?: string;
   senderModel?: string;
+  memoModel?: string;
+  roleInferenceParams?: RoleInferenceOverrides;
 }
 
 /**
@@ -271,6 +276,7 @@ export function alignRoleModelsWithProvider(
     model: config.model,
     orchestratorModel: config.orchestratorModel,
     senderModel: config.senderModel,
+    memoModel: config.memoModel,
   });
   if (!resolved) return config;
   return { ...config, ...resolved };
@@ -356,6 +362,8 @@ export function configFromDb(row: ContainerConfigRow, group: AgentGroup): Contai
     timezone: row.timezone && isValidTimezone(row.timezone) ? row.timezone : undefined,
     orchestratorModel: row.orchestrator_model ?? undefined,
     senderModel: row.sender_model ?? undefined,
+    memoModel: row.memo_model ?? undefined,
+    roleInferenceParams: parseRoleInferenceOverridesJson(row.role_inference_params),
   };
 }
 
@@ -387,4 +395,23 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
   }
 
   return config;
+}
+
+/** Resolve modelos efetivos por papel (catálogo + overrides do grupo). */
+export function resolveGroupRoleModels(agentGroupId: string): ResolvedRoleModels | null {
+  const group = getAgentGroup(agentGroupId);
+  if (!group) return null;
+  const row = getContainerConfig(agentGroupId);
+  if (!row) return null;
+  const registry = readMaterializedLlmRegistry() ?? materializeLlmModelsJson();
+  const config = alignRoleModelsWithProvider(configFromDb(row, group), registry);
+  if (!config.model || !config.orchestratorModel || !config.senderModel || !config.memoModel) {
+    return null;
+  }
+  return {
+    model: config.model,
+    orchestratorModel: config.orchestratorModel,
+    senderModel: config.senderModel,
+    memoModel: config.memoModel,
+  };
 }

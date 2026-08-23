@@ -90,6 +90,7 @@ export class TurnOrchestrator {
         maxSupervisorSteps: options.maxSupervisorSteps,
         orchestratorModel: options.orchestratorModel,
         senderModel: options.senderModel,
+        memoModel: options.memoModel,
         defaultModel: options.defaultModel,
       },
       timeContext,

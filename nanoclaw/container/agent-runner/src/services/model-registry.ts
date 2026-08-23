@@ -5,6 +5,11 @@ import {
   mergeInferenceParams,
   type InferenceParams,
 } from '../inference-params.js';
+import {
+  resolveCallInferenceParams,
+  type RoleInferenceOverrides,
+} from './inference-resolver.js';
+import type { LlmRole } from './role-models.js';
 
 export type LlmProtocol = 'openai-compatible' | 'anthropic';
 
@@ -19,7 +24,7 @@ export interface RegisteredModelInfo {
   name: string;
   providerId: string;
   description: string;
-  recommendedRole?: 'orchestrator' | 'worker' | 'sender' | 'all';
+  recommendedRole?: 'orchestrator' | 'worker' | 'sender' | 'memo' | 'all';
   pricing: ModelPricingRates;
   contextWindow: string;
   completionUrl: string;
@@ -251,9 +256,29 @@ export class ModelRegistry {
     };
   }
 
-  static applyParamsToPayload(payload: Record<string, unknown>, modelId: string, cwd?: string): void {
-    const inv = this.requireInvocation(modelId, cwd);
-    applyInferenceParamsToPayload(payload, inv.params);
+  static applyParamsToPayload(
+    payload: Record<string, unknown>,
+    modelId: string,
+    ctx?: {
+      cwd?: string;
+      role?: LlmRole;
+      purpose?: string | null;
+      roleOverrides?: RoleInferenceOverrides;
+      callOverride?: InferenceParams;
+    },
+  ): void {
+    const params =
+      ctx?.roleOverrides || ctx?.purpose || ctx?.callOverride || ctx?.role
+        ? resolveCallInferenceParams({
+            modelId,
+            cwd: ctx?.cwd,
+            role: ctx?.role,
+            purpose: ctx?.purpose,
+            roleOverrides: ctx?.roleOverrides,
+            callOverride: ctx?.callOverride,
+          })
+        : this.requireInvocation(modelId, ctx?.cwd).params;
+    applyInferenceParamsToPayload(payload, params);
   }
 
   /** @internal Apenas para testes unitários. */

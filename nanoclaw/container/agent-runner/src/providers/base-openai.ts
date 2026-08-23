@@ -8,6 +8,7 @@ import { ModelRegistry } from '../services/model-registry.js';
 import { PersonaLoader } from '../services/persona-loader.js';
 import { buildLedgerPreview, resolvePurpose } from '../services/llm-call-purpose.js';
 import { resolveContainerRoleModels } from '../services/role-models.js';
+import { parseRoleInferenceOverrides, type RoleInferenceOverrides } from '../services/inference-resolver.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type {
   AgentProvider,
@@ -96,6 +97,8 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     let workerModel: string | undefined;
     let orchestratorModel: string | undefined;
     let senderModel: string | undefined;
+    let memoModel: string | undefined;
+    let roleInferenceOverrides: RoleInferenceOverrides = {};
     let containerProvider: string | undefined;
     const containerJsonCandidates = [
       path.join(input.cwd, 'container.json'),
@@ -115,6 +118,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
               model: cfg.model,
               orchestratorModel: cfg.orchestratorModel,
               senderModel: cfg.senderModel,
+              memoModel: cfg.memoModel,
             },
             input.cwd,
           );
@@ -122,11 +126,14 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             workerModel = resolved.model;
             orchestratorModel = resolved.orchestratorModel;
             senderModel = resolved.senderModel;
+            memoModel = resolved.memoModel;
           } else {
             workerModel = cfg.model;
             orchestratorModel = cfg.orchestratorModel;
             senderModel = cfg.senderModel;
+            memoModel = cfg.memoModel;
           }
+          roleInferenceOverrides = parseRoleInferenceOverrides(cfg.roleInferenceParams);
           break;
         }
       } catch {}
@@ -177,7 +184,12 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             messages: currentMessages,
             stream: false,
           };
-          ModelRegistry.applyParamsToPayload(payload, targetModel, input.cwd);
+          ModelRegistry.applyParamsToPayload(payload, targetModel, {
+            cwd: input.cwd,
+            purpose: options?.purpose,
+            roleOverrides: roleInferenceOverrides,
+            callOverride: options?.inferenceOverride,
+          });
 
           if (Array.isArray(enableTools)) {
             if (enableTools.length > 0) payload.tools = enableTools;
@@ -315,6 +327,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
         const resolvedWorker = ModelRegistry.requireModelId(workerModel ?? model, 'model', input.cwd);
         const resolvedOrchestrator = ModelRegistry.requireModelId(orchestratorModel, 'orchestratorModel', input.cwd);
         const resolvedSender = ModelRegistry.requireModelId(senderModel, 'senderModel', input.cwd);
+        const resolvedMemo = ModelRegistry.requireModelId(memoModel, 'memoModel', input.cwd);
 
         const turnResult = await TurnOrchestrator.runTurn(
           completeFn,
@@ -331,6 +344,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
             historyLimit,
             orchestratorModel: resolvedOrchestrator,
             senderModel: resolvedSender,
+            memoModel: resolvedMemo,
             defaultModel: resolvedWorker,
           },
           () => {

@@ -124,5 +124,6 @@ export interface MultiAgentTurnOptions {
   maxSupervisorSteps?: number;
   orchestratorModel?: string;
   senderModel?: string;
+  memoModel?: string;
   defaultModel?: string;
 }

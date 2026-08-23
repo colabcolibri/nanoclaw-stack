@@ -1,5 +1,5 @@
 /**
- * Resolução de modelos por papel (orchestrator / worker / sender).
+ * Resolução de modelos por papel (orchestrator / worker / sender / memo).
  * Regra: vazio = padrão do catálogo para o provider do grupo; valor explícito = override.
  * Worker: modelo do grupo (container.json `model`) vale para todos os specialists;
  * `agent.model` no AGENT.md só quando o usuário define override no painel.
@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export type LlmRole = 'orchestrator' | 'worker' | 'sender';
+export type LlmRole = 'orchestrator' | 'worker' | 'sender' | 'memo';
 
 export interface RoleModelRegistryProvider {
   defaultModel: string;
@@ -28,18 +28,21 @@ export interface RoleModelOverrides {
   model?: string | null;
   orchestratorModel?: string | null;
   senderModel?: string | null;
+  memoModel?: string | null;
 }
 
 export interface ResolvedRoleModels {
   model: string;
   orchestratorModel: string;
   senderModel: string;
+  memoModel: string;
 }
 
 const ROLE_FIELDS: Record<keyof ResolvedRoleModels, LlmRole> = {
   model: 'worker',
   orchestratorModel: 'orchestrator',
   senderModel: 'sender',
+  memoModel: 'memo',
 };
 
 export function pickDefaultModelForRole(
@@ -87,10 +90,11 @@ export function resolveRoleModels(
   const model = resolveRoleModelForProvider(pid, 'worker', overrides.model, registry);
   const orchestratorModel = resolveRoleModelForProvider(pid, 'orchestrator', overrides.orchestratorModel, registry);
   const senderModel = resolveRoleModelForProvider(pid, 'sender', overrides.senderModel, registry);
+  const memoModel = resolveRoleModelForProvider(pid, 'memo', overrides.memoModel, registry);
 
-  if (!model || !orchestratorModel || !senderModel) return null;
+  if (!model || !orchestratorModel || !senderModel || !memoModel) return null;
 
-  return { model, orchestratorModel, senderModel };
+  return { model, orchestratorModel, senderModel, memoModel };
 }
 
 /** Modelo do worker: grupo primeiro; override por agente só se definido no AGENT.md. */

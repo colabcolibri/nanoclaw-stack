@@ -37,6 +37,7 @@ export function applyInferenceParamsToPayload(payload: Record<string, unknown>, 
   if (params.temperature != null) payload.temperature = params.temperature;
   if (params.maxTokens != null) payload.max_tokens = params.maxTokens;
   if (params.topP != null) payload.top_p = params.topP;
+  if (params.topK != null) payload.top_k = params.topK;
   if (params.frequencyPenalty != null) payload.frequency_penalty = params.frequencyPenalty;
   if (params.presencePenalty != null) payload.presence_penalty = params.presencePenalty;
 }

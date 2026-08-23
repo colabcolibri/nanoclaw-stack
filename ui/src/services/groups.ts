@@ -19,8 +19,8 @@ function loadMaterializedRegistry(): MaterializedLlmRegistry | null {
 
 function resolveEffectiveRoleModels(
   provider: string | null,
-  overrides: { model?: string; orchestratorModel?: string; senderModel?: string },
-): { model: string; orchestratorModel: string; senderModel: string } | null {
+  overrides: { model?: string; orchestratorModel?: string; senderModel?: string; memoModel?: string },
+): { model: string; orchestratorModel: string; senderModel: string; memoModel: string } | null {
   if (!provider) return null;
   const registry = loadMaterializedRegistry();
   if (!registry) return null;
@@ -34,14 +34,16 @@ function resolveEffectiveRoleModels(
       model: overrides.model,
       orchestratorModel: overrides.orchestratorModel,
       senderModel: overrides.senderModel,
+      memoModel: overrides.memoModel,
     },
     registry,
   );
-  if (!aligned.model || !aligned.orchestratorModel || !aligned.senderModel) return null;
+  if (!aligned.model || !aligned.orchestratorModel || !aligned.senderModel || !aligned.memoModel) return null;
   return {
     model: aligned.model,
     orchestratorModel: aligned.orchestratorModel,
     senderModel: aligned.senderModel,
+    memoModel: aligned.memoModel,
   };
 }
 
@@ -443,6 +445,16 @@ export class GroupManager {
     const storedModel = dbRow?.model ?? containerCfg.model ?? "";
     const storedOrchestrator = dbRow?.orchestrator_model ?? containerCfg.orchestratorModel ?? "";
     const storedSender = dbRow?.sender_model ?? containerCfg.senderModel ?? "";
+    const storedMemo = dbRow?.memo_model ?? containerCfg.memoModel ?? "";
+    const roleInferenceParams = (() => {
+      if (containerCfg.roleInferenceParams) return containerCfg.roleInferenceParams;
+      if (!dbRow?.role_inference_params) return {};
+      try {
+        return JSON.parse(dbRow.role_inference_params);
+      } catch {
+        return {};
+      }
+    })();
     const derivedProvider = storedModel ? resolveProviderForModel(storedModel) : null;
     const activeProvider = containerCfg.provider ?? dbRow?.provider ?? derivedProvider ?? null;
 
@@ -450,6 +462,7 @@ export class GroupManager {
       model: storedModel,
       orchestratorModel: storedOrchestrator,
       senderModel: storedSender,
+      memoModel: storedMemo,
     });
 
     const locationFields = parseLocationFields({
@@ -465,11 +478,14 @@ export class GroupManager {
       model: storedModel,
       orchestratorModel: storedOrchestrator,
       senderModel: storedSender,
+      memoModel: storedMemo,
+      roleInferenceParams,
       effectiveModels: effective ?? undefined,
       modelUsesDefault: {
         worker: !storedModel.trim(),
         orchestrator: !storedOrchestrator.trim(),
         sender: !storedSender.trim(),
+        memo: !storedMemo.trim(),
       },
       assistantName:
         containerCfg.assistantName ||
@@ -522,6 +538,11 @@ export class GroupManager {
           ? newConfig.orchestratorModel
           : (current.orchestratorModel ?? ""),
       senderModel: newConfig.senderModel !== undefined ? newConfig.senderModel : (current.senderModel ?? ""),
+      memoModel: newConfig.memoModel !== undefined ? newConfig.memoModel : (current.memoModel ?? ""),
+      roleInferenceParams:
+        newConfig.roleInferenceParams !== undefined
+          ? newConfig.roleInferenceParams
+          : (current.roleInferenceParams ?? {}),
       city,
       country,
       location,
@@ -536,6 +557,7 @@ export class GroupManager {
       model: merged.model,
       orchestratorModel: merged.orchestratorModel,
       senderModel: merged.senderModel,
+      memoModel: merged.memoModel,
     });
 
     if (!merged.provider) {
@@ -550,6 +572,7 @@ export class GroupManager {
       model: effective.model,
       orchestratorModel: effective.orchestratorModel,
       senderModel: effective.senderModel,
+      memoModel: effective.memoModel,
     };
 
     fs.writeFileSync(configFile, JSON.stringify(containerRuntime, null, 2) + "\n", "utf-8");
@@ -560,6 +583,8 @@ export class GroupManager {
         model: merged.model || null,
         orchestratorModel: merged.orchestratorModel || null,
         senderModel: merged.senderModel || null,
+        memoModel: merged.memoModel || null,
+        roleInferenceParams: merged.roleInferenceParams ?? {},
       }, { syncContainerJson: false });
     }
 

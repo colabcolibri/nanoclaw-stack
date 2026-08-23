@@ -28,6 +28,9 @@ export interface ContainerConfigRow {
   timezone: string | null; // IANA id; NULL = follow the install-global timezone
   orchestrator_model: string | null;
   sender_model: string | null;
+  memo_model: string | null;
+  /** JSON: RoleInferenceOverrides (orchestrator/worker/sender/memo) */
+  role_inference_params: string | null;
   updated_at: string;
 }
 

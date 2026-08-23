@@ -68,6 +68,10 @@ export function backfillContainerConfigs(): void {
       timezone: null,
       orchestrator_model: (legacy as { orchestratorModel?: string }).orchestratorModel ?? null,
       sender_model: (legacy as { senderModel?: string }).senderModel ?? null,
+      memo_model: (legacy as { memoModel?: string }).memoModel ?? null,
+      role_inference_params: (legacy as { roleInferenceParams?: unknown }).roleInferenceParams
+        ? JSON.stringify((legacy as { roleInferenceParams?: unknown }).roleInferenceParams)
+        : null,
       updated_at: new Date().toISOString(),
     };
 

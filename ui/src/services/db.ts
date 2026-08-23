@@ -175,6 +175,10 @@ export class DatabaseService {
       const location = [city, country].filter(Boolean).join(", ") || "";
       const orchestratorModel = config.orchestratorModel || null;
       const senderModel = config.senderModel || null;
+      const memoModel = config.memoModel || null;
+      const roleInferenceParams = config.roleInferenceParams
+        ? JSON.stringify(config.roleInferenceParams)
+        : null;
       const now = new Date().toISOString();
 
       try {
@@ -183,12 +187,15 @@ export class DatabaseService {
         db.run("ALTER TABLE container_configs ADD COLUMN country TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN orchestrator_model TEXT;");
         db.run("ALTER TABLE container_configs ADD COLUMN sender_model TEXT;");
+        db.run("ALTER TABLE container_configs ADD COLUMN memo_model TEXT;");
+        db.run("ALTER TABLE container_configs ADD COLUMN role_inference_params TEXT;");
       } catch {}
 
       db.query(`
         UPDATE container_configs 
         SET provider = ?, model = ?, assistant_name = ?, skills = ?, mcp_servers = ?, timezone = ?, location = ?,
-            city = ?, country = ?, orchestrator_model = ?, sender_model = ?, updated_at = ?
+            city = ?, country = ?, orchestrator_model = ?, sender_model = ?, memo_model = ?,
+            role_inference_params = ?, updated_at = ?
         WHERE agent_group_id = ?
       `).run(
         provider,
@@ -202,6 +209,8 @@ export class DatabaseService {
         country,
         orchestratorModel,
         senderModel,
+        memoModel,
+        roleInferenceParams,
         now,
         agentGroupId
       );
@@ -221,6 +230,8 @@ export class DatabaseService {
               timezone,
               orchestratorModel,
               senderModel,
+              memoModel,
+              roleInferenceParams: config.roleInferenceParams ?? {},
               city,
               country,
               location,

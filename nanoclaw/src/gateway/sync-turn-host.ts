@@ -9,7 +9,6 @@ import { parseSlashCommand } from '../commands/index.js';
 import { DATA_DIR, GROUPS_DIR } from '../config.js';
 import { ensureCentralDb } from '../db/ensure-central-db.js';
 import { getAgentGroupByFolder } from '../db/agent-groups.js';
-import { getContainerConfig } from '../db/container-configs.js';
 import { getSession, updateSession } from '../db/sessions.js';
 import {
   readConversationHistory,
@@ -18,6 +17,7 @@ import {
 import type { SummarizeMessagesFn } from '../conversations/types.js';
 import { createLlmSummarizeFn } from '../conversations/summarizer.js';
 import { loadGroupTurnContext } from './group-turn-context.js';
+import { resolveGroupRoleModels } from '../container-config.js';
 import { createOpenAiCompatibleComplete } from './llm-openai-compatible.js';
 import {
   initSessionFolder,
@@ -71,19 +71,16 @@ function buildSummarizeFn(groupDir: string, defaultModel: string): SummarizeMess
   });
 }
 
-function resolveContainerModels(agentGroupId: string): {
-  defaultModel: string;
-  orchestratorModel?: string;
-  senderModel?: string;
-} {
-  const config = getContainerConfig(agentGroupId);
-  if (!config?.model?.trim()) {
-    throw new Error('model não configurado em container_configs para este grupo.');
+function resolveContainerModels(agentGroupId: string) {
+  const resolved = resolveGroupRoleModels(agentGroupId);
+  if (!resolved) {
+    throw new Error('não foi possível resolver modelos do grupo — verifique provider e catálogo llm-models.json');
   }
   return {
-    defaultModel: config.model.trim(),
-    orchestratorModel: config.orchestrator_model?.trim() || undefined,
-    senderModel: config.sender_model?.trim() || undefined,
+    defaultModel: resolved.model,
+    orchestratorModel: resolved.orchestratorModel,
+    senderModel: resolved.senderModel,
+    memoModel: resolved.memoModel,
   };
 }
 
@@ -228,6 +225,7 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     defaultModel: models.defaultModel,
     orchestratorModel: models.orchestratorModel,
     senderModel: models.senderModel,
+    memoModel: models.memoModel,
     registryPath: REGISTRY_PATH,
     projectRoot: PROJECT_ROOT,
   });

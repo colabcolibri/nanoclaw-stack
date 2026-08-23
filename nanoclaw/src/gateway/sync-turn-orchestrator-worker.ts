@@ -32,6 +32,7 @@ export async function runOrchestratorTurn(request: OrchestratorTurnRequest): Pro
     historyLimit: 30,
     orchestratorModel: request.orchestratorModel,
     senderModel: request.senderModel,
+    memoModel: request.memoModel,
     defaultModel: request.defaultModel,
   });
 

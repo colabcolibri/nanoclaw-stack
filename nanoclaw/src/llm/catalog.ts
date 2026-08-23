@@ -5,7 +5,7 @@
 import type { InferenceParams } from '../inference-params.js';
 
 export type LlmProtocol = 'openai-compatible' | 'anthropic';
-export type LlmRecommendedRole = 'orchestrator' | 'worker' | 'sender' | 'all';
+export type LlmRecommendedRole = 'orchestrator' | 'worker' | 'sender' | 'memo' | 'all';
 
 export interface LlmProviderCatalogEntry {
   id: string;
@@ -200,13 +200,15 @@ export const LLM_MODEL_CATALOG: LlmModelCatalogEntry[] = [
     id: 'llama-3.1-8b-instant',
     providerId: 'groq',
     displayName: 'Llama 3.1 8B Instant (Ultra Fast)',
-    recommendedRole: 'orchestrator',
+    recommendedRole: 'memo',
     contextWindow: '128k',
+    isRecommended: true,
     inputPerMillion: 0.05,
     outputPerMillion: 0.08,
     cacheWritePerMillion: 0.05,
     cacheHitPerMillion: 0.05,
     savingsPct: 0,
+    inferenceParams: { temperature: 0.2, maxTokens: 256 },
     sortOrder: 4,
   },
   {

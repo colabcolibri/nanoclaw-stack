@@ -16,7 +16,8 @@ export function extractMessageText(content: string | InboundTextPayload): string
     const parsed = JSON.parse(content) as InboundTextPayload;
     const fromJson = readInboundText(parsed);
     if (fromJson) return fromJson;
-  } catch {
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
     /* raw string below */
   }
   return content.trim();

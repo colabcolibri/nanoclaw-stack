@@ -22,6 +22,7 @@ export interface RunnerConfig {
   effort?: string;
   orchestratorModel?: string;
   senderModel?: string;
+  memoModel?: string;
 }
 
 const DEFAULT_MAX_MESSAGES = 10;
@@ -53,6 +54,7 @@ export function loadConfig(): RunnerConfig {
     effort: (raw.effort as string) || undefined,
     orchestratorModel: (raw.orchestratorModel as string) || undefined,
     senderModel: (raw.senderModel as string) || undefined,
+    memoModel: (raw.memoModel as string) || undefined,
   };
 
   return _config;

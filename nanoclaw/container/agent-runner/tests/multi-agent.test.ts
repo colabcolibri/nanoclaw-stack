@@ -29,6 +29,7 @@ function seedTestCatalog(): void {
 const roleModels = {
   orchestratorModel: TEST_MODEL,
   senderModel: TEST_MODEL,
+  memoModel: TEST_MODEL,
   defaultModel: TEST_MODEL,
 };
 

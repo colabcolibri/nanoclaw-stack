@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { ModelSelect } from '@/components/common/ModelSelect'
 import { TimezoneSelect } from '@/components/config/TimezoneSelect'
+import { RoleInferenceParamsForm, type RoleInferenceParamsState } from '@/components/config/RoleInferenceParamsForm'
 import { useLlmRegistry } from '@/hooks/useLlmRegistry'
 import { findModelInProviders } from '@/lib/model-registry'
 
@@ -41,6 +42,8 @@ export const ConfigView: React.FC = () => {
     model: '',
     orchestratorModel: '',
     senderModel: '',
+    memoModel: '',
+    roleInferenceParams: {} as RoleInferenceParamsState,
     city: '',
     country: '',
     timezone: 'Europe/Brussels',
@@ -51,6 +54,7 @@ export const ConfigView: React.FC = () => {
     model?: string
     orchestratorModel?: string
     senderModel?: string
+    memoModel?: string
   }>({})
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
@@ -102,6 +106,8 @@ export const ConfigView: React.FC = () => {
           model: data.config.model ?? '',
           orchestratorModel: data.config.orchestratorModel ?? '',
           senderModel: data.config.senderModel ?? '',
+          memoModel: data.config.memoModel ?? '',
+          roleInferenceParams: (data.config.roleInferenceParams ?? {}) as RoleInferenceParamsState,
           city,
           country,
           timezone: data.config.timezone || 'Europe/Brussels',
@@ -121,6 +127,8 @@ export const ConfigView: React.FC = () => {
         model: config.model,
         orchestratorModel: config.orchestratorModel,
         senderModel: config.senderModel,
+        memoModel: config.memoModel,
+        roleInferenceParams: config.roleInferenceParams,
         city: config.city,
         country: config.country,
         timezone: config.timezone,
@@ -151,6 +159,13 @@ export const ConfigView: React.FC = () => {
       modelId: config.senderModel,
       effectiveId: effectiveModels.senderModel,
       color: 'text-emerald-500',
+    },
+    {
+      key: 'memo',
+      label: 'Memo',
+      modelId: config.memoModel,
+      effectiveId: effectiveModels.memoModel,
+      color: 'text-amber-500',
     },
   ] as const
 
@@ -236,7 +251,7 @@ export const ConfigView: React.FC = () => {
                 Deixe em &quot;Padrão&quot; para usar o modelo recomendado do provider do grupo. Override só quando quiser outro modelo.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-(--text-main) mb-1">
                     Worker (execução & tools)
@@ -279,7 +294,32 @@ export const ConfigView: React.FC = () => {
                     defaultLabel="Padrão (sender)"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-(--text-main) mb-1">
+                    Memo (resumo semântico)
+                  </label>
+                  <ModelSelect
+                    providers={providers}
+                    className="w-full px-3 py-2 bg-(--bg-input) border border-(--border-main) rounded-lg text-xs text-(--text-input) focus:outline-none focus:border-sky-500 font-mono"
+                    value={config.memoModel}
+                    onChange={(memoModel) => setConfig({ ...config, memoModel })}
+                    disabled={isLoadingModels}
+                    allowDefault
+                    defaultLabel="Padrão (memo — catálogo)"
+                  />
+                </div>
               </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-bold text-(--text-main)">Parâmetros de inferência por papel</span>
+              </div>
+              <RoleInferenceParamsForm
+                value={config.roleInferenceParams}
+                onChange={(roleInferenceParams) => setConfig({ ...config, roleInferenceParams })}
+              />
             </div>
 
             {/* Custos por papel */}
@@ -293,7 +333,7 @@ export const ConfigView: React.FC = () => {
                   1 USD = R$ {usdToBrlRate.toFixed(2)}
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {roleModels.map((role) => {
                   const displayId = role.modelId || role.effectiveId || ''
                   const modelObj = findModelInProviders(providers, displayId)

@@ -60,6 +60,7 @@ export class OrchestratorAgent {
       options.cwd,
     );
     const senderModel = ModelRegistry.requireModelId(options.senderModel, 'senderModel', options.cwd);
+    const memoModel = ModelRegistry.requireModelId(options.memoModel, 'memoModel', options.cwd);
 
     const routing = await this.resolveRouting(
       complete,
@@ -91,7 +92,7 @@ export class OrchestratorAgent {
         deliveredText,
         rawContent,
         options,
-        senderModel,
+        memoModel,
         complete,
         toolsExecutedCount: 0,
       });
@@ -138,19 +139,19 @@ export class OrchestratorAgent {
       deliveredText,
       rawContent,
       options,
-      senderModel,
+      memoModel,
       complete,
       toolsExecutedCount,
     });
   }
 
-  private static createMemoGenerator(senderModel: string, complete: LLMCompletionFn) {
+  private static createMemoGenerator(memoModel: string, complete: LLMCompletionFn) {
     return (content: string) =>
       MemoService.generateSemanticMemo(content, async (sys, usr) => {
         const resp = await complete(
           [{ role: 'system', content: sys }, { role: 'user', content: usr }],
           false,
-          { purpose: 'semantic_memo', model: senderModel }
+          { purpose: 'semantic_memo', model: memoModel }
         );
         return resp.content || '';
       });
@@ -174,11 +175,11 @@ export class OrchestratorAgent {
     deliveredText: string;
     rawContent: string;
     options: MultiAgentTurnOptions;
-    senderModel: string;
+    memoModel: string;
     complete: LLMCompletionFn;
     toolsExecutedCount: number;
   }): Promise<OrchestratorResult> {
-    const generateMemo = this.createMemoGenerator(params.senderModel, params.complete);
+    const generateMemo = this.createMemoGenerator(params.memoModel, params.complete);
     const [userMemo, assistantMemo] = await Promise.all([
       generateMemo(params.prompt),
       generateMemo(params.rawContent || params.deliveredText),

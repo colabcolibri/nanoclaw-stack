@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 
 import { readLocalEnvFile } from './env-file.js';
 
@@ -12,6 +13,7 @@ export interface OpenAiCompleteMessage {
 export interface OpenAiCompleteOptions {
   model?: string;
   purpose?: string;
+  inferenceOverride?: import('../../container/agent-runner/src/inference-params.js').InferenceParams;
 }
 
 export type OpenAiCompleteFn = (
@@ -47,6 +49,20 @@ export async function createOpenAiCompatibleComplete(
   const envMap = readLocalEnvFile();
   const defaultModel = options.defaultModel.trim();
 
+  let roleInferenceOverrides = {};
+  const containerJsonPath = path.join(options.groupDir, 'container.json');
+  try {
+    if (fs.existsSync(containerJsonPath)) {
+      const raw = JSON.parse(fs.readFileSync(containerJsonPath, 'utf-8')) as { roleInferenceParams?: unknown };
+      const { parseRoleInferenceOverrides } = await import(
+        path.join(containerSrc, 'services', 'inference-resolver.ts')
+      );
+      roleInferenceOverrides = parseRoleInferenceOverrides(raw.roleInferenceParams);
+    }
+  } catch {
+    /* optional */
+  }
+
   return async (messages, tools, callOptions) => {
     const explicitModel = callOptions?.model;
     const targetModel = ModelRegistry.requireModelId(
@@ -77,7 +93,12 @@ export async function createOpenAiCompatibleComplete(
       payload.tools = tools;
       payload.tool_choice = 'auto';
     }
-    ModelRegistry.applyParamsToPayload(payload, targetModel, options.registryPath);
+    ModelRegistry.applyParamsToPayload(payload, targetModel, {
+      cwd: options.registryPath,
+      purpose: callOptions?.purpose,
+      roleOverrides: roleInferenceOverrides,
+      callOverride: callOptions?.inferenceOverride,
+    });
 
     const res = await fetch(invocation.completionUrl, {
       method: 'POST',

@@ -36,6 +36,7 @@ export interface OrchestratorTurnRequest {
   defaultModel: string;
   orchestratorModel?: string;
   senderModel?: string;
+  memoModel?: string;
   registryPath: string;
   projectRoot: string;
 }

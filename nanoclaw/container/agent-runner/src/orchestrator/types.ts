@@ -1,4 +1,5 @@
 import type { ToolDefinition } from '../tools/types.js';
+import type { InferenceParams } from '../inference-params.js';
 
 export interface ExtractedToolCall {
   id: string;
@@ -21,6 +22,7 @@ export interface TurnOptions {
   maxSupervisorSteps?: number;
   orchestratorModel?: string;
   senderModel?: string;
+  memoModel?: string;
   defaultModel?: string;
 }
 
@@ -36,6 +38,8 @@ export type LLMCallPurpose =
 
 export interface LLMCallOptions {
   purpose: LLMCallPurpose;
+  model?: string;
+  inferenceOverride?: InferenceParams;
   stage?: 1 | 2;
   iteration?: number;
   messageId?: string;

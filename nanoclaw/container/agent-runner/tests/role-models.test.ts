@@ -14,6 +14,7 @@ const registry: RoleModelRegistry = {
         { id: 'openai/gpt-oss-20b', recommended: true, recommendedRole: 'orchestrator' },
         { id: 'llama-3.3-70b-versatile', recommendedRole: 'worker' },
         { id: 'openai/gpt-oss-120b', recommendedRole: 'sender' },
+        { id: 'llama-3.1-8b-instant', recommended: true, recommendedRole: 'memo' },
       ],
     },
     deepseek: {
@@ -25,6 +26,7 @@ const registry: RoleModelRegistry = {
     'openai/gpt-oss-20b': { providerId: 'groq' },
     'llama-3.3-70b-versatile': { providerId: 'groq' },
     'openai/gpt-oss-120b': { providerId: 'groq' },
+    'llama-3.1-8b-instant': { providerId: 'groq' },
     'deepseek-chat': { providerId: 'deepseek' },
   },
 };
@@ -35,11 +37,13 @@ describe('role-models', () => {
       model: '',
       orchestratorModel: '',
       senderModel: '',
+      memoModel: '',
     });
     expect(resolved).toEqual({
       model: 'llama-3.3-70b-versatile',
       orchestratorModel: 'openai/gpt-oss-20b',
       senderModel: 'openai/gpt-oss-120b',
+      memoModel: 'llama-3.1-8b-instant',
     });
   });
 
@@ -48,6 +52,7 @@ describe('role-models', () => {
       model: 'openai/gpt-oss-20b',
       orchestratorModel: '',
       senderModel: '',
+      memoModel: '',
     });
     expect(resolved?.model).toBe('openai/gpt-oss-20b');
     expect(resolved?.orchestratorModel).toBe('openai/gpt-oss-20b');
@@ -58,6 +63,7 @@ describe('role-models', () => {
       model: 'deepseek-chat',
       orchestratorModel: 'deepseek-chat',
       senderModel: 'deepseek-chat',
+      memoModel: 'deepseek-chat',
     });
     expect(resolved?.model).toBe('llama-3.3-70b-versatile');
     expect(resolved?.orchestratorModel).toBe('openai/gpt-oss-20b');
