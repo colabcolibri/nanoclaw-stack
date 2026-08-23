@@ -1,28 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Sparkles, RefreshCw } from 'lucide-react'
 import { useDefaultGroup } from '@/contexts/AppConfigContext'
-import { Sparkles, RefreshCw, Search, Folder, Code2, Zap, AlignLeft, Bot, Globe, Lock, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import { ApiClient, type SkillItem, type AgentItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { SkillCard } from '@/components/skills/SkillCard'
 import { SkillDetailsDrawer } from '@/components/skills/SkillDetailsDrawer'
+import {
+  enrichSkillsWithAgents,
+  filterSkills,
+  countUnassignedSkills,
+  type SkillScopeFilter,
+} from '@/components/skills/skill-utils'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export const SkillsView: React.FC = () => {
   const group = useDefaultGroup()
+  const { t } = useTranslation('skills')
   const [skills, setSkills] = useState<SkillItem[]>([])
   const [agents, setAgents] = useState<AgentItem[]>([])
-  const [searchQuery, setSearchQuery] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [scopeFilter, setScopeFilter] = useState<SkillScopeFilter>('all')
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedSkill, setSelectedSkill] = useState<SkillItem | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
-  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set(['global']))
-
-  useEffect(() => {
-    loadData()
-  }, [])
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const loadData = async () => {
     setIsLoading(true)
@@ -31,214 +36,119 @@ export const SkillsView: React.FC = () => {
         ApiClient.getSkills(group),
         ApiClient.getDepartmentsAndAgents(group).catch(() => ({ agents: [], departments: [] })),
       ])
-      setSkills(skillsData.skills || [])
-      setAgents(agentsData.agents || [])
-    } catch {} finally {
+      const agentList = agentsData.agents || []
+      setAgents(agentList)
+      setSkills(enrichSkillsWithAgents(skillsData.skills || [], agentList))
+    } catch {
+    } finally {
       setIsLoading(false)
     }
   }
 
-  const norm = (s: string) => s.toLowerCase().replace(/-/g, '_')
+  useEffect(() => {
+    loadData()
+  }, [group])
 
-  // Match a skill name to an agent's skill list (normalized)
-  const agentOwnsSkill = (agent: AgentItem, skillName: string) =>
-    agent.skills.some((s) => norm(s) === norm(skillName))
-
-  // Split skills into global vs specialized
-  const globalSkills = skills.filter((s) => s.isGlobal)
-  const specializedSkills = skills.filter((s) => !s.isGlobal)
-
-  // Build a map: agent id -> skill items
-  const agentSkillMap = new Map<string, SkillItem[]>()
-  for (const agent of agents) {
-    const owned = specializedSkills.filter((sk) => agentOwnsSkill(agent, sk.name))
-    agentSkillMap.set(agent.id, owned)
-  }
-
-  // Skills unassigned to any agent
-  const unassigned = specializedSkills.filter(
-    (sk) => !agents.some((ag) => agentOwnsSkill(ag, sk.name))
+  const filteredSkills = useMemo(
+    () => filterSkills(skills, agents, searchQuery, scopeFilter),
+    [skills, agents, searchQuery, scopeFilter]
   )
 
-  const toggleExpand = (id: string) => {
-    setExpandedAgents((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  const globalCount = skills.filter((s) => s.isGlobal).length
+  const specializedCount = skills.length - globalCount
+  const unassignedCount = countUnassignedSkills(skills, agents)
 
-  const formatK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString('pt-BR'))
-
-  const matchesSearch = (sk: SkillItem) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    return sk.name.toLowerCase().includes(q) || (sk.description || '').toLowerCase().includes(q)
-  }
-
-  const SkillCard = ({ skill }: { skill: SkillItem }) => (
-    <div
-      className="group flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-main)] hover:border-sky-500/40 cursor-pointer transition-all"
-      onClick={() => { setSelectedSkill(skill); setIsDrawerOpen(true) }}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Sparkles className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-        <span className="text-xs font-mono font-semibold text-[var(--text-main)] truncate">{skill.name}</span>
-        {skill.references && skill.references.length > 0 && (
-          <Badge variant="ref" className="text-[9px] py-0 px-1.5 gap-0.5 font-mono shrink-0">
-            <Folder className="w-2.5 h-2.5" />
-            {skill.references.length}
-          </Badge>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[10px] text-[var(--text-dim)] font-mono">~{formatK(skill.totalTokens || 0)} tok</span>
-        <span className="text-[10px] text-sky-500 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">Ver →</span>
-      </div>
-    </div>
-  )
-
-  const SectionHeader = ({
-    id,
-    icon,
-    title,
-    subtitle,
-    count,
-    color = 'sky',
-  }: {
-    id: string
-    icon: React.ReactNode
-    title: string
-    subtitle?: string
-    count: number
-    color?: string
-  }) => {
-    const isOpen = expandedAgents.has(id)
-    return (
-      <button
-        onClick={() => toggleExpand(id)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] hover:border-sky-500/30 transition-all text-left group"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-${color}-500/10 text-${color}-500 border border-${color}-500/20`}>
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-bold text-[var(--text-main)] truncate">{title}</div>
-            {subtitle && <div className="text-[11px] text-[var(--text-muted)] truncate">{subtitle}</div>}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="secondary" className="text-[10px] font-mono">{count}</Badge>
-          {isOpen ? <ChevronDown className="w-4 h-4 text-[var(--text-dim)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-dim)]" />}
-        </div>
-      </button>
-    )
-  }
+  const scopeChips: { id: SkillScopeFilter; label: string }[] = [
+    { id: 'all', label: t('filterAll') },
+    { id: 'global', label: t('filterGlobal') },
+    { id: 'specialized', label: t('filterSpecialized') },
+    { id: 'unassigned', label: t('filterUnassigned') },
+  ]
 
   return (
-    <div className="flex flex-col gap-5 w-full flex-1">
-      {/* Page Header */}
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
       <PageHeader
         view="skills"
-        subtitle="Skills globais (disponíveis a todos os agentes) e especializadas (atribuídas a um agente específico)."
+        subtitle={t('subtitle')}
         actions={
-          <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="h-8 text-xs">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={isLoading}
+            className="h-8 gap-1.5 text-xs"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
+            {t('refresh', { ns: 'common' })}
           </Button>
         }
       />
 
-      <SearchInput
-        value={searchQuery}
-        onChange={setSearchQuery}
-        placeholder="Filtrar skills por nome ou descrição..."
-        className="max-w-none"
-      />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[72px] rounded-xl" />)
+        ) : (
+          <>
+            <StatCard label={t('statsTotal')} value={skills.length} />
+            <StatCard label={t('statsGlobal')} value={globalCount} />
+            <StatCard label={t('statsSpecialized')} value={specializedCount} />
+            <StatCard label={t('statsUnassigned')} value={unassignedCount} />
+            <StatCard label={t('statsAgents')} value={agents.length} />
+          </>
+        )}
+      </div>
 
-      {isLoading ? (
-        <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 rounded-xl bg-[var(--bg-card)] border border-[var(--border-main)] animate-pulse" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {scopeChips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => setScopeFilter(chip.id)}
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                scopeFilter === chip.id
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+                  : 'border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              )}
+            >
+              {chip.label}
+            </button>
           ))}
         </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder={t('searchPlaceholder')}
+          className="w-full sm:max-w-sm"
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-[220px] rounded-xl" />
+          ))}
+        </div>
+      ) : filteredSkills.length === 0 ? (
+        <EmptyState
+          icon={<Sparkles className="h-8 w-8 text-[var(--text-dim)]" />}
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+        />
       ) : (
-        <div className="flex flex-col gap-5">
-
-          {/* ── GLOBAL SKILLS ── */}
-          <div className="flex flex-col gap-2">
-            <SectionHeader
-              id="global"
-              icon={<Globe className="w-4 h-4" />}
-              title="Skills Globais"
-              subtitle="Disponíveis a todos os agentes — memória, terminal, leitura de arquivos e contexto"
-              count={globalSkills.filter(matchesSearch).length}
-              color="emerald"
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredSkills.map((skill) => (
+            <SkillCard
+              key={skill.name}
+              skill={skill}
+              agents={agents}
+              onClick={() => {
+                setSelectedSkill(skill)
+                setIsDrawerOpen(true)
+              }}
             />
-            {expandedAgents.has('global') && (
-              <div className="ml-4 border-l-2 border-emerald-500/20 pl-4 flex flex-col gap-1.5">
-                {globalSkills.filter(matchesSearch).length === 0 ? (
-                  <p className="text-xs text-[var(--text-dim)] py-2 italic">Nenhuma skill global encontrada.</p>
-                ) : (
-                  globalSkills.filter(matchesSearch).map((sk) => <SkillCard key={sk.name} skill={sk} />)
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* ── PER-AGENT SPECIALIZED SKILLS ── */}
-          {agents.map((agent) => {
-            const agentSkills = (agentSkillMap.get(agent.id) || []).filter(matchesSearch)
-            if (!searchQuery && agentSkills.length === 0) return null
-            if (searchQuery && agentSkills.length === 0) return null
-            return (
-              <div key={agent.id} className="flex flex-col gap-2">
-                <SectionHeader
-                  id={agent.id}
-                  icon={<Bot className="w-4 h-4" />}
-                  title={agent.name}
-                  subtitle={agent.role}
-                  count={agentSkills.length}
-                  color="sky"
-                />
-                {expandedAgents.has(agent.id) && (
-                  <div className="ml-4 border-l-2 border-sky-500/20 pl-4 flex flex-col gap-1.5">
-                    {agentSkills.map((sk) => <SkillCard key={sk.name} skill={sk} />)}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          {/* ── UNASSIGNED SKILLS ── */}
-          {unassigned.filter(matchesSearch).length > 0 && (
-            <div className="flex flex-col gap-2">
-              <SectionHeader
-                id="unassigned"
-                icon={<Lock className="w-4 h-4" />}
-                title="Skills Não Atribuídas"
-                subtitle="Existem no sistema mas nenhum agente as referencia ainda"
-                count={unassigned.filter(matchesSearch).length}
-                color="amber"
-              />
-              {expandedAgents.has('unassigned') && (
-                <div className="ml-4 border-l-2 border-amber-500/20 pl-4 flex flex-col gap-1.5">
-                  {unassigned.filter(matchesSearch).map((sk) => <SkillCard key={sk.name} skill={sk} />)}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {skills.length === 0 && !isLoading && (
-            <EmptyState
-              icon={<Sparkles className="w-8 h-8 text-[var(--text-dim)]" />}
-              title="Nenhuma habilidade encontrada"
-              description="Carregando lista de skills do contêiner..."
-            />
-          )}
+          ))}
         </div>
       )}
 
@@ -247,6 +157,15 @@ export const SkillsView: React.FC = () => {
         onClose={() => setIsDrawerOpen(false)}
         skill={selectedSkill}
       />
+    </div>
+  )
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-4">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-dim)]">{label}</p>
+      <p className="mt-1 font-mono text-lg font-semibold text-[var(--text-main)]">{value}</p>
     </div>
   )
 }

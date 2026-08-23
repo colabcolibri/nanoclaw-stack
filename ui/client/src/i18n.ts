@@ -16,6 +16,8 @@ import agentsPt from './locales/pt/agents.json'
 import agentsEn from './locales/en/agents.json'
 import mcpsPt from './locales/pt/mcps.json'
 import mcpsEn from './locales/en/mcps.json'
+import skillsPt from './locales/pt/skills.json'
+import skillsEn from './locales/en/skills.json'
 
 const resources = {
   pt: {
@@ -26,6 +28,7 @@ const resources = {
     config: configPt,
     agents: agentsPt,
     mcps: mcpsPt,
+    skills: skillsPt,
   },
   en: {
     common: commonEn,
@@ -35,6 +38,7 @@ const resources = {
     config: configEn,
     agents: agentsEn,
     mcps: mcpsEn,
+    skills: skillsEn,
   },
 }
 
@@ -45,7 +49,7 @@ i18n
     resources,
     fallbackLng: 'pt',
     defaultNS: 'common',
-    ns: ['common', 'chat', 'soul', 'analytics', 'config', 'agents', 'mcps'],
+    ns: ['common', 'chat', 'soul', 'analytics', 'config', 'agents', 'mcps', 'skills'],
     interpolation: {
       escapeValue: false,
     },

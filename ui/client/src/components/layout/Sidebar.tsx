@@ -65,8 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       titleKey: 'navGroups.intelligence',
       items: [
-        { id: 'agents', labelKey: 'nav.agents', icon: <Bot className="h-4 w-4" /> },
         { id: 'soul', labelKey: 'nav.soul', icon: <Brain className="h-4 w-4" /> },
+        { id: 'agents', labelKey: 'nav.agents', icon: <Bot className="h-4 w-4" /> },
         { id: 'skills', labelKey: 'nav.skills', icon: <Sparkles className="h-4 w-4" /> },
         { id: 'mcps', labelKey: 'nav.mcps', icon: <Link2 className="h-4 w-4" /> },
       ],

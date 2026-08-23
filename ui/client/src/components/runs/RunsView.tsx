@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { ApiClient, type CronExecutionLog, type IntermediateRunItem, type AgentAuditTraceItem } from '@/api/client'
 import { PageHeader } from '@/components/common/PageHeader'
+import { ExpandableTextBlock } from '@/components/common/ExpandableTextBlock'
 import { SearchInput } from '@/components/common/SearchInput'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -126,8 +127,8 @@ export const RunsView: React.FC = () => {
         costBrl: r.costBrl,
         latencyMs: r.latencyMs,
         messageId: r.messageId,
-        prompt: r.preview || r.rawContent || '',
-        output: r.rawContent || r.preview,
+        prompt: r.rawContent || r.preview || '',
+        output: r.rawContent || r.preview || '',
       })
     })
 
@@ -467,21 +468,26 @@ export const RunsView: React.FC = () => {
               {selectedRun.prompt && (
                 <div>
                   <span className="text-[10px] font-bold text-[var(--text-dim)] uppercase font-mono block mb-1">Entrada / Prompt:</span>
-                  <div className="p-3.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border-main)] whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--text-main)]">
-                    {selectedRun.prompt}
-                  </div>
+                  <ExpandableTextBlock
+                    content={selectedRun.prompt}
+                    collapsedMaxHeight={160}
+                    preClassName="bg-[var(--bg-input)] p-3.5 text-xs"
+                  />
                 </div>
               )}
 
-              {selectedRun.output && (
+              {selectedRun.output && selectedRun.output !== selectedRun.prompt && (
                 <div>
                   <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase font-mono block mb-1 flex items-center gap-1">
                     <Send className="w-3.5 h-3.5" />
                     <span>Saída / Resultado:</span>
                   </span>
-                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 whitespace-pre-wrap text-xs leading-relaxed text-[var(--text-main)]">
-                    {selectedRun.output}
-                  </div>
+                  <ExpandableTextBlock
+                    content={selectedRun.output}
+                    collapsedMaxHeight={200}
+                    preClassName="border-emerald-500/20 bg-emerald-500/5 p-4 text-xs"
+                    mono={false}
+                  />
                 </div>
               )}
             </div>
