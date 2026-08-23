@@ -218,7 +218,7 @@ export const ModelsView: React.FC = () => {
                 ) : (
                   filteredModels.map((m) => (
                     <tr key={m.id} className="border-t border-(--border-main) hover:bg-(--bg-input)/50">
-                      <td className="px-3 py-2 font-mono text-[10px] max-w-[180px] truncate">{m.id}</td>
+                      <td className="px-3 py-2 font-mono text-[10px] max-w-45 truncate">{m.id}</td>
                       <td className="px-3 py-2">{m.label}</td>
                       <td className="px-3 py-2 text-(--text-muted)">{m.providerName}</td>
                       <td className="px-3 py-2">

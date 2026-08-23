@@ -86,7 +86,7 @@ export const SkillsView: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[72px] rounded-xl" />)
+          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-18 rounded-xl" />)
         ) : (
           <>
             <StatCard label={t('statsTotal')} value={skills.length} />
@@ -127,7 +127,7 @@ export const SkillsView: React.FC = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[220px] rounded-xl" />
+            <Skeleton key={i} className="h-55 rounded-xl" />
           ))}
         </div>
       ) : filteredSkills.length === 0 ? (
