@@ -8,14 +8,14 @@ This directory contains system-level operational playbooks, architecture specifi
 
 | Document | Description |
 | :--- | :--- |
-| **[ARCHITECTURE_PHILOSOPHY.md](file:///opt/nanoclaw-stack/infra/ARCHITECTURE_PHILOSOPHY.md)** | Core design principles, the satellite pattern, and upstream compatibility rules. |
-| **[MACOS_INTEGRATION.md](file:///opt/nanoclaw-stack/infra/MACOS_INTEGRATION.md)** | Apple Shortcuts setup, global keyboard hotkeys, Siri integration, and SQLite channel isolation. |
-| **[SERVICES.md](file:///opt/nanoclaw-stack/infra/SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
-| **[MAINTENANCE.md](file:///opt/nanoclaw-stack/infra/MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
+| **[ARCHITECTURE_PHILOSOPHY.md](ARCHITECTURE_PHILOSOPHY.md)** | Core design principles, the satellite pattern, and upstream compatibility rules. |
+| **[MACOS_INTEGRATION.md](MACOS_INTEGRATION.md)** | Apple Shortcuts setup, global keyboard hotkeys, Siri integration, and SQLite channel isolation. |
+| **[SERVICES.md](SERVICES.md)** | Systemd service topologies, port allocations, status checks, and process management. |
+| **[MAINTENANCE.md](MAINTENANCE.md)** | Backup/restore playbooks, log inspection routines, and database maintenance. |
 | **[DEV-LOCAL.md](../docs/DEV-LOCAL.md)** | Desenvolvimento local (UI/motor), quando o Docker é obrigatório. |
 | **[DEPLOY.md](../docs/DEPLOY.md)** | Deploy com `./scripts/deploy.sh` — push + SSH + restart no VPS. |
-| **[DEEPSEEK.md](file:///opt/nanoclaw-stack/infra/DEEPSEEK.md)** | Direct API connector specifications, TurnOrchestrator architecture, and response normalization. |
-| **[WHISPER.md](file:///opt/nanoclaw-stack/infra/WHISPER.md)** | Self-hosted audio transcription service configuration and media pipeline. |
+| **[DEEPSEEK.md](DEEPSEEK.md)** *(histórico)* | Direct API connector specifications, TurnOrchestrator architecture, and response normalization. |
+| **[WHISPER.md](WHISPER.md)** | Self-hosted audio transcription service configuration and media pipeline. |
 
 ---
 
@@ -35,7 +35,7 @@ This directory contains system-level operational playbooks, architecture specifi
                        ▼               ▼
         ┌────────────────────┐   ┌──────────────────────────┐
         │  Web Dashboard UI  │   │  NanoClaw Host Service   │
-        │  (Bun / Hono)      │   │  (Node / TSX Engine)     │
+        │  (Bun)      │   │  (Node / TSX Engine)     │
         └────────────────────┘   └─────────────┬────────────┘
                                                │
                                                │ Internal API / Localhost:9000
@@ -45,6 +45,8 @@ This directory contains system-level operational playbooks, architecture specifi
                                  │   (Docker: whisper-asr)  │
                                  └──────────────────────────┘
 ```
+
+> O Traefik aplica rate limit dedicado às rotas `/api/auth/*` (`dynamic_conf.yml`). CI no GitHub Actions valida typecheck/lint/testes a cada PR.
 
 ---
 

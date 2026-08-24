@@ -179,4 +179,4 @@ tasks are created paused so installing a template never starts background work
 without approval. See [Agent Templates](templates.md#recurring-tasks).
 
 For implementation details, see
-[Pre-Agent Scripts](agent-runner-details.md#pre-agent-scripts-tasks).
+Pre-Agent Scripts: hook `scheduling-pre-task` em `container/agent-runner/src/poll-batch.ts`.

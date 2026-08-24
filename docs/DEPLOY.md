@@ -1,6 +1,6 @@
 # deploy em produção
 
-Um comando do Mac atualiza o servidor. GitHub é só o repositório — sem Actions, sem secrets, sem runner.
+Um comando do Mac atualiza o servidor. GitHub é só o repositório — deploy sem Actions, sem secrets, sem runner (o Actions existente é só CI de checks: typecheck/lint/testes).
 
 ---
 

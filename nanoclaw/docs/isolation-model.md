@@ -83,7 +83,7 @@ messaging_groups (a specific channel/chat/group on a platform)
 messaging_group_agents (session_mode, engage_mode, engage_pattern, sender_scope, ignored_message_policy, priority, threads)
 ```
 
-Wiring-creation defaults for engage mode/pattern, thread policy, and unknown-sender policy come from the channel adapter's declaration (per DM/group context), overridable per wiring at creation — see [setup-wiring.md](setup-wiring.md#channel-defaults-two-level-model) and [api-details.md](api-details.md#channel-defaults).
+Wiring-creation defaults for engage mode/pattern, thread policy, and unknown-sender policy come from the channel adapter's declaration (per DM/group context), overridable per wiring at creation — defaults declarados por adapter em `src/channels/<canal>/adapter.ts` e aplicados pelo `channel-registry.ts`.
 
 - **Shared session:** multiple messaging_groups → same agent_group, `session_mode = 'agent-shared'`
 - **Same agent, separate sessions:** multiple messaging_groups → same agent_group, `session_mode = 'shared'`

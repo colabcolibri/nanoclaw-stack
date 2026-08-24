@@ -45,7 +45,7 @@ nanoclaw-stack/
 │   │   └── skills/                        # Skills manuals (agent-browser, notion-notes, yampi-store, etc.)
 │   └── src/          # Channel adapters (Telegram, macOS, CLI), SQLite state, message router
 │
-├── ui/               # Web Management Dashboard Backend (Bun + Hono + TypeScript)
+├── ui/               # Web Management Dashboard Backend (Bun + TypeScript)
 │   ├── client/       # Modern React 19 + Tailwind CSS + Vite Frontend
 │   │   ├── src/components/analytics/      # Token Ledger & Sub-Run Audit Sheet
 │   │   ├── src/components/config/         # Provider selector, Keys, Location/Timezone
@@ -53,6 +53,7 @@ nanoclaw-stack/
 │   │   └── src/locales/                   # i18n localization (en / pt)
 │   └── src/          # API, OAuth callbacks, database services (Google, Notion, Yampi)
 │
+├── clients/macos/    # App nativo "Barão" (SwiftUI) — canal dedicado com Keychain
 ├── traefik/          # Automated SSL Edge Proxy (Docker + Let's Encrypt)
 │   └── docker-compose.yml
 │
@@ -66,11 +67,14 @@ nanoclaw-stack/
     ├── SERVICES.md                # Service topologies and port mappings
     ├── MAINTENANCE.md             # Backup strategies and update workflows
     ├── scripts/                   # deploy-stack.sh, ensure-docker.sh, build-agent-image-if-needed.sh
-    └── systemd/                   # Reference unit files (nanoclaw.service)
+    └── systemd/                   # Reference unit files (nanoclaw + nanoclaw-uai)
 
-docs/                 # Operator guides (not application code)
+docs/                 # Operator guides (index: docs/README.md)
+├── README.md           # Índice geral de toda a documentação
 ├── DEV-LOCAL.md        # Mac dev: UI, motor, when Docker is required
-└── DEPLOY.md           # Production deploy: GitHub Actions secrets, Hostinger, Docker
+├── DEPLOY.md           # Production deploy: push + SSH (Hostinger)
+├── agents-and-skills.md # Como registrar agente/skill/tool/departamento
+└── agent-turn-flow.md  # O turno ponta a ponta
 ```
 
 ---
@@ -132,14 +136,6 @@ pnpm start
 
 ---
 
-## 📚 Documentação
-
-| Guia | Conteúdo |
-| :--- | :--- |
-| [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) | Rodar UI e motor no Mac; quando precisa de Docker |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy em produção: `./scripts/deploy.sh` (push + SSH) |
-| [infra/MAINTENANCE.md](infra/MAINTENANCE.md) | Backup, logs, restart de serviços no servidor |
-
 **Segredos:** `.env`, `groups/` e `data/` ficam só na máquina/servidor (`.gitignore`). Nada de API keys no git.
 
 ---
@@ -147,8 +143,30 @@ pnpm start
 ## 🔒 Privacy & Security
 
 * **Zero-Secret Commits**: credentials, OAuth tokens, databases, and `.env` files stay local (`.gitignore`). Deploy is `./scripts/deploy.sh` from your Mac — no secrets in the repository.
-* **Sandboxed Execution**: Agent sessions run inside ephemeral, isolated Docker containers with strictly scoped filesystem boundaries.
+* **Sandboxed Execution**: Agent sessions run inside ephemeral Docker containers (`cap-drop=ALL`, no-new-privileges, non-root) with strictly scoped filesystem boundaries and read-only mounts for engine code/registry.
+* **Hardened Dashboard Auth**: e-mail OTP com `crypto.randomInt`, rate limit duplo (app + Traefik) nas rotas de autenticação, cookie `HttpOnly + Secure + SameSite` e **sessões revogáveis server-side** (logout invalida de verdade).
+* **CSRF-safe OAuth**: fluxo Google com `state` assinado HMAC (nonce + expiração); todos os tokens de integração gravados com permissão `0600`; sanitização universal de pasta de grupo contra path traversal.
 * **Payload Hygiene**: The `PayloadSanitizer` automatically purges base64 blobs, raw HTML, and transport headers before persisting execution state.
+
+---
+
+## ✅ Qualidade & CI
+
+CI roda a cada PR (`.github/workflows/ci.yml`) em 4 frentes: motor host (typecheck + lint + **1086 testes**), agent-runner Bun (**250 testes**), backend da UI (typecheck + testes) e frontend (lint + build). Dependabot semanal nos 4 workspaces. O registry de agentes/skills é validado fail-loud no boot do container **e** no CI — registro errado quebra o build, nunca a produção.
+
+---
+
+## 📚 Documentação
+
+| Guia | Conteúdo |
+| :--- | :--- |
+| [docs/README.md](docs/README.md) | **Índice geral** — toda a documentação por audiência |
+| [docs/DEV-LOCAL.md](docs/DEV-LOCAL.md) | Rodar UI e motor no Mac; quando precisa de Docker |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy em produção: `./scripts/deploy.sh` (push + SSH) |
+| [docs/agents-and-skills.md](docs/agents-and-skills.md) | Como registrar agente, skill, tool ou departamento novo |
+| [nanoclaw/docs/README.md](nanoclaw/docs/README.md) | Documentação interna do motor (17 docs) |
+
+**Segredos:** `.env`, `groups/` e `data/` ficam só na máquina/servidor (`.gitignore`). Nada de API keys no git.
 
 ---
 

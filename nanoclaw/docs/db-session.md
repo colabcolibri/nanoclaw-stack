@@ -55,7 +55,7 @@ CREATE TABLE messages_in (
 CREATE INDEX idx_messages_in_series ON messages_in(series_id);
 ```
 
-Content shapes: see [api-details.md §Session DB Schema Details](api-details.md#session-db-schema-details).
+Content shapes: ver os emissores no código (`src/db/` no host, `container/agent-runner/src/` no container) — este doc lista as colunas; o formato exato do conteúdo por `kind` está documentado em [architecture.md](architecture.md).
 
 **Writers (host):** `insertMessage()` (and `nextEvenSeq()`) in `src/db/session-db.ts`; `insertTask()` and `insertRecurrence()` in `src/modules/scheduling/db.ts`. Each calls `nextEvenSeq()`.
 **Reader (container):** `container/agent-runner/src/db/messages-in.ts` — polls `status='pending' AND (process_after IS NULL OR process_after <= now)`.
@@ -77,7 +77,7 @@ Writer: `markDelivered()` / `markDeliveryFailed()` in `src/db/session-db.ts`. Ol
 
 ### 2.3 `destinations`
 
-Projection of the central `agent_destinations` table (see [db-central.md §1.10](db-central.md#110-agent_destinations)) for this session's agent. The container resolves `to="name"` against this table; if the row is absent, the send is rejected as `unknown destination`.
+Projection of the central `agent_destinations` table (tabela `agent_destinations` no DB central — schema em `src/modules/agent-to-agent/db/agent-destinations.ts`) for this session's agent. The container resolves `to="name"` against this table; if the row is absent, the send is rejected as `unknown destination`.
 
 ```sql
 CREATE TABLE destinations (
@@ -146,7 +146,7 @@ CREATE TABLE messages_out (
 );
 ```
 
-Content shapes: see [api-details.md §Session DB Schema Details](api-details.md#session-db-schema-details).
+Content shapes: ver os emissores no código (`src/db/` no host, `container/agent-runner/src/` no container) — este doc lista as colunas; o formato exato do conteúdo por `kind` está documentado em [architecture.md](architecture.md).
 
 **Writer (container):** `writeMessageOut()` in `container/agent-runner/src/db/messages-out.ts`.
 **Readers (host):** `src/delivery.ts` (polling delivery), `getMessageIdBySeq()` / `getRoutingBySeq()` for edit/reaction targeting.

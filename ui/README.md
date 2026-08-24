@@ -1,6 +1,6 @@
 # NanoClaw Web Management Dashboard (`/ui`)
 
-> A modern, lightweight, and secure web control dashboard for the **NanoClaw Production Stack**, built with **Bun**, **Hono**, and **TypeScript**.
+> Dashboard de controle do **NanoClaw Production Stack** — backend **Bun puro** (sem framework HTTP) + frontend **React 19 + Tailwind 4 + Vite**.
 
 ---
 
@@ -8,11 +8,11 @@
 
 1. **Multi-Agent & Fleet Management:** Live inspection and editing of agent personas (`instructions.prepend.md`), active skills, container limits, and memory files.
 2. **1-Click Third-Party Integrations:**
-   * **Google Workspace:** Automated OAuth2 flow for Multi-Calendar and Gmail token generation.
+   * **Google Workspace:** Automated OAuth2 flow (state assinado HMAC, anti-CSRF) for Multi-Calendar and Gmail token generation.
    * **Notion Integration:** 1-click token validation, database selection, and schema sync.
-3. **Passwordless Secure Login (Email OTP):** Access protected via time-limited one-time passwords delivered via Resend API with HTTP-only session cookies.
+3. **Passwordless Secure Login (Email OTP):** códigos com `crypto.randomInt`, rate limit por IP, cookies `HttpOnly + Secure + SameSite` e **sessões revogáveis server-side** (tabela `ui_sessions` no DB central — logout invalida o token de verdade).
 4. **Real-time Observability:** Direct SQLite sync with `v2.db` showing active message histories, session counters, container run statistics, and systemd logs.
-5. **Edge Ready:** Native integration with the Traefik SSL reverse proxy (`/traefik`) over Let's Encrypt HTTPS.
+5. **Edge Ready:** Native integration with the Traefik SSL reverse proxy (`/traefik`) over Let's Encrypt HTTPS — com rate limit dedicado às rotas `/api/auth/*`.
 
 ---
 
@@ -21,12 +21,12 @@
 ```text
 ui/
 ├── src/
-│   ├── auth/          # OTP authentication service & cookie token manager
+│   ├── auth/          # OTP (crypto), rate limit, token HMAC + session store revogável
 │   ├── routes/        # REST API endpoints (agents, integrations, chat, telemetry)
 │   ├── services/      # SQLite sync, Google OAuth2, Notion API, and group management
-│   ├── public/        # Responsive frontend SPA (HTML5, Vanilla CSS, JS)
-│   ├── config.ts      # Environment configuration and path resolvers
+│   ├── channels/      # Adaptador do canal macOS (chave timing-safe)
 │   └── index.ts       # Bun HTTP server entrypoint
+├── client/            # Frontend React 19 + Vite (ver client/DESIGN.md)
 ├── package.json
 └── README.md
 ```
@@ -45,7 +45,15 @@ bun install
 cp .env.example .env
 
 # 3. Start the dashboard
-bun run src/index.ts
+bun run dev          # watch mode; ou bun run src/index.ts
 ```
 
-Production service is managed via systemd: `systemctl status nanoclaw-uai`.
+Production service is managed via systemd: `systemctl status nanoclaw-uai` (unit de referência em `infra/systemd/nanoclaw-uai.service`).
+
+## ✅ Qualidade
+
+```bash
+bunx tsc --noEmit    # typecheck estrito
+bun test src         # 27 testes (serviços + rotas da API)
+cd client && bun run lint && bun run build   # frontend
+```

@@ -1,6 +1,6 @@
 # NanoClaw Architecture (Draft)
 
-> **Draft — design intent, not a line-by-line spec.** Some passages predate the current implementation and can drift from it. The root [CLAUDE.md](../CLAUDE.md) and the cited source files (`src/`, `container/agent-runner/src/`) are the source of truth; when this doc and the code disagree, trust the code. Notably, scheduling MCP tools do **not** write `inbound.db` directly — they emit `messages_out` system actions that the host applies (see [agent-runner-details.md](agent-runner-details.md) and `src/modules/scheduling/`).
+> **Draft — design intent, not a line-by-line spec.** Some passages predate the current implementation and can drift from it. The root [container/CLAUDE.md](../container/CLAUDE.md) and the cited source files (`src/`, `container/agent-runner/src/`) are the source of truth; when this doc and the code disagree, trust the code. Notably, scheduling MCP tools do **not** write `inbound.db` directly — they emit `messages_out` system actions that the host applies (ver `src/modules/scheduling/`).
 
 ## Core Idea
 
@@ -190,7 +190,7 @@ messages_out content references filenames only:
 
 No paths in the DB — the convention is the contract. The host reads files from `outbox/{message_id}/` in the mounted session folder and delivers them via the adapter (Chat SDK `FileUpload` with buffer data, or platform-specific upload for native channels). Host cleans up the outbox directory after successful delivery.
 
-Outbound files use a dedicated `send_file` MCP tool (separate from `send_message`). See [agent-runner-details.md](agent-runner-details.md) for the tool interface.
+Outbound files use a dedicated `send_file` MCP tool (separate from `send_message`). Interface da tool: `container/agent-runner/src/tools/index.ts`.
 
 ### Message Deduplication
 
@@ -496,7 +496,7 @@ Typing indicators: host sets typing when a container is active for a session, cl
 
 ### Message Batching
 
-When multiple messages arrive while the container is down, they accumulate as `status = 'pending'` rows in `messages_in`. When the container wakes up, the agent-runner reads all pending messages (those not yet in `processing_ack`) and processes them as a batch — formatted as a `<context timezone="…" />` header followed by the messages concatenated as consecutive `<message>` blocks. (There is no `<messages>` wrapper element; see [agent-runner-details.md](agent-runner-details.md#message-formatting).)
+When multiple messages arrive while the container is down, they accumulate as `status = 'pending'` rows in `messages_in`. When the container wakes up, the agent-runner reads all pending messages (those not yet in `processing_ack`) and processes them as a batch — formatted as a `<context timezone="…" />` header followed by the messages concatenated as consecutive `<message>` blocks. (There is no `<messages>` wrapper element; formatação do batch em `container/agent-runner/src/poll-batch.ts`.)
 
 ### Message Lifecycle
 
@@ -917,7 +917,7 @@ sweep.
 | `install_packages` | `action: 'install_packages'`; on approval host rebuilds the per-agent image and restarts |
 | `add_mcp_server` | `action: 'add_mcp_server'`; on approval host updates `container.json` and restarts |
 
-See [agent-runner-details.md](agent-runner-details.md) for full MCP tool parameter definitions.
+Definições completas dos parâmetros MCP: `container/agent-runner/src/mcp-tools/*.instructions.md` e `src/tools/`.
 
 ### Cards
 
@@ -976,5 +976,5 @@ Pre-scripts: if a task message has a `script` field, run it first. If `wakeAgent
 
 ## Related Documents
 
-- **[api-details.md](api-details.md)** — Channel adapter interface (NanoClaw + Chat SDK bridge), message content examples, host delivery logic
-- **[agent-runner-details.md](agent-runner-details.md)** — AgentProvider interface, MCP tools, message formatting, media handling, provider implementations
+- **[isolation-model.md](isolation-model.md)** — níveis de isolamento canal↔agente; interface de adapter em `src/channels/adapter.ts`
+- **[skills-model.md](skills-model.md)** / [skill-guidelines.md](skill-guidelines.md) — modelo e barreira de qualidade das skills

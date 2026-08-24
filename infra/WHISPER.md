@@ -8,7 +8,7 @@ This document details the self-hosted audio transcription pipeline for chat voic
 
 To eliminate per-minute third-party cloud API costs and ensure 100% privacy for voice messages, the stack utilizes a dedicated container running **OpenAI Whisper ASR**:
 
-* **Location:** [`whisper/`](file:///opt/nanoclaw-stack/whisper/)
+* **Location:** [`whisper/`](../whisper/)
 * **Port:** `127.0.0.1:9000`
 * **Current Model:** `base` (multilingual, fast CPU inference, robust accuracy across languages).
 * **Engine:** `openai_whisper` (Python + PyTorch optimized for CPU execution).

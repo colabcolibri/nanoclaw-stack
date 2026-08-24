@@ -1,5 +1,7 @@
 # 🧠 Native LLM Provider & Turn Orchestrator
 
+> **⚠️ Documento histórico** — descreve a arquitetura na migração DeepSeek. O orquestrador evoluiu para o pipeline two-stage (triage → supervisor → worker → sender); veja [`nanoclaw/docs/architecture.md`](../nanoclaw/docs/architecture.md) e os providers atuais em [`nanoclaw/container/agent-runner/src/providers/`](../nanoclaw/container/agent-runner/src/providers/).
+
 This document describes the native model connector architecture and the **`TurnOrchestrator`** execution engine that powers DeepSeek (and any future LLM providers) in the **NanoClaw Production Stack**.
 
 ---
@@ -53,4 +55,4 @@ To avoid monolithic code coupling, execution is strictly decoupled into two laye
    * If a model executes a tool and returns without conversational text, the orchestrator triggers an automatic closure turn instructing the model to deliver a friendly, human confirmation in Portuguese.
 
 4. **Rolling Context & Soul Injection:**
-   * Dynamic injection of [`groups/<bot>/instructions.prepend.md`](file:///opt/nanoclaw-stack/nanoclaw/groups/barao/instructions.prepend.md) ensuring the persona is permanently anchored across long multi-turn sessions.
+   * Dynamic injection of `groups/<bot>/instructions.prepend.md` ensuring the persona is permanently anchored across long multi-turn sessions.

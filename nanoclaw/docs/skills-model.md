@@ -1,6 +1,6 @@
 # The skills model
 
-How NanoClaw stays customizable without breaking its forks. This is the full version; [customizing.md](customizing.md) is the short one, and [skill-guidelines.md](skill-guidelines.md) is the authoritative checklist for writing a skill.
+How NanoClaw stays customizable without breaking its forks. This is the full version; o README do fork é a versão curta, e [skill-guidelines.md](skill-guidelines.md) is the authoritative checklist for writing a skill.
 
 ## The problem
 

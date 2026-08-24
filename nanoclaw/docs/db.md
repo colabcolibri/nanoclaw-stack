@@ -2,10 +2,10 @@
 
 Orientation for the data model: the three databases, how they fit together, and the invariants that hold across them. For table-level schemas, follow the links below.
 
-- **[db-central.md](db-central.md)** — every table in `data/v2.db` (identity, wiring, approvals, Chat SDK state) plus the migration system.
+- **DB central** (`data/v2.db`) — tabelas em `src/db/*.ts` (migrations em `src/db/migrations/`).
 - **[db-session.md](db-session.md)** — the per-session `inbound.db` + `outbound.db` pair, seq parity, and session folder layout.
 
-Related: [architecture.md](architecture.md) for the high-level design; [api-details.md](api-details.md) for inbound/outbound message content shapes; [isolation-model.md](isolation-model.md) for channel-to-agent wiring modes.
+Related: [architecture.md](architecture.md) for the high-level design; [db-session.md](db-session.md) for the per-session DB pair; [isolation-model.md](isolation-model.md) for channel-to-agent wiring modes.
 
 ---
 
