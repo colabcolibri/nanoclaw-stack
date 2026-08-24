@@ -11,11 +11,13 @@ import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { ClearChatCostsDialog } from '@/components/service/ClearChatCostsDialog'
 import {
+
   formatEngageMode,
   formatSenderPolicy,
   getChannelDisplayName,
   getChannelLabel,
 } from '@/components/service/channel-utils'
+import { formatDate } from '../../lib/formatters'
 
 export const ServiceView: React.FC = () => {
   const group = useDefaultGroup()
@@ -336,7 +338,7 @@ export const ServiceView: React.FC = () => {
                       <div className="min-w-0">
                         <dt className="uppercase font-bold text-(--text-dim)">Desde</dt>
                         <dd className="truncate text-(--text-main)">
-                          {new Date(channel.createdAt).toLocaleDateString('pt-BR')}
+                          {formatDate(channel.createdAt)}
                         </dd>
                       </div>
                     </dl>

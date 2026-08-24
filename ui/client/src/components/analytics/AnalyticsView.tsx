@@ -26,6 +26,8 @@ import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDateTimeShort, formatNumber } from '../../lib/formatters'
+
 
 interface AnalyticsViewProps {
   currency?: 'BRL' | 'USD'
@@ -166,7 +168,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <ArrowDownLeft className="w-4 h-4 text-sky-500" />
               </div>
               <div className="text-2xl font-bold text-sky-600 dark:text-sky-400 my-1.5 font-mono">
-                {totalPromptTokens.toLocaleString()}
+                {formatNumber(totalPromptTokens)}
               </div>
             </div>
             <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
@@ -186,7 +188,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <ArrowUpRight className="w-4 h-4 text-purple-500" />
               </div>
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 my-1.5 font-mono">
-                {totalCompletionTokens.toLocaleString()}
+                {formatNumber(totalCompletionTokens)}
               </div>
             </div>
             <div className="text-[11px] text-(--text-muted) font-mono border-t border-(--border-main) pt-2 mt-1 flex items-center justify-between">
@@ -274,12 +276,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <TableBody>
                 {paginatedItems.map((m) => {
                   const isUser = m.type === 'user'
-                  const dateStr = new Date(m.timestamp).toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
+                  const dateStr = formatDateTimeShort(m.timestamp)
                   const subRunsCount = m.subRuns?.length || 0
 
                   // Calculate individual In and Out tokens and costs
@@ -315,7 +312,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </TableCell>
                       <TableCell className="font-mono">
                         <div className="font-bold text-sky-600 dark:text-sky-400 text-xs">
-                          {promptTokens.toLocaleString()} <span className="text-[10px] font-normal text-(--text-muted)">in</span>
+                          {formatNumber(promptTokens)} <span className="text-[10px] font-normal text-(--text-muted)">in</span>
                         </div>
                         <div className="text-[10px] text-(--text-dim) font-medium">
                           {formatCost(costInUsd, costInBrl)}
@@ -323,7 +320,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </TableCell>
                       <TableCell className="font-mono">
                         <div className="font-bold text-purple-600 dark:text-purple-400 text-xs">
-                          {completionTokens.toLocaleString()} <span className="text-[10px] font-normal text-(--text-muted)">out</span>
+                          {formatNumber(completionTokens)} <span className="text-[10px] font-normal text-(--text-muted)">out</span>
                         </div>
                         <div className="text-[10px] text-(--text-dim) font-medium">
                           {formatCost(costOutUsd, costOutBrl)}
@@ -334,7 +331,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           {formatCost(m.costUsd, m.costBrl)}
                         </div>
                         <div className="text-[10px] text-(--text-dim)">
-                          {(m.tokens || (promptTokens + completionTokens)).toLocaleString()} total
+                          {(m.tokens || (promptTokens + formatNumber(completionTokens)))} total
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -421,7 +418,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     {formatCost(selectedMessage.costUsd, selectedMessage.costBrl)}
                   </div>
                   <div className="text-[10px] text-(--text-dim) mt-0.5">
-                    {(selectedMessage.tokens || 0).toLocaleString()} tokens
+                    {(selectedMessage.tokens || formatNumber(0))} tokens
                   </div>
                 </div>
 
@@ -432,7 +429,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <span>Token In</span>
                   </div>
                   <div className="text-sm font-bold text-sky-600 dark:text-sky-400 mt-1">
-                    {(selectedMessage.promptTokens || 0).toLocaleString()}
+                    {(selectedMessage.promptTokens || formatNumber(0))}
                   </div>
                   <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {formatCost(selectedMessage.costInUsd, selectedMessage.costInBrl)}
@@ -446,7 +443,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <span>Token Out</span>
                   </div>
                   <div className="text-sm font-bold text-purple-600 dark:text-purple-400 mt-1">
-                    {(selectedMessage.completionTokens || 0).toLocaleString()}
+                    {(selectedMessage.completionTokens || formatNumber(0))}
                   </div>
                   <div className="text-[10px] text-(--text-dim) mt-0.5">
                     {formatCost(selectedMessage.costOutUsd, selectedMessage.costOutBrl)}
@@ -527,12 +524,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             <span>{step.latencyMs ? `${step.latencyMs}ms` : '--'}</span>
                           </span>
                           <span className="text-sky-600 dark:text-sky-400 font-bold">
-                            {(step.promptTokens || 0).toLocaleString()} in ({formatCost(step.costInUsd)})
+                            {(step.promptTokens || formatNumber(0))} in ({formatCost(step.costInUsd)})
                           </span>
                           <span className="text-purple-600 dark:text-purple-400 font-bold">
-                            {(step.completionTokens || 0).toLocaleString()} out ({formatCost(step.costOutUsd)})
+                            {(step.completionTokens || formatNumber(0))} out ({formatCost(step.costOutUsd)})
                           </span>
-                          <span>Hit: {(step.cacheHitTokens || 0).toLocaleString()}</span>
+                          <span>Hit: {(step.cacheHitTokens || formatNumber(0))}</span>
                         </div>
 
                         {(step.rawContent || step.preview) && (

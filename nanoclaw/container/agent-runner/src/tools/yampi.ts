@@ -9,6 +9,43 @@ interface YampiCreds {
   userSecretKey: string;
 }
 
+// --- DTOs mínimos da API Yampi/Dooki (só o que a tool lê) ---
+interface YampiSku {
+  stock?: { data?: { quantity?: number } };
+}
+interface YampiProduct {
+  id: number | string;
+  name?: string;
+  sku?: string;
+  url?: string;
+  description?: string;
+  prices?: { data?: { price?: number; promotional_price?: number } };
+  has_unlimited_stock?: boolean;
+  skus?: { data?: YampiSku[] };
+}
+interface YampiOrderItem {
+  name?: string;
+  quantity?: number;
+  price?: number;
+  sku?: { data?: { title?: string } };
+}
+interface YampiOrder {
+  id: number | string;
+  number?: number | string;
+  customer?: { data?: { email?: string; name?: string } };
+  items?: { data?: YampiOrderItem[] };
+  shipping?: { data?: { tracking_code?: string; tracking_url?: string } };
+  tracking_code?: string;
+  status?: { data?: { name?: string } };
+  status_alias?: string;
+  is_paid?: boolean;
+  created_at?: { date?: string };
+  value_total?: number;
+}
+interface YampiListResponse<T> {
+  data?: T[];
+}
+
 function getYampiCreds(cwd: string): YampiCreds | null {
   const possiblePaths = [
     path.join(cwd, 'yampi_tokens.json'),
@@ -127,8 +164,8 @@ export const yampiTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
-      const products = (data.data || []).map((p: any) => {
+      const data = (await res.json()) as YampiListResponse<YampiProduct>;
+      const products = (data.data ?? []).map((p) => {
         const totalStock = (p.skus?.data || []).reduce((acc: number, s: any) => acc + (s.stock?.data?.quantity || 0), 0);
         return {
           id: p.id,
@@ -164,7 +201,7 @@ export const yampiTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
+      const data = (await res.json()) as YampiListResponse<YampiProduct>;
       const product = data.data?.[0];
       if (!product) {
         return JSON.stringify({ status: 'not_found', message: `Product "${q}" not found in catalog.` });
@@ -202,9 +239,9 @@ export const yampiTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
-      const order = (data.data || []).find(
-        (o: any) => String(o.number) === orderNumber || String(o.id) === orderNumber
+      const data = (await res.json()) as YampiListResponse<YampiOrder>;
+      const order = (data.data ?? []).find(
+        (o) => String(o.number) === orderNumber || String(o.id) === orderNumber
       );
 
       if (!order) {
@@ -256,8 +293,8 @@ export const yampiTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
-      const orders = (data.data || []).map((o: any) => ({
+      const data = (await res.json()) as YampiListResponse<YampiOrder>;
+      const orders = (data.data ?? []).map((o) => ({
         order_number: o.number || o.id,
         status: o.status?.data?.name || o.status_alias,
         total: o.value_total,
@@ -282,8 +319,8 @@ export const yampiTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
-      const orders = (data.data || []).map((o: any) => ({
+      const data = (await res.json()) as YampiListResponse<YampiOrder>;
+      const orders = (data.data ?? []).map((o) => ({
         order_number: o.number || o.id,
         customer_name: o.customer?.data?.name,
         customer_email: o.customer?.data?.email,

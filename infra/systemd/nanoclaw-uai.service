@@ -1,0 +1,22 @@
+[Unit]
+Description=NanoClaw UI Dashboard (Bun)
+Documentation=file:///opt/nanoclaw-stack/infra/SERVICES.md
+After=network-online.target nanoclaw.service
+Wants=network-online.target
+
+# Cópia de referência do unit em produção.
+# Se divergir do VPS, alinhe com: systemctl cat nanoclaw-uai.service
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nanoclaw-stack/ui
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/root/.bun/bin
+# Bun carrega automaticamente o ui/.env do WorkingDirectory.
+ExecStart=/root/.bun/bin/bun src/index.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

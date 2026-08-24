@@ -4,6 +4,64 @@ import type { AgentTool } from './types.js';
 import { getGoogleToken } from './google-auth.js';
 import { resolveUiPublicUrl } from '../runtime-paths.js';
 
+// External Gmail API response shapes (minimum fields actually accessed).
+
+interface GmailHeader {
+  name: string;
+  value?: string;
+}
+
+interface GmailBody {
+  data?: string;
+}
+
+interface GmailPayload {
+  headers?: GmailHeader[];
+  body?: GmailBody;
+  parts?: GmailPayload[];
+  mimeType?: string;
+}
+
+interface GmailMessage {
+  id: string;
+  threadId?: string;
+  snippet?: string;
+  labelIds?: string[];
+  payload?: GmailPayload;
+}
+
+interface GmailProfileResponse {
+  emailAddress?: string;
+}
+
+interface GmailDraftResponse {
+  id?: string;
+  message: GmailMessage;
+}
+
+interface GmailDraftListResponse {
+  drafts?: GmailDraftResponse[];
+}
+
+interface GmailThreadResponse {
+  id?: string;
+  threadId?: string;
+  snippet?: string;
+  labelIds?: string[];
+  payload?: GmailPayload;
+  messages?: GmailMessage[];
+}
+
+interface GmailThreadSummary {
+  id?: string;
+  snippet?: string;
+}
+
+interface GmailThreadListResponse {
+  nextPageToken?: string;
+  threads?: GmailThreadSummary[];
+}
+
 export interface EmailPolicy {
   mode: 'draft_approval' | 'auto_safe' | 'notify_only';
   signature?: string;
@@ -64,18 +122,18 @@ function cleanHtml(html: string): string {
     .trim();
 }
 
-function extractBody(payload: any): string {
+function extractBody(payload?: GmailPayload): string {
   if (!payload) return '';
   if (payload.body?.data) {
     const raw = decodeBase64Url(payload.body.data);
     return raw.includes('<html') || raw.includes('<div') || raw.includes('<head') ? cleanHtml(raw) : raw;
   }
   if (payload.parts && Array.isArray(payload.parts)) {
-    const plainPart = payload.parts.find((p: any) => p.mimeType === 'text/plain');
+    const plainPart = payload.parts.find((p) => p.mimeType === 'text/plain');
     if (plainPart?.body?.data) {
       return decodeBase64Url(plainPart.body.data);
     }
-    const htmlPart = payload.parts.find((p: any) => p.mimeType === 'text/html');
+    const htmlPart = payload.parts.find((p) => p.mimeType === 'text/html');
     if (htmlPart?.body?.data) {
       return cleanHtml(decodeBase64Url(htmlPart.body.data));
     }
@@ -151,11 +209,6 @@ export interface GmailToolArgs {
   operator_approved?: boolean;
   page_token?: string;
   [key: string]: unknown;
-}
-
-interface GmailHeader {
-  name: string;
-  value?: string;
 }
 
 function gmailHeader(headers: GmailHeader[], name: string): string {
@@ -272,17 +325,17 @@ export const googleGmailTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: listDraftsRes.status, text: await listDraftsRes.text() });
       }
 
-      const draftsData = (await listDraftsRes.json()) as any;
+      const draftsData = (await listDraftsRes.json()) as GmailDraftListResponse;
       const rawDrafts = draftsData.drafts || [];
 
       const detailedDrafts = await Promise.all(
-        rawDrafts.map(async (d: any) => {
+        rawDrafts.map(async (d) => {
           try {
             const detailRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${d.id}?format=metadata`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             if (detailRes.ok) {
-              const dt = (await detailRes.json()) as any;
+              const dt = (await detailRes.json()) as GmailDraftResponse;
               const msg = dt.message || {};
               const headers = msg.payload?.headers || [];
 
@@ -332,7 +385,7 @@ export const googleGmailTool: AgentTool = {
         return JSON.stringify({ status: 'error', code: res.status, text: await res.text() });
       }
 
-      const data = (await res.json()) as any;
+      const data = (await res.json()) as GmailThreadResponse;
 
       let userEmail = '';
       try {
@@ -340,14 +393,14 @@ export const googleGmailTool: AgentTool = {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (profRes.ok) {
-          const prof = (await profRes.json()) as any;
+          const prof = (await profRes.json()) as GmailProfileResponse;
           userEmail = (prof.emailAddress || '').toLowerCase();
         }
       } catch {}
 
       if (isThread && Array.isArray(data.messages) && data.messages.length > 0) {
         const rawMsgs = data.messages;
-        const parsedMsgs = rawMsgs.map((m: any, idx: number) => {
+        const parsedMsgs = rawMsgs.map((m, idx) => {
           const headers = m.payload?.headers || [];
           const fromVal = gmailHeader(headers, 'From');
           const isFromMe = userEmail ? fromVal.toLowerCase().includes(userEmail) : Boolean(m.labelIds?.includes('SENT'));
@@ -387,7 +440,7 @@ export const googleGmailTool: AgentTool = {
             snippet: lastMsg.snippet,
             body: lastMsg.body,
           },
-          previousMessages: previousMsgs.map((p: any) => ({
+          previousMessages: previousMsgs.map((p) => ({
             from: p.from,
             date: p.date,
             snippet: p.snippet,
@@ -454,7 +507,7 @@ export const googleGmailTool: AgentTool = {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (origRes.ok) {
-            const origData = (await origRes.json()) as any;
+            const origData = (await origRes.json()) as GmailMessage;
             targetThreadId = targetThreadId || origData.threadId || origData.id;
             const origHeaders = origData.payload?.headers || [];
             parentRfcMessageId = parentRfcMessageId || gmailHeader(origHeaders, 'Message-ID');
@@ -513,7 +566,7 @@ export const googleGmailTool: AgentTool = {
         if (!draftRes.ok) {
           return JSON.stringify({ status: 'error', code: draftRes.status, text: await draftRes.text() });
         }
-        const draftData = (await draftRes.json()) as any;
+        const draftData = (await draftRes.json()) as GmailDraftResponse;
         return JSON.stringify({
           status: isInterceptedToDraft ? 'draft_created_for_approval' : 'ok',
           message: isInterceptedToDraft
@@ -536,7 +589,7 @@ export const googleGmailTool: AgentTool = {
       if (!sendRes.ok) {
         return JSON.stringify({ status: 'error', code: sendRes.status, text: await sendRes.text() });
       }
-      const sendData = (await sendRes.json()) as any;
+      const sendData = (await sendRes.json()) as GmailMessage;
       return JSON.stringify({
         status: 'ok',
         message: 'Email sent successfully in thread.',
@@ -578,12 +631,12 @@ export const googleGmailTool: AgentTool = {
       return JSON.stringify({ status: 'error', code: listRes.status, text: await listRes.text() });
     }
 
-    const data = (await listRes.json()) as any;
+    const data = (await listRes.json()) as GmailThreadListResponse;
     const threadList = data.threads || [];
 
     const detailed = (
       await Promise.all(
-        threadList.map(async (t: any) => {
+        threadList.map(async (t) => {
           try {
             const detailRes = await fetch(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata`,
@@ -592,12 +645,12 @@ export const googleGmailTool: AgentTool = {
               }
             );
             if (detailRes.ok) {
-              const d = (await detailRes.json()) as any;
+              const d = (await detailRes.json()) as GmailThreadResponse;
               const msgs = d.messages || [];
               const lastMsg = msgs[msgs.length - 1];
               const headers = lastMsg?.payload?.headers || [];
 
-              const isUnread = msgs.some((m: any) => m.labelIds && m.labelIds.includes('UNREAD'));
+              const isUnread = msgs.some((m) => m.labelIds && m.labelIds.includes('UNREAD'));
               let snip = (t.snippet || lastMsg?.snippet || '').trim();
               if (snip.length > 120) snip = snip.slice(0, 117) + '...';
 

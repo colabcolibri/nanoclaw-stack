@@ -6,6 +6,8 @@ import { parseMarkdown } from '@/lib/markdown'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatNumber } from '../../lib/formatters'
+
 
 interface SoulEditorCardProps {
   doc: MarkdownDoc | null
@@ -17,7 +19,7 @@ interface SoulEditorCardProps {
 
 function formatCompactCount(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
-  return value.toLocaleString()
+  return formatNumber(value)
 }
 
 export const SoulEditorCard: React.FC<SoulEditorCardProps> = ({

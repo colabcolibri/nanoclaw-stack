@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Pre-commit: formata apenas os arquivos TS stageados do motor (nanoclaw/src),
+# igual ao `pnpm format` existente — sem reescrever a árvore inteira.
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^nanoclaw/src/.*\.ts$' || true)
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+PRETTIER="nanoclaw/node_modules/.bin/prettier"
+if [ ! -x "$PRETTIER" ]; then
+  echo "[pre-commit] prettier não encontrado — rode 'pnpm install' em nanoclaw/" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC2086
+echo "$STAGED" | xargs "$PRETTIER" --write >/dev/null
+# Re-stage o que o prettier alterou.
+# shellcheck disable=SC2086
+echo "$STAGED" | xargs git add

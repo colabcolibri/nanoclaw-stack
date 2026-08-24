@@ -6,6 +6,8 @@ import { parseMarkdown } from '@/lib/markdown'
 import { Button } from '@/components/ui/button'
 import { ChannelBadge } from '@/components/templates/ChannelBadge'
 import { cn } from '@/lib/utils'
+import { formatNumber, formatTime } from '../../lib/formatters'
+
 
 interface ChatMessageBubbleProps {
   message: ChatMessage
@@ -42,10 +44,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     } catch {}
   }
 
-  const timeStr = new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const timeStr = formatTime(message.timestamp)
 
   const channelLabel = (() => {
     switch (message.channel?.toLowerCase()) {
@@ -160,7 +159,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           <p className="font-mono text-[11px] text-(--text-dim)">
             {message.tokens ? (
               <>
-                {t('tokenLabel', { count: message.tokens.toLocaleString('pt-BR') })}
+                {t('tokenLabel', { count: formatNumber(message.tokens) })}
                 {costLabel ? ` • ${costLabel}` : ''}
               </>
             ) : (

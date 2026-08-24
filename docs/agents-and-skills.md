@@ -85,6 +85,17 @@ tools:
 3. Corpo no **estilo diretivo** (ver template abaixo).
 4. Implementar a tool em `container/agent-runner/src/tools/` e registrar em `tools/index.ts`.
 
+> **Parser:** frontmatter é parseado por um único módulo (`services/frontmatter.ts`, pacote `yaml`) com **falha alta** — YAML malformado loga erro e a skill não registra (o validador do boot acusa).
+
+### Skill self-service pelo próprio agente (overlay do grupo)
+
+Skills são **dados** — o agente pode criar as dele sem deploy, escrevendo em
+`groups/<grupo>/skills/<slug>/SKILL.md` (montado RW no container como
+`/workspace/agent/skills`). O `SkillsManager` dá precedência ao overlay do grupo
+sobre as skills compartilhadas (cache TTL ~10s). Regras: `tools:` só com nomes
+que existem em `ALL_TOOLS`; para plugar a skill num especialista, o `AGENT.md`
+desse agente precisa listá-la (edição global exige operador).
+
 ### Template SKILL.md (AI-diretivo)
 
 ```markdown
@@ -140,7 +151,7 @@ What this worker owns.
 DONE + structured data. No user conversation.
 ```
 
-4. Registrar departamento em `registry.ts` se for departamento novo (`agentIds`).
+4. Registrar departamento novo em **`nanoclaw/container/agents/departments.json`** — fonte única lida pelo runner (`AgentRegistry.loadDefaultDepartments`) e pela UI. Não há lista hardcoded em código.
 
 ### Override por grupo (opcional)
 
@@ -185,6 +196,16 @@ Se faltar qualquer elo, o worker fica só com globais (`load_skill`, `run_comman
 |-------|--------|
 | `welcome` | Onboarding conversacional no canal — não é executor |
 | `frontend-engineer` | Workflow de dev humano-like |
-| `native-tool-builder` | Meta: criar tools/skills — documentação longa OK |
+| `native-tool-builder` | Meta: expandir capacidades — skills self-service + proposta de tool nativa ao operador |
 
 Não force caveman nesses; mantenha AI-diretivo nos skills ligados a **tools de domínio**.
+
+---
+
+## Tool nativa nova (código)
+
+Tool nativa é TypeScript no `ALL_TOOLS`, shipada na imagem — **não** pode ser criada de dentro do container (`/app/src` é RO). Fluxo:
+
+1. O agente produz uma proposta (interface, comportamento por ação, notas de segurança) em `/workspace/agent/proposals/` — ver skill `native-tool-builder`
+2. O operador implementa em `container/agent-runner/src/tools/<nome>.ts`, registra em `tools/index.ts` e cria a SKILL.md companheira
+3. Suite verde (`pnpm test` + `bun test`) e deploy — o validador de registry falha alto se o wiring estiver errado

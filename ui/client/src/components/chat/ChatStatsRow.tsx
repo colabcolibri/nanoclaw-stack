@@ -4,6 +4,8 @@ import { MessageSquare, Cpu, DollarSign, Activity } from 'lucide-react'
 import { SystemStats } from '@/api/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '../../lib/formatters'
+
 
 interface ChatStatsRowProps {
   stats: SystemStats | null
@@ -14,7 +16,7 @@ interface ChatStatsRowProps {
 function formatCompact(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`
-  return value.toLocaleString('pt-BR')
+  return formatNumber(value)
 }
 
 export const ChatStatsRow: React.FC<ChatStatsRowProps> = ({
@@ -29,7 +31,7 @@ export const ChatStatsRow: React.FC<ChatStatsRowProps> = ({
   const items = [
     {
       label: t('statsMessages'),
-      value: (stats?.totalMessages || 0).toLocaleString('pt-BR'),
+      value: formatNumber(stats?.totalMessages || 0),
       hint: t('statsMessagesHint', {
         inbound: stats?.totalInbound || 0,
         outbound: stats?.totalOutbound || 0,

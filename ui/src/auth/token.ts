@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { CONFIG } from "../config.js";
+import { SessionStore } from "./session-store.js";
 
 export interface SessionPayload {
   email: string;
@@ -14,7 +15,10 @@ export class TokenManager {
     };
     const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const sig = createHmac("sha256", CONFIG.SESSION_SECRET).update(data).digest("base64url");
-    return `${data}.${sig}`;
+    const token = `${data}.${sig}`;
+    // Registra a sessão para permitir revogação server-side.
+    SessionStore.register(token, payload);
+    return token;
   }
 
   static verify(token: string): SessionPayload | null {
@@ -39,6 +43,18 @@ export class TokenManager {
     } catch {
       return null;
     }
+  }
+
+  /** Revoga a sessão no store (logout / invalidação). Idempotente. */
+  static revoke(token: string): void {
+    SessionStore.revoke(token);
+  }
+
+  /** Verificação completa: assinatura + expiração + sessão não revogada no store. */
+  static verifyActive(token: string): SessionPayload | null {
+    const payload = this.verify(token);
+    if (!payload) return null;
+    return SessionStore.isActive(token, payload) ? payload : null;
   }
 
   static buildSetCookie(value: string, maxAgeSeconds: number): string {

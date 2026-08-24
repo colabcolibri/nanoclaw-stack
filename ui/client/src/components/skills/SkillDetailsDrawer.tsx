@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/templates/StatusBadge'
 import { SkillBadge } from '@/components/templates/SkillBadge'
+import { formatNumber } from '../../lib/formatters'
 
 interface SkillDetailsDrawerProps {
   isOpen: boolean
@@ -31,7 +32,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
   }
 
   const skillMdRendered = parseMarkdown(skill.skillMdContent || 'Sem conteúdo SKILL.md definido.')
-  const formatK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString('pt-BR'))
+  const formatK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n)
 
   const totalTokens = skill.totalTokens || 0
   const totalChars = skill.totalChars || 0
@@ -110,7 +111,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                 Total de Caracteres
               </span>
               <span className="text-sm font-bold text-(--text-main) font-mono">
-                {totalChars.toLocaleString('pt-BR')} chars
+                {formatNumber(totalChars)} chars
               </span>
             </div>
           </div>
@@ -142,7 +143,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                 </SkillBadge>
                 <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                   <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
-                  <span>{skillMdChars.toLocaleString('pt-BR')} chars</span>
+                  <span>{formatNumber(skillMdChars)} chars</span>
                 </SkillBadge>
               </div>
             </div>
@@ -170,7 +171,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                     </SkillBadge>
                     <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                       <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
-                      <span>{(skill.referencesChars || 0).toLocaleString('pt-BR')} chars</span>
+                      <span>{formatNumber(skill.referencesChars || 0)} chars</span>
                     </SkillBadge>
                   </div>
                 )}
@@ -197,7 +198,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                             ~{formatK(rTokens)} tok
                           </span>
                           <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            {rChars.toLocaleString('pt-BR')} chars
+                            {formatNumber(rChars)} chars
                           </span>
                         </div>
                       </summary>
@@ -229,7 +230,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                   </SkillBadge>
                   <SkillBadge kind="chars" className="text-[10px] py-0 px-2 gap-1 font-bold">
                     <AlignLeft className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
-                    <span>{(skill.scriptsChars || 0).toLocaleString('pt-BR')} chars</span>
+                    <span>{formatNumber(skill.scriptsChars || 0)} chars</span>
                   </SkillBadge>
                 </div>
               </div>
@@ -254,7 +255,7 @@ export const SkillDetailsDrawer: React.FC<SkillDetailsDrawerProps> = ({
                             0 tok • local
                           </span>
                           <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            {sChars.toLocaleString('pt-BR')} chars
+                            {formatNumber(sChars)} chars
                           </span>
                         </div>
                       </summary>

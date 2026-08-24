@@ -6,6 +6,8 @@ import { ExpandableTextBlock } from '@/components/common/ExpandableTextBlock'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SheetTemplate, SheetTemplateHeader } from '@/components/templates/SheetTemplate'
+import { formatDateTime, formatNumber } from '../../lib/formatters'
+
 
 interface InspectorSheetProps {
   isOpen: boolean
@@ -68,7 +70,7 @@ export const InspectorSheet: React.FC<InspectorSheetProps> = ({
             </div>
 
             <Field label={t('messageTimestamp')}>
-              {new Date(message.timestamp).toLocaleString('pt-BR')}
+              {formatDateTime(message.timestamp)}
             </Field>
           </section>
 
@@ -155,7 +157,7 @@ function MetricCard({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-(--border-main) bg-(--bg-card-subtle) p-3">
       <span className="block text-[10px] text-(--text-dim)">{label}</span>
       <span className="mt-0.5 block font-mono text-sm font-semibold text-(--text-main)">
-        {value.toLocaleString('pt-BR')}
+        {formatNumber(value)}
       </span>
     </div>
   )

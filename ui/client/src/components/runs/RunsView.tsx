@@ -30,6 +30,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/templates/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatDateTime } from '../../lib/formatters'
+
 
 export const RunsView: React.FC = () => {
   const [filterType, setFilterType] = useState<RunFilterKind>('all')
@@ -247,7 +249,7 @@ function RunCard({
               )}
             </div>
             <div className="mt-1 flex items-center gap-3 font-mono text-[11px] text-(--text-dim)">
-              <span>{new Date(run.timestamp).toLocaleString('pt-BR')}</span>
+              <span>{formatDateTime(run.timestamp)}</span>
               {run.latencyMs != null && <span>• {formatCount(run.latencyMs)}ms</span>}
               {run.tokens != null && <span>• {formatCount(run.tokens)} tokens</span>}
               {run.costBrl != null && <span>• R$ {run.costBrl.toFixed(4)}</span>}
@@ -347,7 +349,7 @@ function RunInspectionModal({
                 Data & hora
               </span>
               <span className="font-mono font-bold">
-                {new Date(display.timestamp).toLocaleString('pt-BR')}
+                {formatDateTime(display.timestamp)}
               </span>
             </div>
             <div>

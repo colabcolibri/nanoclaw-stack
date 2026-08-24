@@ -125,12 +125,15 @@ export class ApiRouter {
     if (url.pathname === "/api/auth/me" && method === "GET") {
       const cookies = parseCookies(req.headers.get("cookie"));
       const token = cookies[CONFIG.COOKIE_NAME];
-      const verified = token ? TokenManager.verify(token) : null;
+      const verified = token ? TokenManager.verifyActive(token) : null;
       if (!verified) return jsonResponse({ authenticated: false }, 401);
       return jsonResponse({ authenticated: true, user: { email: verified.email } });
     }
 
     if (url.pathname === "/api/auth/logout" && method === "POST") {
+      const cookies = parseCookies(req.headers.get("cookie"));
+      const token = cookies[CONFIG.COOKIE_NAME];
+      if (token) TokenManager.revoke(token);
       const expiredCookie = TokenManager.buildSetCookie("", 0);
       return jsonResponse({ success: true }, 200, { "Set-Cookie": expiredCookie });
     }
@@ -146,7 +149,7 @@ export class ApiRouter {
         // If not valid bearer token, check if user is logged in via cookie for config query
         const cookies = parseCookies(req.headers.get("cookie"));
         const token = cookies[CONFIG.COOKIE_NAME];
-        const user = token ? TokenManager.verify(token) : null;
+        const user = token ? TokenManager.verifyActive(token) : null;
         if (!user) {
           return jsonResponse({ error: "Token de autenticação inválido. Configure sua chave do Mac." }, 401);
         }
@@ -270,7 +273,7 @@ export class ApiRouter {
     // --- PROTECTED ROUTES CHECK ---
     const cookies = parseCookies(req.headers.get("cookie"));
     const token = cookies[CONFIG.COOKIE_NAME];
-    const user = token ? TokenManager.verify(token) : null;
+    const user = token ? TokenManager.verifyActive(token) : null;
     if (!user) return jsonResponse({ error: "Não autorizado." }, 401);
 
     if (url.pathname === "/api/app-config" && method === "GET") {

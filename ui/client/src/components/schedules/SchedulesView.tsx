@@ -26,6 +26,8 @@ import {
   X
 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
+import { formatDate, formatDateTime, formatTime } from '../../lib/formatters'
+
 
 export const SchedulesView: React.FC = () => {
   const [tasks, setTasks] = useState<ScheduledTask[]>([])
@@ -358,7 +360,7 @@ export const SchedulesView: React.FC = () => {
                             Próxima Execução (Next Run)
                           </span>
                           <span className="font-bold text-(--text-main) font-mono block mt-0.5">
-                            {new Date(task.processAfter).toLocaleTimeString('pt-BR')} ({new Date(task.processAfter).toLocaleDateString('pt-BR')})
+                            {formatTime(task.processAfter)} ({formatDate(task.processAfter)})
                           </span>
                           <span className="text-(--text-muted) mt-0.5 block font-mono text-[10px]">
                             {task.processAfter}
@@ -372,7 +374,7 @@ export const SchedulesView: React.FC = () => {
                             Criado em
                           </span>
                           <span className="font-semibold text-(--text-muted) font-mono block mt-0.5">
-                            {new Date(task.createdAt).toLocaleString('pt-BR')}
+                            {formatDateTime(task.createdAt)}
                           </span>
                         </div>
                       )}
@@ -446,7 +448,7 @@ export const SchedulesView: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-(--text-dim) uppercase font-mono block">Próxima Execução</span>
-                  <span className="font-bold font-mono">{viewingTask.processAfter ? new Date(viewingTask.processAfter).toLocaleString('pt-BR') : 'Imediata'}</span>
+                  <span className="font-bold font-mono">{viewingTask.processAfter ? formatDateTime(viewingTask.processAfter) : 'Imediata'}</span>
                 </div>
               </div>
 

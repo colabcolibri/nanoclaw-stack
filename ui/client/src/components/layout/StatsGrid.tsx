@@ -2,6 +2,8 @@ import React from 'react'
 import { MessageSquare, Cpu, DollarSign, Activity } from 'lucide-react'
 import { SystemStats } from '@/api/client'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatNumber } from '../../lib/formatters'
+
 
 interface StatsGridProps {
   stats: SystemStats | null
@@ -14,13 +16,13 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, currency = 'BRL' })
   const items = [
     {
       label: 'Mensagens',
-      value: (stats?.totalMessages || 0).toLocaleString(),
+      value: (stats?.totalMessages || formatNumber(0)),
       hint: `${stats?.totalInbound || 0} in • ${stats?.totalOutbound || 0} out`,
       icon: <MessageSquare className="h-4 w-4 text-primary" />,
     },
     {
       label: 'Tokens',
-      value: `${(stats?.promptTokens || 0).toLocaleString()} / ${(stats?.completionTokens || 0).toLocaleString()}`,
+      value: `${(stats?.promptTokens || formatNumber(0))} / ${(stats?.completionTokens || formatNumber(0))}`,
       hint: `Cache ${stats?.cacheHitRatio || '0%'}`,
       icon: <Cpu className="h-4 w-4 text-emerald-500" />,
     },

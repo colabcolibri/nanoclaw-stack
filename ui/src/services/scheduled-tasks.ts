@@ -116,17 +116,23 @@ function listTaskSessions(
   central: Database,
   groupFilter?: string,
 ): Array<{ agentGroupId: string; sessionId: string; name: string; folder: string }> {
-  const groups = groupFilter
-    ? (central.query("SELECT id, name, folder FROM agent_groups WHERE folder = ?").all(groupFilter) as Array<{
-        id: string;
-        name: string;
-        folder: string;
-      }>)
-    : (central.query("SELECT id, name, folder FROM agent_groups").all() as Array<{
-        id: string;
-        name: string;
-        folder: string;
-      }>);
+  // DB central ainda não migrado pelo motor (ex.: UI subiu antes) → sem sessões.
+  let groups: Array<{ id: string; name: string; folder: string }>;
+  try {
+    groups = groupFilter
+      ? (central.query("SELECT id, name, folder FROM agent_groups WHERE folder = ?").all(groupFilter) as Array<{
+          id: string;
+          name: string;
+          folder: string;
+        }>)
+      : (central.query("SELECT id, name, folder FROM agent_groups").all() as Array<{
+          id: string;
+          name: string;
+          folder: string;
+        }>);
+  } catch {
+    return [];
+  }
 
   const out: Array<{ agentGroupId: string; sessionId: string; name: string; folder: string }> = [];
   for (const g of groups) {
@@ -357,10 +363,14 @@ export function countTaskExecutionLogs(groupFolder?: string): number {
           )
           .get() as { count: number };
         total += row?.count ?? 0;
+      } catch {
+        // sessão sem schema de tasks ainda — contribui 0
       } finally {
         inDb.close();
       }
     }
+  } catch {
+    return 0;
   } finally {
     central.close();
   }

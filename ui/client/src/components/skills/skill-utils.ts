@@ -1,5 +1,7 @@
 import { type AgentItem, type SkillItem } from '@/api/client'
 import { isSkillAssigned, normalizeSkillName } from '@/components/agents/agent-utils'
+import { formatNumber } from '../../lib/formatters'
+
 
 export type SkillScopeFilter = 'all' | 'global' | 'specialized' | 'unassigned'
 
@@ -12,7 +14,7 @@ export function getAgentsUsingSkill(skill: SkillItem, agents: AgentItem[]): Agen
 
 export function formatSkillTokens(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
-  return value.toLocaleString('pt-BR')
+  return formatNumber(value)
 }
 
 export function filterSkills(

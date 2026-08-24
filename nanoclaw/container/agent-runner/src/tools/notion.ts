@@ -40,6 +40,39 @@ async function getNotionToken(cwd: string): Promise<{ apiKey: string; defaultDat
   return null;
 }
 
+// --- DTOs mínimos da API do Notion (só o que a tool lê) ---
+interface NotionRichTextItem {
+  plain_text?: string;
+}
+interface NotionProperty {
+  type?: string;
+  title?: NotionRichTextItem[];
+  rich_text?: NotionRichTextItem[];
+  select?: { name?: string };
+  multi_select?: Array<{ name?: string }>;
+  date?: { start?: string };
+}
+interface NotionPageOrDatabase {
+  id: string;
+  object?: string;
+  url?: string;
+  created_time?: string;
+  last_edited_time?: string;
+  title?: NotionRichTextItem[];
+  properties?: Record<string, NotionProperty>;
+}
+interface NotionBlock {
+  type?: string;
+  // blocos expõem o conteúdo sob a chave do próprio tipo (paragraph, heading_1, ...)
+  [blockType: string]: { rich_text?: NotionRichTextItem[] } | string | undefined;
+}
+interface NotionListResponse {
+  results?: NotionPageOrDatabase[];
+}
+interface NotionBlockListResponse {
+  results?: NotionBlock[];
+}
+
 export interface NotionToolArgs {
   action: 'create_page' | 'create_database' | 'update_database' | 'update_page' | 'search' | 'query_database' | 'append_content' | 'get_page';
   title?: string;
@@ -129,13 +162,13 @@ export const notionTool: AgentTool = {
         if (!searchRes.ok) {
           return JSON.stringify({ status: 'error', code: searchRes.status, text: await searchRes.text() });
         }
-        const data = (await searchRes.json()) as any;
-        const results = (data.results || []).map((item: any) => {
+        const data = (await searchRes.json()) as NotionListResponse;
+        const results = (data.results ?? []).map((item) => {
           let name = '(No title)';
           if (item.object === 'database') {
             name = item.title?.[0]?.plain_text || '(Untitled database)';
           } else if (item.object === 'page') {
-            const titleProp = Object.values(item.properties || {}).find((p: any) => p.type === 'title') as any;
+            const titleProp = Object.values(item.properties || {}).find((p) => p?.type === 'title');
             name = titleProp?.title?.[0]?.plain_text || '(Untitled page)';
           }
           return {
@@ -160,7 +193,7 @@ export const notionTool: AgentTool = {
             headers,
             body: JSON.stringify({ filter: { value: 'page', property: 'object' }, page_size: 1 }),
           });
-          const findData = (await findRes.json()) as any;
+          const findData = (await findRes.json()) as NotionListResponse;
           if (findData.results?.[0]?.id) {
             parentPageId = findData.results[0].id;
           } else {
@@ -210,7 +243,7 @@ export const notionTool: AgentTool = {
         if (!dbRes.ok) {
           return JSON.stringify({ status: 'error', code: dbRes.status, text: await dbRes.text() });
         }
-        const createdDb = (await dbRes.json()) as any;
+        const createdDb = (await dbRes.json()) as NotionPageOrDatabase;
         return JSON.stringify({
           status: 'ok',
           id: createdDb.id,
@@ -276,7 +309,7 @@ export const notionTool: AgentTool = {
           try {
             const dbCheckRes = await fetch(`https://api.notion.com/v1/databases/${targetDbId}`, { headers });
             if (dbCheckRes.ok) {
-              const dbData = (await dbCheckRes.json()) as any;
+              const dbData = (await dbCheckRes.json()) as NotionPageOrDatabase;
               existingProps = dbData.properties || {};
               const foundTitle = Object.entries<any>(existingProps).find(([_, v]) => v.type === 'title');
               if (foundTitle) titlePropName = foundTitle[0];
@@ -329,7 +362,7 @@ export const notionTool: AgentTool = {
               headers,
               body: JSON.stringify({ filter: { value: 'page', property: 'object' }, page_size: 1 }),
             });
-            const findData = (await findRes.json()) as any;
+            const findData = (await findRes.json()) as NotionListResponse;
             parentPageId = findData.results?.[0]?.id;
           }
 
@@ -358,7 +391,7 @@ export const notionTool: AgentTool = {
         if (!createRes.ok) {
           return JSON.stringify({ status: 'error', code: createRes.status, text: await createRes.text() });
         }
-        const createdPage = (await createRes.json()) as any;
+        const createdPage = (await createRes.json()) as NotionPageOrDatabase;
         return JSON.stringify({
           status: 'ok',
           id: createdPage.id,
@@ -384,14 +417,14 @@ export const notionTool: AgentTool = {
         if (!queryRes.ok) {
           return JSON.stringify({ status: 'error', code: queryRes.status, text: await queryRes.text() });
         }
-        const queryData = (await queryRes.json()) as any;
-        const rows = (queryData.results || []).map((row: any) => {
-          const props: Record<string, any> = {};
+        const queryData = (await queryRes.json()) as NotionListResponse;
+        const rows = (queryData.results ?? []).map((row) => {
+          const props: Record<string, unknown> = {};
           for (const [key, val] of Object.entries<any>(row.properties || {})) {
             if (val.type === 'title') props[key] = val.title?.[0]?.plain_text || '';
             else if (val.type === 'rich_text') props[key] = val.rich_text?.[0]?.plain_text || '';
             else if (val.type === 'select') props[key] = val.select?.name || '';
-            else if (val.type === 'multi_select') props[key] = (val.multi_select || []).map((m: any) => m.name);
+            else if (val.type === 'multi_select') props[key] = (val.multi_select ?? []).map((m: { name?: string }) => m.name);
             else if (val.type === 'date') props[key] = val.date?.start || '';
           }
           return { id: row.id, url: row.url, ...props };
@@ -435,12 +468,14 @@ export const notionTool: AgentTool = {
         if (!pageRes.ok) {
           return JSON.stringify({ status: 'error', code: pageRes.status, text: await pageRes.text() });
         }
-        const pageData = (await pageRes.json()) as any;
-        const blocksData = blocksRes.ok ? ((await blocksRes.json()) as any) : { results: [] };
+        const pageData = (await pageRes.json()) as NotionPageOrDatabase;
+        const blocksData = blocksRes.ok ? ((await blocksRes.json()) as NotionBlockListResponse) : { results: [] };
         
-        const contentLines = (blocksData.results || []).map((b: any) => {
-          const type = b.type;
-          const text = b[type]?.rich_text?.[0]?.plain_text || '';
+        const contentLines = (blocksData.results ?? []).map((b) => {
+          const type = typeof b.type === 'string' ? b.type : '';
+          const section = type ? b[type] : undefined;
+          const rich = typeof section === 'object' ? section?.rich_text : undefined;
+          const text = rich?.[0]?.plain_text || '';
           return text;
         }).filter(Boolean);
 
@@ -477,7 +512,7 @@ export const notionTool: AgentTool = {
         if (!updateRes.ok) {
           return JSON.stringify({ status: 'error', code: updateRes.status, text: await updateRes.text() });
         }
-        const updatedDb = (await updateRes.json()) as any;
+        const updatedDb = (await updateRes.json()) as NotionPageOrDatabase;
         return JSON.stringify({
           status: 'ok',
           id: updatedDb.id,
@@ -501,7 +536,7 @@ export const notionTool: AgentTool = {
         if (!updatePageRes.ok) {
           return JSON.stringify({ status: 'error', code: updatePageRes.status, text: await updatePageRes.text() });
         }
-        const updatedPage = (await updatePageRes.json()) as any;
+        const updatedPage = (await updatePageRes.json()) as NotionPageOrDatabase;
         return JSON.stringify({
           status: 'ok',
           id: updatedPage.id,

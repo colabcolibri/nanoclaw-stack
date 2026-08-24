@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { type AgentItem, type SkillItem } from '@/api/client'
 import type { InferenceParamsForm } from '@/components/config/RoleInferenceParamsForm'
+import { formatNumber } from '../../lib/formatters'
+
 
 const DEPT_ICONS: Record<string, LucideIcon> = {
   productivity: Calendar,
@@ -28,7 +30,7 @@ export function getDepartmentChipLabel(name: string): string {
 
 export function formatTokenCount(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
-  return value.toLocaleString('pt-BR')
+  return formatNumber(value)
 }
 
 export function getDepartmentIcon(deptId: string): LucideIcon {
