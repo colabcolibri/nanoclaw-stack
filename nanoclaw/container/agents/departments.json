@@ -1,0 +1,29 @@
+{
+  "$comment": "Fonte única dos departamentos default. Lido pelo AgentRegistry (agent-runner) e pela UI (groups.ts). Para adicionar um departamento novo, edite este arquivo — não há lista hardcoded em código.",
+  "departments": [
+    {
+      "id": "productivity",
+      "name": "Productivity & Communication",
+      "description": "Calendars, Gmail, Notion notes/databases, appointments, and scheduling.",
+      "agentIds": ["productivity_attendant", "notion_architect"]
+    },
+    {
+      "id": "commerce",
+      "name": "Commerce, Logistics & Resale",
+      "description": "Yampi store orders, wholesale/resale pricing, and Correios shipping estimates.",
+      "agentIds": ["store_attendant", "pricing_logistics_agent"]
+    },
+    {
+      "id": "research_intel",
+      "name": "Research, Intelligence & Web",
+      "description": "Live web search, URL browsing, and token/cost metrics monitoring.",
+      "agentIds": ["web_researcher", "system_metrics_agent"]
+    },
+    {
+      "id": "operations",
+      "name": "Operations & System",
+      "description": "Filesystem operations, infrastructure commands, and shared memory.",
+      "agentIds": ["system_operator"]
+    }
+  ]
+}

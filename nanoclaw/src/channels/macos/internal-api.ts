@@ -7,12 +7,7 @@ import path from 'path';
 import type http from 'http';
 
 import { GROUPS_DIR } from '../../config.js';
-import type {
-  MacPromptRequest,
-  MacResetRequest,
-  MacResetResponse,
-  MacTurnResponse,
-} from './api-contract.js';
+import type { MacPromptRequest, MacResetRequest, MacResetResponse, MacTurnResponse } from './api-contract.js';
 import { processSyncTurn, resetSyncSession } from '../../gateway/sync-turn-gateway.js';
 import { log } from '../../log.js';
 import { registerWebhookHandler } from '../../webhook-server.js';

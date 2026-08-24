@@ -32,11 +32,7 @@ export function readConversationHistory(
 }
 
 /** Hard forget: archive current session and start a new one. */
-export function startNewConversation(
-  ctx: CallerContext,
-  current: Session,
-  opts?: { handoffText?: string },
-): Session {
+export function startNewConversation(ctx: CallerContext, current: Session, opts?: { handoffText?: string }): Session {
   return getConversationBackend().startNewConversation(ctx, current, opts);
 }
 

@@ -23,9 +23,11 @@ export function setHistoryCutoff(agentGroupId: string, sessionId: string, isoTim
   const dbPath = outboundDbPath(agentGroupId, sessionId);
   const db = openOutboundDbRw(dbPath);
   try {
-    db.prepare(
-      `INSERT OR REPLACE INTO session_state (key, value, updated_at) VALUES (?, ?, ?)`,
-    ).run(HISTORY_CUTOFF_KEY, isoTimestamp, isoTimestamp);
+    db.prepare(`INSERT OR REPLACE INTO session_state (key, value, updated_at) VALUES (?, ?, ?)`).run(
+      HISTORY_CUTOFF_KEY,
+      isoTimestamp,
+      isoTimestamp,
+    );
   } finally {
     db.close();
   }

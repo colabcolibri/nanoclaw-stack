@@ -1,5 +1,6 @@
 import type { User } from '../../../types.js';
 import { getDb } from '../../../db/connection.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 export function createUser(user: User): void {
   getDb()
@@ -7,7 +8,7 @@ export function createUser(user: User): void {
       `INSERT INTO users (id, kind, display_name, created_at)
        VALUES (@id, @kind, @display_name, @created_at)`,
     )
-    .run(user);
+    .run(sqlRow(user));
 }
 
 export function upsertUser(user: User): void {
@@ -18,7 +19,7 @@ export function upsertUser(user: User): void {
        ON CONFLICT(id) DO UPDATE SET
          display_name = COALESCE(excluded.display_name, users.display_name)`,
     )
-    .run(user);
+    .run(sqlRow(user));
 }
 
 export function getUser(id: string): User | undefined {

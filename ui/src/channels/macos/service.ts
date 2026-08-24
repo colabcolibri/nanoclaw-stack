@@ -5,6 +5,7 @@ import { CONFIG } from "../../config.js";
 import { DatabaseService } from "../../services/db.js";
 import { GroupManager } from "../../services/groups.js";
 import { NanoclawMotorClient } from "../../services/nanoclaw-motor-client.js";
+import { sanitizeGroupFolder } from "../../services/group-folder.js";
 
 /**
  * MacChannelService - UI adapter for the macOS client.
@@ -12,7 +13,7 @@ import { NanoclawMotorClient } from "../../services/nanoclaw-motor-client.js";
  */
 export class MacChannelService {
   private static getKeyFilePath(groupFolder: string): string {
-    return path.join(CONFIG.GROUPS_PATH, groupFolder, "mac_channel.json");
+    return path.join(CONFIG.GROUPS_PATH, sanitizeGroupFolder(groupFolder), "mac_channel.json");
   }
 
   static getOrCreateApiKey(groupFolder: string): string {
@@ -27,14 +28,17 @@ export class MacChannelService {
     const newKey = `mac_${crypto.randomBytes(24).toString("hex")}`;
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify({ apiKey: newKey }, null, 2), "utf-8");
+    fs.writeFileSync(filePath, JSON.stringify({ apiKey: newKey }, null, 2), { encoding: "utf-8", mode: 0o600 });
     return newKey;
   }
 
   static validateApiKey(token: string, groupFolder: string): boolean {
     const expected = this.getOrCreateApiKey(groupFolder);
     if (!token || !expected) return false;
-    return token.trim() === expected.trim();
+    // Comparação timing-safe via digest — evita vazamento por tempo de resposta.
+    const tokenDigest = crypto.createHash("sha256").update(token.trim()).digest();
+    const expectedDigest = crypto.createHash("sha256").update(expected.trim()).digest();
+    return crypto.timingSafeEqual(tokenDigest, expectedDigest);
   }
 
   private static resolveAgentGroupId(groupFolder: string): string {

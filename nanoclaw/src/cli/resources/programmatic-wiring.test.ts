@@ -59,6 +59,7 @@ import './messaging-groups.js';
 import './wirings.js';
 import './users.js';
 import './groups.js';
+import { sqlParams } from '../../db/sqlite-compat.js';
 
 const HOST = { caller: 'host' as const };
 function now(): string {
@@ -71,7 +72,7 @@ function count(sql: string, ...params: unknown[]): number {
   return (
     getDb()
       .prepare(sql)
-      .get(...params) as { c: number }
+      .get(...sqlParams(params)) as { c: number }
   ).c;
 }
 

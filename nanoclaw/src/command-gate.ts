@@ -14,14 +14,7 @@ import { getAdminSlashTokens } from './commands/registry.js';
 export type GateResult = { action: 'pass' } | { action: 'filter' } | { action: 'deny'; command: string };
 
 const FILTERED_COMMANDS = new Set(['/start', '/help', '/login', '/logout', '/doctor', '/config', '/remote-control']);
-const ADMIN_COMMANDS = new Set([
-  ...getAdminSlashTokens(),
-  '/compact',
-  '/context',
-  '/cost',
-  '/files',
-  '/upload-trace',
-]);
+const ADMIN_COMMANDS = new Set([...getAdminSlashTokens(), '/compact', '/context', '/cost', '/files', '/upload-trace']);
 
 /**
  * Classify a message and decide whether it should reach the container.

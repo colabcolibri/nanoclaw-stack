@@ -2,6 +2,7 @@ import { getDb, hasTable } from '../../db/connection.js';
 import { getSessionsByAgentGroup } from '../../db/sessions.js';
 import { log } from '../../log.js';
 import { registerResource } from '../crud.js';
+import { sqlParams } from '../../db/sqlite-compat.js';
 
 /**
  * Project the agent's central `agent_destinations` rows into every active
@@ -90,7 +91,7 @@ registerResource({
              ${where}
              ORDER BY ad.agent_group_id, ad.local_name`,
           )
-          .all(...params);
+          .all(...sqlParams(params));
       },
     },
     add: {

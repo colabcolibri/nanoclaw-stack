@@ -7,17 +7,9 @@
 import type { ChannelAdapter, ChannelDefaults, ChannelRegistration, ChannelSetup, OutboundFile } from './adapter.js';
 import type { ChannelDeliveryAdapter } from '../delivery.js';
 import { log } from '../log.js';
+import { retryOnNetworkError } from './setup-retry.js';
 
 const SETUP_RETRY_DELAYS_MS = [2000, 5000, 10000];
-
-/** Duck-type check — adapters that throw an Error with `name === 'NetworkError'`
- * (Chat SDK's `@chat-adapter/shared.NetworkError` and similar) get a retry on
- * setup. Avoids depending on `@chat-adapter/shared` at trunk level. */
-function isNetworkError(err: unknown): err is Error {
-  return err instanceof Error && err.name === 'NetworkError';
-}
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const registry = new Map<string, ChannelRegistration>();
 const activeAdapters = new Map<string, ChannelAdapter>();
@@ -276,27 +268,17 @@ export async function initChannelAdapters(setupFn: (adapter: ChannelAdapter) => 
       // hitting a DNS hiccup at boot) would otherwise leave the channel permanently
       // dead until manual restart. Retry only on NetworkError so misconfigs (bad
       // tokens, etc.) still fail fast.
-      let attempt = 0;
-      while (true) {
-        try {
-          await adapter.setup(setup);
-          break;
-        } catch (err) {
-          if (isNetworkError(err) && attempt < SETUP_RETRY_DELAYS_MS.length) {
-            const delay = SETUP_RETRY_DELAYS_MS[attempt]!;
-            log.warn('Channel adapter setup failed with network error, retrying', {
-              channel: name,
-              attempt: attempt + 1,
-              delayMs: delay,
-              err: err.message,
-            });
-            await sleep(delay);
-            attempt += 1;
-            continue;
-          }
-          throw err;
-        }
-      }
+      await retryOnNetworkError(() => adapter.setup(setup), {
+        delays: SETUP_RETRY_DELAYS_MS,
+        onRetry: ({ attempt, delayMs, errMessage }) => {
+          log.warn('Channel adapter setup failed with network error, retrying', {
+            channel: name,
+            attempt,
+            delayMs,
+            err: errMessage,
+          });
+        },
+      });
       // Adapters key by instance (default instance = channelType), so N
       // instances of one platform coexist. Duplicate keys warn instead of
       // throwing — boot stays resilient, matching the historical silent
@@ -344,27 +326,17 @@ export async function startChannelAdapter(key: string): Promise<'started' | 'alr
   const adapter = await registration.factory();
   if (!adapter) return 'no-credentials';
   const setup = hotStartSetupFn(adapter);
-  let attempt = 0;
-  while (true) {
-    try {
-      await adapter.setup(setup);
-      break;
-    } catch (err) {
-      if (isNetworkError(err) && attempt < SETUP_RETRY_DELAYS_MS.length) {
-        const delay = SETUP_RETRY_DELAYS_MS[attempt]!;
-        log.warn('Hot-start adapter setup failed with network error, retrying', {
-          channel: key,
-          attempt: attempt + 1,
-          delayMs: delay,
-          err: err.message,
-        });
-        await sleep(delay);
-        attempt += 1;
-        continue;
-      }
-      throw err;
-    }
-  }
+  await retryOnNetworkError(() => adapter.setup(setup), {
+    delays: SETUP_RETRY_DELAYS_MS,
+    onRetry: ({ attempt, delayMs, errMessage }) => {
+      log.warn('Hot-start adapter setup failed with network error, retrying', {
+        channel: key,
+        attempt,
+        delayMs,
+        err: errMessage,
+      });
+    },
+  });
   const activeKey = adapter.instance ?? adapter.channelType;
   if (activeAdapters.has(activeKey)) {
     log.warn('Duplicate adapter instance key — overwriting previous adapter', { key: activeKey, channel: key });

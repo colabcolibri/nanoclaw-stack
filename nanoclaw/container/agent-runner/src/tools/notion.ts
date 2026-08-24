@@ -40,6 +40,18 @@ async function getNotionToken(cwd: string): Promise<{ apiKey: string; defaultDat
   return null;
 }
 
+export interface NotionToolArgs {
+  action: 'create_page' | 'create_database' | 'update_database' | 'update_page' | 'search' | 'query_database' | 'append_content' | 'get_page';
+  title?: string;
+  parent_id?: string;
+  database_id?: string;
+  page_id?: string;
+  query?: string;
+  content?: string;
+  properties?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export const notionTool: AgentTool = {
   domain: 'notion_management',
   definition: {
@@ -88,7 +100,7 @@ export const notionTool: AgentTool = {
       },
     },
   },
-  execute: async (args: any, cwd: string): Promise<string> => {
+  execute: async (args: NotionToolArgs, cwd: string): Promise<string> => {
     const auth = await getNotionToken(cwd);
     if (!auth || !auth.apiKey) {
       return JSON.stringify({

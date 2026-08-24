@@ -1,5 +1,6 @@
 import type { PendingApproval, PendingQuestion, Session } from '../types.js';
 import { getDb, hasTable } from './connection.js';
+import { sqlRow } from './sqlite-compat.js';
 
 // ── Sessions ──
 
@@ -11,7 +12,7 @@ export function createSession(session: Session): void {
       `INSERT INTO sessions (id, agent_group_id, messaging_group_id, thread_id, conversation_id, agent_provider, status, container_status, last_active, archived_at, created_at)
        VALUES (@id, @agent_group_id, @messaging_group_id, @thread_id, @conversation_id, @agent_provider, @status, @container_status, @last_active, @archived_at, @created_at)`,
     )
-    .run(session);
+    .run(sqlRow(session));
 }
 
 export function getSession(id: string): Session | undefined {
@@ -137,7 +138,7 @@ export function updateSession(
 
   getDb()
     .prepare(`UPDATE sessions SET ${fields.join(', ')} WHERE id = @id`)
-    .run(values);
+    .run(sqlRow(values));
 }
 
 export function deleteSession(id: string): void {

@@ -30,6 +30,18 @@ function getYampiCreds(cwd: string): YampiCreds | null {
   return null;
 }
 
+export interface YampiToolArgs {
+  action?: string;
+  query?: string;
+  product_id?: string;
+  requested_quantity?: number;
+  order_number?: string;
+  client_email?: string;
+  status?: string;
+  limit?: number;
+  [key: string]: unknown;
+}
+
 export const yampiTool: AgentTool = {
   domain: 'ecommerce_logistics',
   definition: {
@@ -88,7 +100,7 @@ export const yampiTool: AgentTool = {
       },
     },
   },
-  execute: async (args: any, cwd: string): Promise<string> => {
+  execute: async (args: YampiToolArgs, cwd: string): Promise<string> => {
     const creds = getYampiCreds(cwd);
     if (!creds) {
       return JSON.stringify({

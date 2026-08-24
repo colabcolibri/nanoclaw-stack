@@ -20,6 +20,10 @@ export const CONFIG = {
   DEFAULT_GROUP_FOLDER: defaultGroupFolder,
   /** URL pública do painel — usada em mensagens de erro do agente e OAuth quando necessário. */
   UI_PUBLIC_URL: requireEnv("UI_PUBLIC_URL"),
+  /** Cookie de sessão recebe `Secure` quando o painel é servido via HTTPS (produção atrás do Traefik). */
+  get COOKIE_SECURE() {
+    return this.UI_PUBLIC_URL.startsWith("https://");
+  },
   /** URL do motor Node (webhooks + sync turns do app Mac). Obrigatório em ui/.env */
   NANOCLAW_MOTOR_URL: requireEnv("NANOCLAW_MOTOR_URL").replace(/\/$/, ""),
   get GROUPS_PATH() {

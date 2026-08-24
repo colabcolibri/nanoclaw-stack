@@ -1,10 +1,5 @@
 import type { Session } from '../types.js';
-import type {
-  CallerContext,
-  ConversationMessage,
-  DeliveryAddress,
-  SummarizeMessagesFn,
-} from './types.js';
+import type { CallerContext, ConversationMessage, DeliveryAddress, SummarizeMessagesFn } from './types.js';
 
 /**
  * Pluggable persistence layer for conversation lifecycle + slash-command acks.
@@ -15,11 +10,7 @@ export interface ConversationBackend {
   archiveSession(session: Session): void;
   forgetSoft(agentGroupId: string, sessionId: string): void;
   createConversationSession(ctx: CallerContext, opts?: { conversationId?: string }): Session;
-  startNewConversation(
-    ctx: CallerContext,
-    current: Session,
-    opts?: { handoffText?: string },
-  ): Session;
+  startNewConversation(ctx: CallerContext, current: Session, opts?: { handoffText?: string }): Session;
   startNewConversationWithResume(
     ctx: CallerContext,
     current: Session,
@@ -29,10 +20,5 @@ export interface ConversationBackend {
   initSessionFolder(agentGroupId: string, sessionId: string): void;
   inboundDbPath(agentGroupId: string, sessionId: string): string;
   outboundDbPath(agentGroupId: string, sessionId: string): string;
-  writeCommandAck(
-    agentGroupId: string,
-    sessionId: string,
-    delivery: DeliveryAddress,
-    text: string,
-  ): void;
+  writeCommandAck(agentGroupId: string, sessionId: string, delivery: DeliveryAddress, text: string): void;
 }

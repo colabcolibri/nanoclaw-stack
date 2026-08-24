@@ -480,7 +480,9 @@ function selectedSkillNames(
         if (fs.statSync(path.join(sharedSkillsDir, e)).isDirectory()) {
           skills.add(e);
         }
-      } catch {}
+      } catch {
+        // entrada ignorada: não é diretório de skill válido
+      }
     }
   }
 
@@ -493,7 +495,9 @@ function selectedSkillNames(
           if (fs.statSync(path.join(groupSkillsDir, e)).isDirectory()) {
             skills.add(e);
           }
-        } catch {}
+        } catch {
+          // entrada ignorada: não é diretório de skill válido
+        }
       }
     }
   }

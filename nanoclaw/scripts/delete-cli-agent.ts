@@ -16,6 +16,7 @@ import { DATA_DIR } from '../src/config.js';
 import { getAgentGroupByFolder, deleteAgentGroup } from '../src/db/agent-groups.js';
 import { initDb } from '../src/db/connection.js';
 import { runMigrations } from '../src/db/migrations/index.js';
+import { runSqliteTransaction } from '../src/db/sqlite-compat.js';
 
 interface Args {
   folder: string;
@@ -45,7 +46,7 @@ if (!ag) {
   process.exit(0);
 }
 
-const cleanup = db.transaction(() => {
+runSqliteTransaction(db, () => {
   const tables = db
     .prepare(
       `SELECT DISTINCT m.name FROM sqlite_master m
@@ -58,7 +59,6 @@ const cleanup = db.transaction(() => {
   }
   deleteAgentGroup(ag.id);
 });
-cleanup();
 
 // Remove the groups/<folder>/ directory.
 const groupDir = path.join(process.cwd(), 'groups', args.folder);

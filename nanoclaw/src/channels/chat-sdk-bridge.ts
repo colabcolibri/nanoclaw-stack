@@ -14,6 +14,7 @@ import {
   Button,
   LinkButton,
   type Adapter,
+  type CardElement,
   type ConcurrencyStrategy,
   type Message as ChatMessage,
   type SlashCommandEvent,
@@ -45,8 +46,7 @@ export function slashCommandToInbound(event: SlashCommandEvent): InboundMessage 
     raw?.message_id !== undefined && chatInfo?.id !== undefined
       ? `${chatInfo.id}:${raw.message_id}`
       : `slash-${Date.now()}`;
-  const timestamp =
-    raw?.date !== undefined ? new Date(raw.date * 1000).toISOString() : new Date().toISOString();
+  const timestamp = raw?.date !== undefined ? new Date(raw.date * 1000).toISOString() : new Date().toISOString();
   const author = event.user;
   const name = author.fullName ?? author.userName;
   return {
@@ -142,7 +142,10 @@ export function appContextEntities(event: {
   if (!ctx) return [];
   if (Array.isArray(ctx.entities)) {
     return ctx.entities
-      .filter((entity): entity is { type: string; id: string } => typeof entity.type === 'string' && typeof entity.id === 'string')
+      .filter(
+        (entity): entity is { type: string; id: string } =>
+          typeof entity.type === 'string' && typeof entity.id === 'string',
+      )
       .map((entity) => ({ type: entity.type, id: entity.id }));
   }
   if (ctx.channelId) return [{ type: 'channel', id: ctx.channelId }];
@@ -350,9 +353,10 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
             entry.data = buffer.toString('base64');
 
             // Automatic speech-to-text via local Whisper service if audio attachment
+            // ('voice' não existe em todas as versões do Chat SDK — checagem defensiva)
             const isAudio =
               att.type === 'audio' ||
-              att.type === 'voice' ||
+              (att.type as string) === 'voice' ||
               (typeof att.mimeType === 'string' && att.mimeType.startsWith('audio/'));
 
             if (isAudio && buffer.length > 0) {
@@ -558,10 +562,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
             await adapter.editMessage(tid, event.messageId, {
               card: Card({
                 title: render.title ?? title,
-                children: [
-                  CardText(render.question),
-                  CardText(resolution, { style: 'muted' }),
-                ],
+                children: [CardText(render.question), CardText(resolution, { style: 'muted' })],
               }),
             });
           } else {
@@ -706,7 +707,8 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         if (!hasDisplayCardBody(cardInput)) return;
         const card = buildDisplayCard(cardInput);
         const result = await adapter.postMessage(tid, {
-          card,
+          // buildDisplayCard produz um ChatElement; o SDK tipa postMessage com CardElement.
+          card: card as unknown as CardElement,
           fallbackText: (content.fallbackText as string) || cardInput.title || '',
         });
         return result?.id;

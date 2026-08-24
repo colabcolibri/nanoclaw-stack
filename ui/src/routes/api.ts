@@ -3,6 +3,7 @@ import path from "node:path";
 import { CONFIG } from "../config.js";
 import { AuthService } from "../auth/service.js";
 import { TokenManager } from "../auth/token.js";
+import { RateLimiter, clientIpFromRequest } from "../auth/rate-limit.js";
 import { GroupManager } from "../services/groups.js";
 import { DatabaseService } from "../services/db.js";
 import { SystemService } from "../services/system.js";
@@ -15,6 +16,7 @@ import {
   isValidPurgeConfirmation,
   purgeChatAndCosts,
 } from "../services/maintenance.js";
+import { sanitizeGroupFolder } from "../services/group-folder.js";
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   const list: Record<string, string> = {};
@@ -40,8 +42,26 @@ function requireRequestHost(req: Request): string {
 
 function resolveGroupFolder(param: string | null | undefined): string {
   const trimmed = param?.trim();
-  if (trimmed) return trimmed;
+  if (trimmed) return sanitizeGroupFolder(trimmed);
   return CONFIG.DEFAULT_GROUP_FOLDER;
+}
+
+// Rate limits para as rotas públicas de autenticação (anti brute-force / spam de e-mail).
+const OTP_SEND_LIMIT = { limit: 5, windowMs: 60 * 60 * 1000 }; // 5 por hora por IP
+const OTP_VERIFY_LIMIT = { limit: 15, windowMs: 15 * 60 * 1000 }; // 15 por 15 min por IP
+
+function otpRateLimitResponse(req: Request, bucket: "send" | "verify"): Response | null {
+  const config = bucket === "send" ? OTP_SEND_LIMIT : OTP_VERIFY_LIMIT;
+  const { allowed, retryAfterSeconds } = RateLimiter.check(
+    `${bucket}:${clientIpFromRequest(req)}`,
+    config,
+  );
+  if (allowed) return null;
+  return jsonResponse(
+    { error: `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.` },
+    429,
+    { "Retry-After": String(retryAfterSeconds) },
+  );
 }
 
 function parseOffset(value: string | null | undefined): number {
@@ -70,6 +90,9 @@ export class ApiRouter {
 
     // --- PUBLIC AUTH ROUTES ---
     if (url.pathname === "/api/auth/send-code" && method === "POST") {
+      const limited = otpRateLimitResponse(req, "send");
+      if (limited) return limited;
+
       const body = (await req.json().catch(() => ({}))) as { email?: string };
       const email = body.email?.trim().toLowerCase();
       if (!email || !email.includes("@")) return jsonResponse({ error: "E-mail inválido." }, 400);
@@ -83,6 +106,9 @@ export class ApiRouter {
     }
 
     if (url.pathname === "/api/auth/verify-code" && method === "POST") {
+      const limited = otpRateLimitResponse(req, "verify");
+      if (limited) return limited;
+
       const body = (await req.json().catch(() => ({}))) as { email?: string; code?: string };
       const email = body.email?.trim().toLowerCase();
       const code = body.code?.trim();
@@ -92,9 +118,7 @@ export class ApiRouter {
       if (!check.valid) return jsonResponse({ error: check.reason || "Código inválido." }, 400);
 
       const token = TokenManager.create(email);
-      const cookie = `${CONFIG.COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
-        CONFIG.SESSION_MAX_AGE_DAYS * 24 * 60 * 60
-      }`;
+      const cookie = TokenManager.buildSetCookie(token, CONFIG.SESSION_MAX_AGE_DAYS * 24 * 60 * 60);
       return jsonResponse({ success: true, user: { email } }, 200, { "Set-Cookie": cookie });
     }
 
@@ -107,7 +131,7 @@ export class ApiRouter {
     }
 
     if (url.pathname === "/api/auth/logout" && method === "POST") {
-      const expiredCookie = `${CONFIG.COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+      const expiredCookie = TokenManager.buildSetCookie("", 0);
       return jsonResponse({ success: true }, 200, { "Set-Cookie": expiredCookie });
     }
 
@@ -388,11 +412,11 @@ export class ApiRouter {
 
     if (url.pathname === "/api/integrations/google/callback" && method === "GET") {
       const code = url.searchParams.get("code");
-      const folder = resolveGroupFolder(url.searchParams.get("state"));
+      const state = url.searchParams.get("state");
       if (!code) {
         return new Response("Código de autorização ausente", { status: 400 });
       }
-      const res = await GoogleAuthService.handleCallback(code, folder);
+      const res = await GoogleAuthService.handleCallback(code, state);
       if (res.success) {
         return Response.redirect(`${CONFIG.UI_PUBLIC_URL.replace(/\/+$/, "")}/#mcps?google_auth=success`, 302);
       } else {

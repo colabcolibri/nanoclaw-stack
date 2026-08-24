@@ -12,7 +12,7 @@ import { buildAgentGroupImage, killContainer, wakeContainer } from '../../contai
 import { restartAgentGroupContainers } from '../../container-restart.js';
 import { createAgentGroup, getAgentGroupByFolder } from '../../db/agent-groups.js';
 import { getDb, hasTable } from '../../db/connection.js';
-import { sqliteChanges, runSqliteTransaction } from '../../db/sqlite-compat.js';
+import { runSqliteTransaction, sqlParams, sqliteChanges } from '../../db/sqlite-compat.js';
 import { getSession } from '../../db/sessions.js';
 import { writeSessionMessage } from '../../session-manager.js';
 import {
@@ -222,67 +222,74 @@ registerResource({
         // we missed), so the central DB stays consistent. The `removed` counts
         // are sourced from each DELETE's `changes` so they describe exactly
         // what the transaction did, not a separate pre-flight snapshot.
-        const removed = runSqliteTransaction(db, (groupId: string) => {
-          const deleteCount = (sql: string, ...params: unknown[]) =>
-            sqliteChanges(db.prepare(sql).run(...params));
+        const removed = runSqliteTransaction(
+          db,
+          (groupId: string) => {
+            const deleteCount = (sql: string, ...params: unknown[]) =>
+              sqliteChanges(db.prepare(sql).run(...sqlParams(params)));
 
-          const counts = {
-            sessions: 0,
-            pending_questions: 0,
-            pending_approvals: 0,
-            agent_destinations_owned: 0,
-            agent_destinations_pointing: 0,
-            pending_sender_approvals: 0,
-            pending_channel_approvals: 0,
-            messaging_group_agents: 0,
-            agent_group_members: 0,
-            user_roles: 0,
-            container_configs: 0,
-          };
+            const counts = {
+              sessions: 0,
+              pending_questions: 0,
+              pending_approvals: 0,
+              agent_destinations_owned: 0,
+              agent_destinations_pointing: 0,
+              pending_sender_approvals: 0,
+              pending_channel_approvals: 0,
+              messaging_group_agents: 0,
+              agent_group_members: 0,
+              user_roles: 0,
+              container_configs: 0,
+            };
 
-          if (hasAgentDestinations) {
-            counts.agent_destinations_owned = deleteCount(
-              'DELETE FROM agent_destinations WHERE agent_group_id = ?',
+            if (hasAgentDestinations) {
+              counts.agent_destinations_owned = deleteCount(
+                'DELETE FROM agent_destinations WHERE agent_group_id = ?',
+                groupId,
+              );
+              counts.agent_destinations_pointing = deleteCount(
+                'DELETE FROM agent_destinations WHERE target_type = ? AND target_id = ?',
+                'agent',
+                groupId,
+              );
+            }
+            counts.pending_questions = deleteCount(
+              'DELETE FROM pending_questions WHERE session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
               groupId,
             );
-            counts.agent_destinations_pointing = deleteCount(
-              'DELETE FROM agent_destinations WHERE target_type = ? AND target_id = ?',
-              'agent',
+            if (hasPendingApprovals) {
+              counts.pending_approvals = deleteCount(
+                'DELETE FROM pending_approvals WHERE agent_group_id = ? OR session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
+                groupId,
+                groupId,
+              );
+            }
+            counts.sessions = deleteCount('DELETE FROM sessions WHERE agent_group_id = ?', groupId);
+            counts.pending_sender_approvals = deleteCount(
+              'DELETE FROM pending_sender_approvals WHERE agent_group_id = ?',
               groupId,
             );
-          }
-          counts.pending_questions = deleteCount(
-            'DELETE FROM pending_questions WHERE session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
-            groupId,
-          );
-          if (hasPendingApprovals) {
-            counts.pending_approvals = deleteCount(
-              'DELETE FROM pending_approvals WHERE agent_group_id = ? OR session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
-              groupId,
+            counts.pending_channel_approvals = deleteCount(
+              'DELETE FROM pending_channel_approvals WHERE agent_group_id = ?',
               groupId,
             );
-          }
-          counts.sessions = deleteCount('DELETE FROM sessions WHERE agent_group_id = ?', groupId);
-          counts.pending_sender_approvals = deleteCount(
-            'DELETE FROM pending_sender_approvals WHERE agent_group_id = ?',
-            groupId,
-          );
-          counts.pending_channel_approvals = deleteCount(
-            'DELETE FROM pending_channel_approvals WHERE agent_group_id = ?',
-            groupId,
-          );
-          counts.messaging_group_agents = deleteCount(
-            'DELETE FROM messaging_group_agents WHERE agent_group_id = ?',
-            groupId,
-          );
-          counts.agent_group_members = deleteCount('DELETE FROM agent_group_members WHERE agent_group_id = ?', groupId);
-          counts.user_roles = deleteCount('DELETE FROM user_roles WHERE agent_group_id = ?', groupId);
-          // migration-014 has ON DELETE CASCADE on container_configs.agent_group_id;
-          // the explicit delete here mirrors the other tables and surfaces the count.
-          counts.container_configs = deleteCount('DELETE FROM container_configs WHERE agent_group_id = ?', groupId);
-          db.prepare('DELETE FROM agent_groups WHERE id = ?').run(groupId);
-          return counts;
-        }, id);
+            counts.messaging_group_agents = deleteCount(
+              'DELETE FROM messaging_group_agents WHERE agent_group_id = ?',
+              groupId,
+            );
+            counts.agent_group_members = deleteCount(
+              'DELETE FROM agent_group_members WHERE agent_group_id = ?',
+              groupId,
+            );
+            counts.user_roles = deleteCount('DELETE FROM user_roles WHERE agent_group_id = ?', groupId);
+            // migration-014 has ON DELETE CASCADE on container_configs.agent_group_id;
+            // the explicit delete here mirrors the other tables and surfaces the count.
+            counts.container_configs = deleteCount('DELETE FROM container_configs WHERE agent_group_id = ?', groupId);
+            db.prepare('DELETE FROM agent_groups WHERE id = ?').run(groupId);
+            return counts;
+          },
+          id,
+        );
 
         return { deleted: id, removed };
       },

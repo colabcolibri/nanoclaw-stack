@@ -15,6 +15,7 @@ import {
   normalizeName,
 } from '../modules/agent-to-agent/db/agent-destinations.js';
 import { getDb, hasTable } from './connection.js';
+import { sqlRow } from './sqlite-compat.js';
 
 // ── Messaging Groups ──
 
@@ -131,7 +132,7 @@ export function updateMessagingGroup(
 
   getDb()
     .prepare(`UPDATE messaging_groups SET ${fields.join(', ')} WHERE id = @id`)
-    .run(values);
+    .run(sqlRow(values));
 }
 
 export function deleteMessagingGroup(id: string): void {
@@ -181,7 +182,7 @@ export function createMessagingGroupAgent(mga: MessagingGroupAgent): void {
          @session_mode, @priority, @created_at
        )`,
     )
-    .run(mga);
+    .run(sqlRow(mga));
 
   ensureAgentDestinationForWiring(mga);
 }
@@ -282,7 +283,7 @@ export function updateMessagingGroupAgent(
 
   getDb()
     .prepare(`UPDATE messaging_group_agents SET ${fields.join(', ')} WHERE id = @id`)
-    .run(values);
+    .run(sqlRow(values));
 }
 
 export function deleteMessagingGroupAgent(id: string): void {

@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import type { SQLQueryBindings } from "bun:sqlite";
 import { openRunsIndexDb } from "./db.js";
 import { emptyKindCounts, incrementKindCount } from "./kind.js";
 import type {
@@ -62,7 +63,7 @@ function countFiltered(
   searchPattern: string | null,
 ): number {
   const clauses: string[] = [];
-  const params: unknown[] = [];
+  const params: SQLQueryBindings[] = [];
 
   if (kind !== "all") {
     clauses.push("kind = ?");
@@ -95,7 +96,7 @@ export function queryRunsFeedFromIndex(raw: RunsFeedQuery = {}): RunsFeedRespons
     const total = countFiltered(db, kind, searchPattern);
 
     const clauses: string[] = [];
-    const params: unknown[] = [];
+    const params: SQLQueryBindings[] = [];
 
     if (kind !== "all") {
       clauses.push("kind = ?");

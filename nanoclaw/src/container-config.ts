@@ -14,7 +14,11 @@ import path from 'path';
 import { GROUPS_DIR, TIMEZONE } from './config.js';
 import { getContainerConfig } from './db/container-configs.js';
 import { getAgentGroup } from './db/agent-groups.js';
-import { readMaterializedLlmRegistry, materializeLlmModelsJson, type MaterializedLlmRegistry } from './llm-models-materialize.js';
+import {
+  readMaterializedLlmRegistry,
+  materializeLlmModelsJson,
+  type MaterializedLlmRegistry,
+} from './llm-models-materialize.js';
 import {
   resolveRoleModels,
   type RoleModelRegistry,
@@ -307,7 +311,10 @@ export function parseLocationFields(input: {
   const rawLocation = (input.location ?? '').trim();
 
   if (!city && !country && rawLocation) {
-    const parts = rawLocation.split(',').map((part) => part.trim()).filter(Boolean);
+    const parts = rawLocation
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
     if (parts.length >= 2) {
       city = parts[0];
       country = parts.slice(1).join(', ');

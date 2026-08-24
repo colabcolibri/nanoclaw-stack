@@ -40,4 +40,16 @@ export class TokenManager {
       return null;
     }
   }
+
+  static buildSetCookie(value: string, maxAgeSeconds: number): string {
+    const flags = [
+      `${CONFIG.COOKIE_NAME}=${encodeURIComponent(value)}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Lax",
+      `Max-Age=${maxAgeSeconds}`,
+    ];
+    if (CONFIG.COOKIE_SECURE) flags.push("Secure");
+    return flags.join("; ");
+  }
 }

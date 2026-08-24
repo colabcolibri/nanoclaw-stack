@@ -1,5 +1,6 @@
 import type { AgentGroup } from '../types.js';
 import { getDb } from './connection.js';
+import { sqlRow } from './sqlite-compat.js';
 
 export function createAgentGroup(group: AgentGroup): void {
   getDb()
@@ -7,7 +8,7 @@ export function createAgentGroup(group: AgentGroup): void {
       `INSERT INTO agent_groups (id, name, folder, agent_provider, created_at)
        VALUES (@id, @name, @folder, @agent_provider, @created_at)`,
     )
-    .run(group);
+    .run(sqlRow(group));
 }
 
 export function getAgentGroup(id: string): AgentGroup | undefined {
@@ -36,7 +37,7 @@ export function updateAgentGroup(id: string, updates: Partial<Pick<AgentGroup, '
 
   getDb()
     .prepare(`UPDATE agent_groups SET ${fields.join(', ')} WHERE id = @id`)
-    .run(values);
+    .run(sqlRow(values));
 }
 
 export function deleteAgentGroup(id: string): void {

@@ -1,5 +1,18 @@
 http:
   routers:
+    # Router dedicado às rotas públicas de autenticação com rate limit
+    # (anti brute-force de OTP / spam de e-mail). Prioridade maior que o router geral.
+    nanoclaw-uai-auth-router:
+      rule: "Host(`uai.sergioluciano.com`) && PathPrefix(`/api/auth`)"
+      entryPoints:
+        - websecure
+      service: nanoclaw-uai-service
+      middlewares:
+        - auth-rate-limit
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
     nanoclaw-uai-router:
       rule: "Host(`uai.sergioluciano.com`)"
       entryPoints:
@@ -7,6 +20,14 @@ http:
       service: nanoclaw-uai-service
       tls:
         certResolver: letsencrypt
+
+  middlewares:
+    auth-rate-limit:
+      rateLimit:
+        # Token bucket: média 10 req/min, rajada máxima de 20.
+        average: 10
+        period: 1m
+        burst: 20
 
   services:
     nanoclaw-uai-service:

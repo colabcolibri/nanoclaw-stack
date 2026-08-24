@@ -1,4 +1,5 @@
 import { getDb } from './connection.js';
+import type { InferenceParams } from '../inference-params.js';
 
 export interface LlmProviderRow {
   id: string;
@@ -52,7 +53,7 @@ export interface LlmModelInput {
   savingsPct?: number;
   sortOrder?: number;
   isActive?: boolean;
-  inferenceParams?: Record<string, unknown>;
+  inferenceParams?: InferenceParams | Record<string, unknown>;
 }
 
 export interface LlmProviderInput {
@@ -64,7 +65,7 @@ export interface LlmProviderInput {
   baseUrlEnvName?: string;
   defaultModelId?: string;
   protocol?: string;
-  defaultParams?: Record<string, unknown>;
+  defaultParams?: InferenceParams | Record<string, unknown>;
   sortOrder?: number;
   isActive?: boolean;
 }
@@ -184,7 +185,10 @@ export function upsertLlmModel(input: LlmModelInput): void {
 
 export function updateLlmModelPricing(
   id: string,
-  pricing: Pick<LlmModelInput, 'inputPerMillion' | 'outputPerMillion' | 'cacheWritePerMillion' | 'cacheHitPerMillion' | 'savingsPct'>,
+  pricing: Pick<
+    LlmModelInput,
+    'inputPerMillion' | 'outputPerMillion' | 'cacheWritePerMillion' | 'cacheHitPerMillion' | 'savingsPct'
+  >,
 ): void {
   getDb()
     .prepare(

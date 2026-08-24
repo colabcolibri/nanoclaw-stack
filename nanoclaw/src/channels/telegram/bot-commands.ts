@@ -7,10 +7,7 @@
 import { getTelegramBotCommands } from '../../commands/index.js';
 import { log } from '../../log.js';
 
-export async function registerTelegramBotCommands(
-  token: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<boolean> {
+export async function registerTelegramBotCommands(token: string, fetchFn: typeof fetch = fetch): Promise<boolean> {
   const commands = getTelegramBotCommands();
   if (commands.length === 0) return true;
 

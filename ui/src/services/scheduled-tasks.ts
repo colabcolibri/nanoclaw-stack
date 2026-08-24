@@ -86,12 +86,12 @@ function seriesStats(db: Database, seriesKey: string): { runs: number; lastRun: 
     .query(
       `SELECT
          COUNT(*) FILTER (WHERE status = 'completed') AS runs,
-         MAX(process_after) FILTER (WHERE status = 'completed') AS last_run,
-         COUNT(*) FILTER (WHERE status = 'failed') AS failed_runs
+         MAX(process_after) FILTER (WHERE status = 'completed') AS "lastRun",
+         COUNT(*) FILTER (WHERE status = 'failed') AS "failedRuns"
        FROM messages_in
       WHERE kind = 'task' AND (id = ? OR series_id = ?)`,
     )
-    .get(seriesKey, seriesKey) as { runs: number; last_run: string | null; failed_runs: number };
+    .get(seriesKey, seriesKey) as { runs: number; lastRun: string | null; failedRuns: number };
 }
 
 function selectLiveTasks(db: Database): TaskRow[] {
@@ -169,8 +169,8 @@ function toTaskItem(
     prompt: content.prompt,
     cleanPrompt: content.prompt,
     runs: stats.runs,
-    failedRuns: stats.failed_runs,
-    lastRun: stats.last_run,
+    failedRuns: stats.failedRuns,
+    lastRun: stats.lastRun,
     hasScript: Boolean(content.script),
     channelType: meta.folder,
     kind: isRecurring ? "Rotina periódica (ncl tasks)" : "Tarefa agendada (ncl tasks)",

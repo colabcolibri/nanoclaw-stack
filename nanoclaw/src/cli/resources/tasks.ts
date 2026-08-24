@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import type { SqliteDatabase } from '../db/sqlite-compat.js';
+import type { SqliteDatabase } from '../../db/sqlite-compat.js';
 
 import { GROUPS_DIR, TIMEZONE } from '../../config.js';
 import { resolveGroupTimezone } from '../../container-config.js';
@@ -300,11 +300,7 @@ function getTask(args: Record<string, unknown>, ctx: CallerContext) {
   throw new Error(`task not found: ${id}`);
 }
 
-function mutateTask(
-  args: Record<string, unknown>,
-  ctx: CallerContext,
-  fn: (db: SqliteDatabase, id: string) => number,
-) {
+function mutateTask(args: Record<string, unknown>, ctx: CallerContext, fn: (db: SqliteDatabase, id: string) => number) {
   const id = taskId(args);
   let touched = 0;
   for (const session of selectedSessions(args, ctx)) {

@@ -7,6 +7,7 @@ import type { ToolDefinition } from '../tools/types.js';
 import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
 import { parseInferenceParamsYamlBlock } from '../inference-params.js';
 import { SkillsManager } from '../services/skills-manager.js';
+import { asStringArray, attrBool, attrString, parseFrontmatter } from '../services/frontmatter.js';
 
 const REPO_CONTAINER_AGENTS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -38,38 +39,46 @@ export class AgentRegistry {
   static initializeDefaults(): void {
     this.departments.clear();
     this.agents.clear();
+    this.loadDefaultDepartments();
+  }
 
-    // 1. Productivity & Communication Department
-    this.registerDepartment({
-      id: 'productivity',
-      name: 'Productivity & Communication',
-      description: 'Calendars, Gmail, Notion notes/databases, appointments, and scheduling.',
-      agentIds: ['productivity_attendant', 'notion_architect'],
-    });
+  /**
+   * Departamentos default vêm de `departments.json` (data, não código) —
+   * mesma filosofia AGENT.md-as-data. Primeiro diretório encontrado ganha.
+   */
+  private static loadDefaultDepartments(): void {
+    const candidateDirs = [
+      '/app/agents',
+      path.join(CONTAINER_AGENT_DIR, 'agents'),
+      REPO_CONTAINER_AGENTS_DIR,
+      path.join(process.cwd(), 'agents'),
+      path.join(process.cwd(), 'container', 'agents'),
+    ];
 
-    // 2. Commerce & Logistics Department
-    this.registerDepartment({
-      id: 'commerce',
-      name: 'Commerce, Logistics & Resale',
-      description: 'Yampi store orders, wholesale/resale pricing, and Correios shipping estimates.',
-      agentIds: ['store_attendant', 'pricing_logistics_agent'],
-    });
-
-    // 3. Research & Intelligence Department
-    this.registerDepartment({
-      id: 'research_intel',
-      name: 'Research, Intelligence & Web',
-      description: 'Live web search, URL browsing, and token/cost metrics monitoring.',
-      agentIds: ['web_researcher', 'system_metrics_agent'],
-    });
-
-    // 4. General / Operations Department
-    this.registerDepartment({
-      id: 'operations',
-      name: 'Operations & System',
-      description: 'Filesystem operations, infrastructure commands, and shared memory.',
-      agentIds: ['system_operator'],
-    });
+    for (const baseDir of candidateDirs) {
+      const filePath = path.join(baseDir, 'departments.json');
+      if (!fs.existsSync(filePath)) continue;
+      try {
+        const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
+          departments?: Array<{ id?: string; name?: string; description?: string; agentIds?: string[] }>;
+        };
+        for (const seed of raw.departments ?? []) {
+          if (!seed?.id) continue;
+          this.registerDepartment({
+            id: seed.id,
+            name: seed.name || seed.id.toUpperCase(),
+            description: seed.description || '',
+            agentIds: Array.isArray(seed.agentIds) ? [...seed.agentIds] : [],
+          });
+        }
+        return;
+      } catch (err) {
+        console.warn(
+          `[agent-registry] Falha ao carregar ${filePath}:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
   }
 
   /**
@@ -121,75 +130,51 @@ export class AgentRegistry {
 
   /**
    * Parses an AGENT.md file with YAML frontmatter + prompt body.
+   * Returns null when the file has no frontmatter or fails to parse (logged).
    */
   static parseAgentFile(filePath: string): SpecialistAgent | null {
+    let doc: ReturnType<typeof parseFrontmatter>;
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
-      const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-
-      if (!frontmatterMatch) {
-        return null;
-      }
-
-      const rawYaml = frontmatterMatch[1];
-      const body = frontmatterMatch[2].trim();
-
-      const parseYamlField = (fieldName: string): string | undefined => {
-        const m = rawYaml.match(new RegExp(`^${fieldName}:\\s*(.+)$`, 'm'));
-        return m ? m[1].trim().replace(/^['"]|['"]$/g, '') : undefined;
-      };
-
-      const id = parseYamlField('id') || path.basename(path.dirname(filePath));
-      const name = parseYamlField('name') || id;
-      const departmentId = parseYamlField('department') || parseYamlField('departmentId') || 'general';
-      const role = parseYamlField('role') || 'Specialist agent';
-      const description = parseYamlField('description') || role;
-      const model = parseYamlField('model');
-      const executionProfile = parseYamlField('execution_profile');
-      const allowGlobalStr = parseYamlField('allow_global_skills');
-      const allowGlobalSkills = allowGlobalStr !== undefined ? allowGlobalStr === 'true' : true;
-      const inferenceParsed = parseInferenceParamsYamlBlock(rawYaml);
-      const inferenceParams =
-        Object.keys(inferenceParsed).length > 0 ? inferenceParsed : undefined;
-
-      // Parse skills list
-      const skills: string[] = [];
-      const skillsSection = rawYaml.match(/skills:\s*\n((?:\s*-\s*.+\n?)+)/);
-      if (skillsSection && skillsSection[1]) {
-        const lines = skillsSection[1].split('\n');
-        for (const line of lines) {
-          const item = line.replace(/^\s*-\s*/, '').trim().replace(/^['"]|['"]$/g, '');
-          if (item) skills.push(item);
-        }
-      }
-
-      const capabilities: import('../execution/types.js').AgentCapability[] = [];
-      const capabilitiesSection = rawYaml.match(/capabilities:\s*\n((?:\s*-\s*.+\n?)+)/);
-      if (capabilitiesSection && capabilitiesSection[1]) {
-        const lines = capabilitiesSection[1].split('\n');
-        for (const line of lines) {
-          const item = line.replace(/^\s*-\s*/, '').trim().replace(/^['"]|['"]$/g, '');
-          if (item) capabilities.push(item as import('../execution/types.js').AgentCapability);
-        }
-      }
-
-      return {
-        id,
-        name,
-        departmentId,
-        role,
-        description,
-        systemPrompt: body,
-        agentSkills: skills,
-        allowGlobalSkills,
-        model,
-        inferenceParams,
-        executionProfile,
-        capabilities: capabilities.length > 0 ? capabilities : undefined,
-      };
-    } catch {
+      doc = parseFrontmatter(content);
+    } catch (err) {
+      console.warn(`[agent-registry] Falha ao parsear ${filePath}:`, err instanceof Error ? err.message : err);
       return null;
     }
+    if (!doc) return null;
+
+    const { attrs, rawYaml } = doc;
+    const id = attrString(attrs, 'id') || path.basename(path.dirname(filePath));
+    const name = attrString(attrs, 'name') || id;
+    const departmentId = attrString(attrs, 'department', 'departmentId') || 'general';
+    const role = attrString(attrs, 'role') || 'Specialist agent';
+    const description = attrString(attrs, 'description') || role;
+    const model = attrString(attrs, 'model');
+    const executionProfile = attrString(attrs, 'execution_profile');
+    const allowGlobalSkills = attrBool(attrs, 'allow_global_skills', true);
+    const inferenceParsed = parseInferenceParamsYamlBlock(rawYaml);
+    const inferenceParams =
+      Object.keys(inferenceParsed).length > 0 ? inferenceParsed : undefined;
+
+    const skills = asStringArray(attrs.skills) ?? [];
+    const capabilities = (asStringArray(attrs.capabilities) ?? []).map((c) =>
+      c as import('../execution/types.js').AgentCapability,
+    );
+
+    return {
+      id,
+      name,
+      departmentId,
+      role,
+      description,
+      systemPrompt: doc.body,
+      agentSkills: skills,
+      allowGlobalSkills,
+      model,
+      inferenceParams,
+      executionProfile,
+      capabilities: capabilities.length > 0 ? capabilities : undefined,
+    };
   }
 
   static registerDepartment(dept: Department): void {

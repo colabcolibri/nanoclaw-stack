@@ -1,7 +1,14 @@
 import fs from 'fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { closeDb, createAgentGroup, createMessagingGroup, createSession, initTestDb, runMigrations } from '../db/index.js';
+import {
+  closeDb,
+  createAgentGroup,
+  createMessagingGroup,
+  createSession,
+  initTestDb,
+  runMigrations,
+} from '../db/index.js';
 import { getHistoryCutoff } from './session-state.js';
 import { createNodeConversationBackend } from './backend-node.js';
 import { outboundDbPath } from '../session-manager.js';
@@ -83,9 +90,7 @@ describe('forgetSoft (node conversation backend)', () => {
     const { openSqliteDatabase } = await import('../db/sqlite-compat.js');
     const db = openSqliteDatabase(dbPath);
     try {
-      const cont = db
-        .prepare(`SELECT 1 FROM session_state WHERE key LIKE 'continuation:%' LIMIT 1`)
-        .get();
+      const cont = db.prepare(`SELECT 1 FROM session_state WHERE key LIKE 'continuation:%' LIMIT 1`).get();
       expect(cont).toBeUndefined();
     } finally {
       db.close();

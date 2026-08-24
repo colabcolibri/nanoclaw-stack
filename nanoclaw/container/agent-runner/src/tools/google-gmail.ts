@@ -128,6 +128,40 @@ function formatEmailBody(raw: string): string {
   return cleanedParagraphs.filter(Boolean).join('\n\n');
 }
 
+export interface GmailToolArgs {
+  action?: string;
+  folder?: string;
+  query?: string;
+  max_results?: number;
+  limit?: number;
+  thread_id?: string;
+  threadId?: string;
+  message_id?: string;
+  id?: string;
+  draft_id?: string;
+  draftId?: string;
+  to?: string;
+  subject?: string;
+  body?: string;
+  from_alias?: string;
+  in_reply_to?: string;
+  rfc_message_id?: string;
+  reply_to_message_id?: string;
+  force_approved?: boolean;
+  operator_approved?: boolean;
+  page_token?: string;
+  [key: string]: unknown;
+}
+
+interface GmailHeader {
+  name: string;
+  value?: string;
+}
+
+function gmailHeader(headers: GmailHeader[], name: string): string {
+  return headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+}
+
 export const googleGmailTool: AgentTool = {
   domain: 'google_suite',
   definition: {
@@ -189,7 +223,7 @@ export const googleGmailTool: AgentTool = {
       },
     },
   },
-  execute: async (args: any, cwd: string): Promise<string> => {
+  execute: async (args: GmailToolArgs, cwd: string): Promise<string> => {
     const token = await getGoogleToken(cwd);
     if (!token) {
       return JSON.stringify({
@@ -251,15 +285,14 @@ export const googleGmailTool: AgentTool = {
               const dt = (await detailRes.json()) as any;
               const msg = dt.message || {};
               const headers = msg.payload?.headers || [];
-              const getH = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
               return {
                 draft_id: d.id,
                 message_id: msg.id,
                 thread_id: msg.threadId,
-                to: getH('To'),
-                subject: getH('Subject'),
-                date: getH('Date'),
+                to: gmailHeader(headers, 'To'),
+                subject: gmailHeader(headers, 'Subject'),
+                date: gmailHeader(headers, 'Date'),
                 snippet: msg.snippet || '',
               };
             }
@@ -316,19 +349,18 @@ export const googleGmailTool: AgentTool = {
         const rawMsgs = data.messages;
         const parsedMsgs = rawMsgs.map((m: any, idx: number) => {
           const headers = m.payload?.headers || [];
-          const getH = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-          const fromVal = getH('From');
+          const fromVal = gmailHeader(headers, 'From');
           const isFromMe = userEmail ? fromVal.toLowerCase().includes(userEmail) : Boolean(m.labelIds?.includes('SENT'));
           const body = extractBody(m.payload) || m.snippet || '';
 
           return {
             index: idx + 1,
             messageId: m.id,
-            rfcMessageId: getH('Message-ID'),
+            rfcMessageId: gmailHeader(headers, 'Message-ID'),
             from: fromVal,
-            to: getH('To'),
-            subject: getH('Subject'),
-            date: getH('Date'),
+            to: gmailHeader(headers, 'To'),
+            subject: gmailHeader(headers, 'Subject'),
+            date: gmailHeader(headers, 'Date'),
             snippet: m.snippet,
             isFromMe,
             body: body.slice(0, 3000),
@@ -366,21 +398,20 @@ export const googleGmailTool: AgentTool = {
 
       // Single message fallback
       const headers = data.payload?.headers || [];
-      const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
       const bodyText = extractBody(data.payload) || data.snippet || '';
-      const fromVal = getHeader('From');
+      const fromVal = gmailHeader(headers, 'From');
       const isFromMe = userEmail ? fromVal.toLowerCase().includes(userEmail) : Boolean(data.labelIds?.includes('SENT'));
 
       return JSON.stringify({
         status: 'ok',
         id: data.id,
         threadId: data.threadId || data.id,
-        rfcMessageId: getHeader('Message-ID'),
+        rfcMessageId: gmailHeader(headers, 'Message-ID'),
         totalMessagesInThread: 1,
         from: fromVal,
-        to: getHeader('To'),
-        subject: getHeader('Subject'),
-        date: getHeader('Date'),
+        to: gmailHeader(headers, 'To'),
+        subject: gmailHeader(headers, 'Subject'),
+        date: gmailHeader(headers, 'Date'),
         snippet: data.snippet,
         needsReply: !isFromMe,
         body: bodyText.slice(0, 4000),
@@ -426,8 +457,7 @@ export const googleGmailTool: AgentTool = {
             const origData = (await origRes.json()) as any;
             targetThreadId = targetThreadId || origData.threadId || origData.id;
             const origHeaders = origData.payload?.headers || [];
-            const getH = (name: string) => origHeaders.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-            parentRfcMessageId = parentRfcMessageId || getH('Message-ID');
+            parentRfcMessageId = parentRfcMessageId || gmailHeader(origHeaders, 'Message-ID');
           }
         } catch {}
       }
@@ -566,8 +596,6 @@ export const googleGmailTool: AgentTool = {
               const msgs = d.messages || [];
               const lastMsg = msgs[msgs.length - 1];
               const headers = lastMsg?.payload?.headers || [];
-              const getHeader = (hn: string) =>
-                headers.find((h: any) => h.name.toLowerCase() === hn.toLowerCase())?.value || '';
 
               const isUnread = msgs.some((m: any) => m.labelIds && m.labelIds.includes('UNREAD'));
               let snip = (t.snippet || lastMsg?.snippet || '').trim();
@@ -576,9 +604,9 @@ export const googleGmailTool: AgentTool = {
               return {
                 id: lastMsg?.id || t.id,
                 thread_id: t.id,
-                from: getHeader('From'),
-                subject: getHeader('Subject') || '(Sem assunto)',
-                date: getHeader('Date'),
+                from: gmailHeader(headers, 'From'),
+                subject: gmailHeader(headers, 'Subject') || '(Sem assunto)',
+                date: gmailHeader(headers, 'Date'),
                 unread: isUnread,
                 snippet: snip,
               };

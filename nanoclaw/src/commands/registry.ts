@@ -4,7 +4,7 @@ import {
   startNewConversation,
   startNewConversationWithResume,
 } from '../conversations/lifecycle.js';
-import type { CommandExecutionContext, CommandExecutionResult, SlashCommandDefinition } from './types.js';
+import type { CommandExecutionResult, SlashCommandDefinition } from './types.js';
 
 /** Telegram Bot API: lowercase letters, digits, underscores only (no hyphens). */
 export function toTelegramCommandName(id: string): string {

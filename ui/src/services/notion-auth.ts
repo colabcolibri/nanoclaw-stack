@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { CONFIG } from '../config.js';
+import { sanitizeGroupFolder } from './group-folder.js';
 
 export class NotionAuthService {
   private static getTokenFilePath(folder: string): string {
-    return path.join(CONFIG.NANOCLAW_PATH, 'groups', folder, 'notion_tokens.json');
+    return path.join(CONFIG.NANOCLAW_PATH, 'groups', sanitizeGroupFolder(folder), 'notion_tokens.json');
   }
 
   static getStatus(folder: string) {

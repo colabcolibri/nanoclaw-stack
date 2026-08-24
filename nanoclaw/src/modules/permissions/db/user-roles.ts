@@ -1,5 +1,6 @@
 import type { UserRole, UserRoleKind } from '../../../types.js';
 import { getDb } from '../../../db/connection.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 /**
  * Grant a role. Owner rows must have agent_group_id = null (enforced here,
@@ -14,7 +15,7 @@ export function grantRole(row: UserRole): void {
       `INSERT INTO user_roles (user_id, role, agent_group_id, granted_by, granted_at)
        VALUES (@user_id, @role, @agent_group_id, @granted_by, @granted_at)`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function revokeRole(userId: string, role: UserRoleKind, agentGroupId: string | null): void {

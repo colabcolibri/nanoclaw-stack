@@ -13,9 +13,7 @@ describe('thread-selection', () => {
   });
 
   it('pickDefaultSessionId falls back to first when none active', () => {
-    expect(
-      pickDefaultSessionId([{ sessionId: 'sess-only', status: 'archived' }]),
-    ).toBe('sess-only');
+    expect(pickDefaultSessionId([{ sessionId: 'sess-only', status: 'archived' }])).toBe('sess-only');
   });
 
   it('resolveSelectedSessionId keeps active selection', () => {

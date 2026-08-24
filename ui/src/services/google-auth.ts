@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { CONFIG } from "../config.js";
 import { GroupManager } from "./groups.js";
 
@@ -11,9 +12,56 @@ function resolveGoogleRedirectUri(): string {
   return `${resolvePublicBaseUrl()}/api/integrations/google/callback`;
 }
 
+interface OAuthState {
+  folder: string;
+  nonce: string;
+  ts: number;
+}
+
+/** Validade do state OAuth — janela curta para limitar replay. */
+const STATE_MAX_AGE_MS = 10 * 60 * 1000;
+
 export class GoogleAuthService {
   private static getTokensPath(folder: string): string {
     return path.join(CONFIG.GROUPS_PATH, path.basename(folder), "google_tokens.json");
+  }
+
+  /**
+   * Gera um `state` OAuth assinado (HMAC) contendo pasta + nonce + timestamp.
+   * Protege o callback contra CSRF e adulteração do parâmetro `state`.
+   */
+  static buildState(folder: string): string {
+    const payload: OAuthState = {
+      folder,
+      nonce: randomBytes(16).toString("hex"),
+      ts: Date.now(),
+    };
+    const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+    const sig = createHmac("sha256", CONFIG.SESSION_SECRET).update(data).digest("base64url");
+    return `${data}.${sig}`;
+  }
+
+  /** Valida assinatura, freshness e extrai a pasta do `state`. Retorna null se inválido. */
+  static parseState(state: string | null | undefined): string | null {
+    if (!state) return null;
+    try {
+      const [data, sig] = state.split(".");
+      if (!data || !sig) return null;
+
+      const expectedSig = createHmac("sha256", CONFIG.SESSION_SECRET).update(data).digest("base64url");
+      const sigBuf = Buffer.from(sig);
+      const expBuf = Buffer.from(expectedSig);
+      if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+        return null;
+      }
+
+      const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf-8")) as OAuthState;
+      if (!payload.folder || typeof payload.nonce !== "string") return null;
+      if (!payload.ts || Date.now() - payload.ts > STATE_MAX_AGE_MS) return null;
+      return payload.folder;
+    } catch {
+      return null;
+    }
   }
 
   private static getCredentials(folder: string) {
@@ -48,13 +96,18 @@ export class GoogleAuthService {
       scope: scopes.join(" "),
       access_type: "offline",
       prompt: "consent",
-      state: folder,
+      state: this.buildState(folder),
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
-  static async handleCallback(code: string, folder: string): Promise<{ success: boolean; email?: string; error?: string }> {
+  static async handleCallback(code: string, state: string | null | undefined): Promise<{ success: boolean; email?: string; error?: string }> {
+    const folder = this.parseState(state);
+    if (!folder) {
+      return { success: false, error: "State OAuth inválido ou expirado (possível CSRF). Refaça a conexão." };
+    }
+
     const { clientId, clientSecret } = this.getCredentials(folder);
     const redirectUri = resolveGoogleRedirectUri();
 
@@ -103,7 +156,8 @@ export class GoogleAuthService {
       };
 
       const tokensPath = this.getTokensPath(folder);
-      fs.writeFileSync(tokensPath, JSON.stringify(tokenPayload, null, 2), "utf-8");
+      fs.mkdirSync(path.dirname(tokensPath), { recursive: true });
+      fs.writeFileSync(tokensPath, JSON.stringify(tokenPayload, null, 2), { encoding: "utf-8", mode: 0o600 });
 
       return { success: true, email: userEmail };
     } catch (err: any) {

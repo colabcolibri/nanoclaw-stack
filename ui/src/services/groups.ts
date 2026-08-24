@@ -20,6 +20,31 @@ function resolveProviderForModel(modelId: string): string | null {
   return null;
 }
 
+interface DepartmentSeed {
+  id: string;
+  name: string;
+  description: string;
+  agentIds?: string[];
+}
+
+let departmentSeedsCache: DepartmentSeed[] | null = null;
+
+/**
+ * Lê os departamentos default de nanoclaw/container/agents/departments.json —
+ * mesma fonte usada pelo AgentRegistry dentro do container.
+ */
+function loadDepartmentSeeds(): DepartmentSeed[] {
+  if (departmentSeedsCache) return departmentSeedsCache;
+  try {
+    const filePath = path.join(CONFIG.AGENTS_PATH, "departments.json");
+    const raw = JSON.parse(fs.readFileSync(filePath, "utf-8")) as { departments?: DepartmentSeed[] };
+    departmentSeedsCache = (raw.departments ?? []).filter((d): d is DepartmentSeed => Boolean(d?.id));
+  } catch {
+    departmentSeedsCache = [];
+  }
+  return departmentSeedsCache;
+}
+
 function parseLocationFields(input: {
   city?: string | null;
   country?: string | null;
@@ -717,12 +742,18 @@ export class GroupManager {
   }
 
   static getDepartmentsAndAgents(folder: string) {
-    const DEFAULT_DEPARTMENTS: Array<{ id: string; name: string; description: string; icon?: string }> = [
-      { id: "productivity", name: "Produtividade & Comunicação", description: "E-mails Gmail, Agenda Google Calendar, Notion e Tarefas", icon: "Calendar" },
-      { id: "commerce", name: "Comércio, Logística & Revenda", description: "Loja Yampi, Tabela Grok, Preços de Revenda e Fretes Correios", icon: "ShoppingBag" },
-      { id: "research_intel", name: "Pesquisa, Inteligência & Web", description: "Varredura web em tempo real, URLs e Métricas de Tokens", icon: "Globe" },
-      { id: "operations", name: "Operações & Sistema", description: "Operações em arquivos, comandos de terminal e memória", icon: "Server" },
-    ];
+    // Fonte única: nanoclaw/container/agents/departments.json (mesmo arquivo lido
+    // pelo AgentRegistry no container). Ícones são concern da UI.
+    const DEPARTMENT_ICONS: Record<string, string> = {
+      productivity: "Calendar",
+      commerce: "ShoppingBag",
+      research_intel: "Globe",
+      operations: "Server",
+    };
+    const DEFAULT_DEPARTMENTS = loadDepartmentSeeds().map((d) => ({
+      ...d,
+      icon: DEPARTMENT_ICONS[d.id],
+    }));
 
     const agents: Array<{
       id: string;
@@ -733,6 +764,7 @@ export class GroupManager {
       skills: string[];
       allowGlobalSkills: boolean;
       model?: string;
+      inferenceParams?: InferenceParams;
       systemPrompt: string;
       systemPromptChars: number;
       systemPromptTokens: number;

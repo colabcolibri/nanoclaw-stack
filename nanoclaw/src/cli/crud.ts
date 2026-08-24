@@ -9,7 +9,7 @@
 import { randomUUID } from 'crypto';
 
 import { getDb } from '../db/connection.js';
-import { runSqliteTransaction } from '../db/sqlite-compat.js';
+import { runSqliteTransaction, sqlParams, sqlRow } from '../db/sqlite-compat.js';
 import { renderVerbHelp } from './help-render.js';
 import { register } from './registry.js';
 import type { Access } from './registry.js';
@@ -183,7 +183,7 @@ function genericList(def: ResourceDef) {
     // past 200 sessions — a just-created session was invisible).
     return getDb()
       .prepare(`SELECT ${cols} FROM ${def.table}${where} ORDER BY rowid DESC LIMIT ?`)
-      .all(...params);
+      .all(...sqlParams(params));
   };
 }
 
@@ -250,7 +250,7 @@ function genericCreate(def: ResourceDef) {
       const params = def.naturalKey.map((c) => values[c]);
       const existing = getDb()
         .prepare(`SELECT ${visibleColumns(def).join(', ')} FROM ${def.table} WHERE ${where}`)
-        .get(...params);
+        .get(...sqlParams(params));
       if (existing) return existing;
     }
 
@@ -264,7 +264,9 @@ function genericCreate(def: ResourceDef) {
     // projection — belongs in `postCommit`, which runs after commit below.
     const db = getDb();
     runSqliteTransaction(db, () => {
-      db.prepare(`INSERT INTO ${def.table} (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`).run(values);
+      db.prepare(`INSERT INTO ${def.table} (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`).run(
+        sqlRow(values),
+      );
       if (def.postCreate) def.postCreate(values);
     });
     if (def.postCommit) await def.postCommit(values);
@@ -399,8 +401,8 @@ export function validateArgs(
         if (typeof v === 'string') {
           try {
             out[def.name] = JSON.parse(v);
-          } catch {
-            throw new Error(`${flag} must be valid JSON`);
+          } catch (parseErr) {
+            throw new Error(`${flag} must be valid JSON`, { cause: parseErr });
           }
         }
         break;
@@ -505,7 +507,7 @@ export function registerResource(def: ResourceDef): void {
               } catch (e) {
                 const usage = renderVerbHelp(def, verb);
                 const msg = e instanceof Error ? e.message : String(e);
-                throw new Error(usage ? `${msg}\n\n${usage}` : msg);
+                throw new Error(usage ? `${msg}\n\n${usage}` : msg, { cause: e });
               }
             }
           : (raw) => normalizeArgs(raw),

@@ -286,9 +286,10 @@ async function deliverMessage(
   }
   let content: any;
   try {
-    content = typeof msg.content === 'string' && (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))
-      ? JSON.parse(msg.content)
-      : { text: msg.content };
+    content =
+      typeof msg.content === 'string' && (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))
+        ? JSON.parse(msg.content)
+        : { text: msg.content };
   } catch {
     content = { text: msg.content };
   }

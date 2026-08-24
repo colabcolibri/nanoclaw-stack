@@ -1,14 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { AGENT_TOOLS, ALL_TOOLS } from '../tools/index.js';
+import { AGENT_TOOLS } from '../tools/index.js';
 import { TurnOrchestrator } from '../orchestrator/turn-orchestrator.js';
 import { MemoryManager } from '../services/memory.js';
 import { TokenLedger } from '../services/token-ledger.js';
 import { ModelRegistry } from '../services/model-registry.js';
 import { PersonaLoader } from '../services/persona-loader.js';
 import { buildLedgerPreview, resolvePurpose } from '../services/llm-call-purpose.js';
-import { resolveContainerRoleModels } from '../services/role-models.js';
-import { parseRoleInferenceOverrides, type RoleInferenceOverrides } from '../services/inference-resolver.js';
+import { loadContainerRoleConfig } from '../services/container-role-config.js';
+import { isToolPayloadFailure, rescueFailedGeneration } from './openai-error-rescue.js';
 import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type {
   AgentProvider,
@@ -94,50 +94,12 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
     const coreMemory = MemoryManager.loadCoreMemory(input.cwd) || '';
 
     // Load role models from container.json (defaults do catálogo quando vazio)
-    let workerModel: string | undefined;
-    let orchestratorModel: string | undefined;
-    let senderModel: string | undefined;
-    let memoModel: string | undefined;
-    let roleInferenceOverrides: RoleInferenceOverrides = {};
-    let containerProvider: string | undefined;
-    const containerJsonCandidates = [
-      path.join(input.cwd, 'container.json'),
-      '/workspace/agent/container.json',
-      '/workspace/group/container.json',
-    ];
-    for (const cfgPath of containerJsonCandidates) {
-      try {
-        if (fs.existsSync(cfgPath)) {
-          const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-          containerProvider = cfg.provider;
-          const catalogProviderId = (this as { catalogProviderId?: string }).catalogProviderId;
-          const providerId = containerProvider || catalogProviderId;
-          const resolved = resolveContainerRoleModels(
-            providerId,
-            {
-              model: cfg.model,
-              orchestratorModel: cfg.orchestratorModel,
-              senderModel: cfg.senderModel,
-              memoModel: cfg.memoModel,
-            },
-            input.cwd,
-          );
-          if (resolved) {
-            workerModel = resolved.model;
-            orchestratorModel = resolved.orchestratorModel;
-            senderModel = resolved.senderModel;
-            memoModel = resolved.memoModel;
-          } else {
-            workerModel = cfg.model;
-            orchestratorModel = cfg.orchestratorModel;
-            senderModel = cfg.senderModel;
-            memoModel = cfg.memoModel;
-          }
-          roleInferenceOverrides = parseRoleInferenceOverrides(cfg.roleInferenceParams);
-          break;
-        }
-      } catch {}
-    }
+    const roleConfig = loadContainerRoleConfig(
+      input.cwd,
+      (this as { catalogProviderId?: string }).catalogProviderId,
+    );
+    const { workerModel, orchestratorModel, senderModel, memoModel, roleInferenceOverrides } =
+      roleConfig;
 
     const customHeaders = this.config.customHeaders || {};
 
@@ -214,50 +176,14 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
           if (!res.ok) {
             const errText = await res.text();
 
-            // Auto-rescue Groq/OpenAI tool parse errors (failed_generation recovery)
+            // Auto-rescue: providers OpenAI-compatible podem falhar no parse do
+            // tool call (failed_generation). A recuperação vive em openai-error-rescue.
             try {
-              const errJson = JSON.parse(errText);
-              const failedGen = errJson.error?.failed_generation;
+              const rescued = rescueFailedGeneration(errText);
+              if (rescued) return rescued;
 
-              if (failedGen) {
-                try {
-                  const parsedGen = JSON.parse(failedGen);
-                  // If it attempted a tool call with an alias name (e.g. web-research -> web_search)
-                  if (parsedGen && typeof parsedGen === 'object' && parsedGen.name) {
-                    const normalized = String(parsedGen.name).toLowerCase().replace(/-/g, '_');
-                    const targetName = normalized === 'web_research' ? 'web_search' : normalized;
-                    const targetTool = ALL_TOOLS[parsedGen.name] || ALL_TOOLS[normalized] || ALL_TOOLS[targetName];
-                    if (targetTool) {
-                      return {
-                        content: '',
-                        tool_calls: [
-                          {
-                            id: `call_${Date.now()}`,
-                            type: 'function',
-                            function: {
-                              name: targetTool.definition.function.name,
-                              arguments: typeof parsedGen.arguments === 'string' ? parsedGen.arguments : JSON.stringify(parsedGen.arguments || {}),
-                            },
-                          },
-                        ],
-                      };
-                    }
-                  }
-
-                  const extractedText = typeof parsedGen === 'string'
-                    ? parsedGen
-                    : (typeof parsedGen.content === 'string' ? parsedGen.content : (typeof parsedGen.arguments === 'string' ? parsedGen.arguments : ''));
-                  if (extractedText && typeof extractedText === 'string' && extractedText.trim().length > 5) {
-                    return {
-                      content: extractedText.trim(),
-                      tool_calls: undefined,
-                    };
-                  }
-                } catch {}
-              }
-
-              // Fallback retry: If tools caused a 400 error, retry immediately without tools
-              if (payload.tools && (errJson.error?.code === 'tool_use_failed' || res.status === 400)) {
+              // Fallback retry: se as tools causaram o 400, tenta sem tools
+              if (payload.tools && isToolPayloadFailure(errText, res.status)) {
                 const fallbackPayload = { ...payload };
                 delete fallbackPayload.tools;
                 const retryRes = await fetch(url, {

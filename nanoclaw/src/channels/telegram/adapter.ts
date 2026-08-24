@@ -13,6 +13,7 @@ import { upsertUser } from '../../modules/permissions/db/users.js';
 import { createChatSdkBridge, type ReplyContext } from '../chat-sdk-bridge.js';
 import { sanitizeTelegramLegacyMarkdown } from './markdown-sanitize.js';
 import { registerChannelAdapter } from '../channel-registry.js';
+import { withExponentialBackoff } from '../setup-retry.js';
 import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from '../adapter.js';
 import { tryConsume } from './pairing.js';
 import { registerTelegramBotCommands } from './bot-commands.js';
@@ -35,19 +36,12 @@ const TELEGRAM_DEFAULTS: ChannelDefaults = {
  * hanging the service indefinitely.
  */
 async function withRetry<T>(fn: () => Promise<T>, label: string, maxAttempts = 5): Promise<T> {
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (attempt === maxAttempts) break;
-      const delay = Math.min(16000, 1000 * 2 ** (attempt - 1));
-      log.warn('Telegram setup failed, retrying', { label, attempt, delayMs: delay, err });
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-  throw lastErr;
+  return withExponentialBackoff(fn, {
+    maxAttempts,
+    onRetry: ({ attempt, delayMs, err }) => {
+      log.warn('Telegram setup failed, retrying', { label, attempt, delayMs, err });
+    },
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -220,7 +214,8 @@ registerChannelAdapter('telegram', {
       mode: 'polling',
     });
     const bridge = createChatSdkBridge({
-      adapter: telegramAdapter,
+      // TelegramAdapter é atribuível em runtime; a variância dos generics do SDK não captura isso.
+      adapter: telegramAdapter as unknown as Parameters<typeof createChatSdkBridge>[0]['adapter'],
       concurrency: 'concurrent',
       extractReplyContext,
       supportsThreads: false,

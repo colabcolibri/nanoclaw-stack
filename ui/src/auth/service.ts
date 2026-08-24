@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { CONFIG } from "../config.js";
 import { EmailService } from "./resend.js";
 
@@ -25,7 +26,7 @@ export class AuthService {
       };
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     this.store.set(norm, {
       code,
       expiresAt: Date.now() + 10 * 60 * 1000,

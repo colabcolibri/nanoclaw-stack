@@ -35,6 +35,7 @@ import { dispatch } from '../dispatch.js';
 import { ensureContainerConfig, getContainerConfig } from '../../db/container-configs.js';
 // Side-effect import: registers the `groups-*` commands (including delete).
 import './groups.js';
+import { sqlParams } from '../../db/sqlite-compat.js';
 
 function now(): string {
   return new Date().toISOString();
@@ -44,7 +45,7 @@ function count(sql: string, ...params: unknown[]): number {
   return (
     getDb()
       .prepare(sql)
-      .get(...params) as { c: number }
+      .get(...sqlParams(params)) as { c: number }
   ).c;
 }
 

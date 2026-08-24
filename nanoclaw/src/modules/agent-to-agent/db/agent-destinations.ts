@@ -37,6 +37,7 @@
 import type { AgentDestination } from '../../../types.js';
 import { getDb } from '../../../db/connection.js';
 import { deletePoliciesTouching, removeMessagePolicy } from './agent-message-policies.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 /**
  * ⚠️  Caller responsibility: after this returns, call
@@ -50,7 +51,7 @@ export function createDestination(row: AgentDestination): void {
       `INSERT INTO agent_destinations (agent_group_id, local_name, target_type, target_id, created_at)
        VALUES (@agent_group_id, @local_name, @target_type, @target_id, @created_at)`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function getDestinations(agentGroupId: string): AgentDestination[] {

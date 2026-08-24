@@ -32,9 +32,7 @@ export interface OpenAiCompleteFactoryOptions {
   recordTelemetry?: boolean;
 }
 
-export async function createOpenAiCompatibleComplete(
-  options: OpenAiCompleteFactoryOptions,
-): Promise<OpenAiCompleteFn> {
+export async function createOpenAiCompatibleComplete(options: OpenAiCompleteFactoryOptions): Promise<OpenAiCompleteFn> {
   const containerSrc = path.join(options.projectRoot, 'container', 'agent-runner', 'src');
 
   if (!options.defaultModel?.trim()) {

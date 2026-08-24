@@ -82,17 +82,15 @@ describe('resolveGroupTimezone', () => {
   it('materializeContainerJson always writes the effective schedule timezone', () => {
     const config = materializeContainerJson(GROUP.id);
     expect(config.timezone).toBe(TIMEZONE);
-    const onDisk = JSON.parse(
-      fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, 'container.json'), 'utf-8'),
-    ) as { timezone?: string };
+    const onDisk = JSON.parse(fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, 'container.json'), 'utf-8')) as {
+      timezone?: string;
+    };
     expect(onDisk.timezone).toBe(TIMEZONE);
 
     updateContainerConfigScalars(GROUP.id, { timezone: 'Asia/Tokyo' });
     const updated = materializeContainerJson(GROUP.id);
     expect(updated.timezone).toBe('Asia/Tokyo');
-    expect(fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, '.etc-timezone'), 'utf-8').trim()).toBe(
-      'Asia/Tokyo',
-    );
+    expect(fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, '.etc-timezone'), 'utf-8').trim()).toBe('Asia/Tokyo');
   });
 });
 

@@ -10,25 +10,13 @@ import { DATA_DIR, GROUPS_DIR } from '../config.js';
 import { ensureCentralDb } from '../db/ensure-central-db.js';
 import { getAgentGroupByFolder } from '../db/agent-groups.js';
 import { getSession, updateSession } from '../db/sessions.js';
-import {
-  readConversationHistory,
-  resolveActiveSession,
-} from '../conversations/lifecycle.js';
+import { readConversationHistory, resolveActiveSession } from '../conversations/lifecycle.js';
 import { loadGroupTurnContext } from './group-turn-context.js';
 import { resolveGroupRoleModels } from '../container-config.js';
-import {
-  initSessionFolder,
-  writeOutboundDirect,
-  writeSessionMessage,
-} from '../session-manager.js';
+import { initSessionFolder, writeOutboundDirect, writeSessionMessage } from '../session-manager.js';
 import type { Session } from '../types.js';
 import { invokeOrchestratorTurn } from './sync-turn-bun-client.js';
-import type {
-  SyncChannel,
-  SyncResetResult,
-  SyncTurnInput,
-  SyncTurnResult,
-} from './sync-turn-types.js';
+import type { SyncChannel, SyncResetResult, SyncTurnInput, SyncTurnResult } from './sync-turn-types.js';
 
 export type { SyncChannel, SyncResetResult, SyncTurnInput, SyncTurnResult } from './sync-turn-types.js';
 
@@ -154,8 +142,9 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
   }
 
   const models = resolveContainerModels(agentGroupId);
-  const session = sessionAfterMode
-    ?? (pinnedSession
+  const session =
+    sessionAfterMode ??
+    (pinnedSession
       ? pinnedSession.status !== 'active'
         ? (() => {
             throw new Error('This conversation is archived. Start a new conversation to continue.');

@@ -1,5 +1,6 @@
 import type { UserDm } from '../../../types.js';
 import { getDb } from '../../../db/connection.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 export function upsertUserDm(row: UserDm): void {
   getDb()
@@ -10,7 +11,7 @@ export function upsertUserDm(row: UserDm): void {
          messaging_group_id = excluded.messaging_group_id,
          resolved_at = excluded.resolved_at`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function getUserDm(userId: string, channelType: string): UserDm | undefined {

@@ -9,6 +9,7 @@
  * still pending is silently dropped instead of spamming the admin.
  */
 import { getDb } from '../../../db/connection.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 export interface PendingSenderApproval {
   id: string;
@@ -41,7 +42,7 @@ export function createPendingSenderApproval(row: PendingSenderApproval): void {
          @title, @question, @options_json
        )`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function getPendingSenderApproval(id: string): PendingSenderApproval | undefined {

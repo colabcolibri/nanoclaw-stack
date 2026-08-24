@@ -10,6 +10,7 @@
  * instead of spamming the owner.
  */
 import { getDb } from '../../../db/connection.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 export interface PendingChannelApproval {
   messaging_group_id: string;
@@ -37,7 +38,7 @@ export function createPendingChannelApproval(row: PendingChannelApproval): void 
          @approver_user_id, @created_at, @title, @question, @options_json
        )`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function getPendingChannelApproval(messagingGroupId: string): PendingChannelApproval | undefined {

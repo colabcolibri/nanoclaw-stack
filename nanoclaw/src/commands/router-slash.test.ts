@@ -161,9 +161,9 @@ describe('router slash commands', () => {
     expect(after!.status).toBe('active');
 
     const outDb = new Database(outboundDbPath('ag-1', after!.id));
-    const row = outDb
-      .prepare('SELECT content FROM messages_out ORDER BY timestamp DESC LIMIT 1')
-      .get() as { content: string };
+    const row = outDb.prepare('SELECT content FROM messages_out ORDER BY timestamp DESC LIMIT 1').get() as {
+      content: string;
+    };
     outDb.close();
     expect(JSON.parse(row.content).text).toBe('Nova conversa iniciada. A conversa anterior foi arquivada.');
 

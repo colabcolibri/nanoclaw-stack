@@ -478,8 +478,13 @@ describe('container configs', () => {
       additional_mounts: '[]',
       cli_scope: 'global',
       timezone: null,
+      city: null,
+      country: null,
+      location: null,
       orchestrator_model: null,
       sender_model: null,
+      memo_model: null,
+      role_inference_params: null,
       updated_at: now(),
     });
     const row = getContainerConfig('ag-full');

@@ -6,7 +6,13 @@
  * (open-write-close per op). See session-manager.ts header for invariants.
  */
 import { INBOUND_SCHEMA, OUTBOUND_SCHEMA } from './schema.js';
-import { openSqliteDatabase, runSqliteTransaction, sqliteChanges, type SqliteDatabase } from './sqlite-compat.js';
+import {
+  openSqliteDatabase,
+  runSqliteTransaction,
+  sqlRow,
+  sqliteChanges,
+  type SqliteDatabase,
+} from './sqlite-compat.js';
 
 type SessionDbMode = 'inbound' | 'outbound-readonly' | 'outbound-rw';
 
@@ -70,14 +76,18 @@ export interface DestinationRow {
 }
 
 export function replaceDestinations(db: SqliteDatabase, entries: DestinationRow[]): void {
-  runSqliteTransaction(db, (rows: DestinationRow[]) => {
-    db.prepare('DELETE FROM destinations').run();
-    const stmt = db.prepare(
-      `INSERT INTO destinations (name, display_name, type, channel_type, platform_id, agent_group_id)
+  runSqliteTransaction(
+    db,
+    (rows: DestinationRow[]) => {
+      db.prepare('DELETE FROM destinations').run();
+      const stmt = db.prepare(
+        `INSERT INTO destinations (name, display_name, type, channel_type, platform_id, agent_group_id)
        VALUES (@name, @display_name, @type, @channel_type, @platform_id, @agent_group_id)`,
-    );
-    for (const row of rows) stmt.run(row);
-  }, entries);
+      );
+      for (const row of rows) stmt.run(sqlRow(row));
+    },
+    entries,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -133,8 +143,14 @@ export function insertMessage(
     try {
       const parsed = JSON.parse(message.content);
       clean = parsed.text || message.content;
-    } catch {}
-    clean = clean.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').replace(/\s+/g, ' ').trim();
+    } catch {
+      // conteúdo não é JSON — usa texto cru
+    }
+    clean = clean
+      .replace(/<message\s+to="[^"]*">/gi, '')
+      .replace(/<\/message>/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
     memoText = clean.length <= 450 ? clean : `${clean.slice(0, 447)}...`;
   }
 

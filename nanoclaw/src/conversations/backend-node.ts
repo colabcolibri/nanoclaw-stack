@@ -88,7 +88,7 @@ export function createNodeConversationBackend(): ConversationBackend {
       return createConversationSessionInternal(ctx, opts);
     },
 
-    startNewConversation(ctx: CallerContext, current: Session, opts?: { handoffText?: string }) {
+    startNewConversation(ctx: CallerContext, _current: Session, opts?: { handoffText?: string }) {
       const lookupThreadId = ctx.sessionMode === 'per-thread' ? ctx.threadId : null;
       for (const stale of findAllActiveConversationSessions(
         ctx.agentGroupId,
@@ -118,11 +118,7 @@ export function createNodeConversationBackend(): ConversationBackend {
       return next;
     },
 
-    async startNewConversationWithResume(
-      ctx: CallerContext,
-      current: Session,
-      summarizeWithLlm: SummarizeMessagesFn,
-    ) {
+    async startNewConversationWithResume(ctx: CallerContext, current: Session, summarizeWithLlm: SummarizeMessagesFn) {
       const history = readHistoryRaw(ctx.agentGroupId, current.id, 50);
       const summary = await summarizeConversation(history, summarizeWithLlm);
       const session = this.startNewConversation(ctx, current, { handoffText: summary });

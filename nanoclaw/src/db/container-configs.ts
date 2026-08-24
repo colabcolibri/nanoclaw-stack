@@ -1,6 +1,7 @@
 import { DEFAULT_AGENT_PROVIDER } from '../config.js';
 import type { ContainerConfigRow } from '../types.js';
 import { getDb } from './connection.js';
+import { sqlRow } from './sqlite-compat.js';
 
 const SCALAR_COLUMNS = new Set([
   'provider',
@@ -53,7 +54,7 @@ export function createContainerConfig(config: ContainerConfigRow): void {
         @memo_model, @role_inference_params, @updated_at
       )`,
     )
-    .run(config);
+    .run(sqlRow(config));
 }
 
 /**
@@ -128,19 +129,13 @@ export function updateContainerConfigScalars(
 
   getDb()
     .prepare(`UPDATE container_configs SET ${fields.join(', ')} WHERE agent_group_id = @agent_group_id`)
-    .run(values);
+    .run(sqlRow(values));
 }
 
 /** Overwrite a JSON column wholesale. Used for skills, mcp_servers, packages_*, additional_mounts. */
 export function updateContainerConfigJson(
   agentGroupId: string,
-  column:
-    | 'skills'
-    | 'mcp_servers'
-    | 'packages_apt'
-    | 'packages_npm'
-    | 'additional_mounts'
-    | 'role_inference_params',
+  column: 'skills' | 'mcp_servers' | 'packages_apt' | 'packages_npm' | 'additional_mounts' | 'role_inference_params',
   value: unknown,
 ): void {
   if (!JSON_COLUMNS.has(column)) throw new Error(`Invalid JSON column: ${column}`);

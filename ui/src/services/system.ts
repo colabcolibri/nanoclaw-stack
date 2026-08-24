@@ -31,7 +31,7 @@ export interface MotorHealthPayload {
 /** Consulta GET /webhook/health — fonte de verdade do motor em dev e produção. */
 export async function fetchMotorHealth(
   motorUrl: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: (input: string | URL | globalThis.Request, init?: RequestInit) => Promise<Response> = fetch,
 ): Promise<MotorHealthPayload | null> {
   const base = motorUrl.replace(/\/$/, "");
   try {

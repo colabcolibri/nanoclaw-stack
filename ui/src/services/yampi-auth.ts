@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { CONFIG } from '../config.js';
+import { sanitizeGroupFolder } from './group-folder.js';
 
 export interface YampiCredentials {
   alias: string;
@@ -11,7 +12,7 @@ export interface YampiCredentials {
 
 export class YampiAuthService {
   private static getFilePath(groupFolder: string): string {
-    return path.join(CONFIG.GROUPS_PATH, groupFolder, 'yampi_tokens.json');
+    return path.join(CONFIG.GROUPS_PATH, sanitizeGroupFolder(groupFolder), 'yampi_tokens.json');
   }
 
   private static maskSecret(value: string): string {
@@ -58,7 +59,7 @@ export class YampiAuthService {
       updatedAt: new Date().toISOString(),
     };
 
-    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), { encoding: 'utf-8', mode: 0o600 });
   }
 
   static removeCredentials(groupFolder: string): void {

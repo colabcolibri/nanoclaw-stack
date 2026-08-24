@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ToolDomainRegistry } from '../tools/router.js';
+import { asStringArray, attrString, parseFrontmatter } from './frontmatter.js';
 
 const REPO_CONTAINER_SKILLS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -142,90 +143,42 @@ export class SkillsManager {
 
   /**
    * Parses a SKILL.md file with YAML frontmatter.
+   * Returns null when the file has no frontmatter or fails to parse (logged).
    */
   private static parseSkillFile(filePath: string): DiscoveredSkill | null {
+    let doc: ReturnType<typeof parseFrontmatter>;
     try {
       const raw = fs.readFileSync(filePath, 'utf-8');
-      const frontmatterMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-
-      if (!frontmatterMatch) {
+      doc = parseFrontmatter(raw);
+    } catch (err) {
+      console.warn(`[skills-manager] Falha ao parsear ${filePath}:`, err instanceof Error ? err.message : err);
+      return null;
+    }
+    if (!doc) {
+      // SKILL.md sem frontmatter: manual puro, nome derivado da pasta.
+      try {
+        const raw = fs.readFileSync(filePath, 'utf-8');
         return {
           name: path.basename(path.dirname(filePath)),
           description: '',
           instructions: raw.trim(),
           sourcePath: filePath,
         };
-      }
-
-      const yamlBlock = frontmatterMatch[1];
-      const body = frontmatterMatch[2];
-
-      const meta = this.parseSimpleYaml(yamlBlock);
-      const name = meta.name || path.basename(path.dirname(filePath));
-      const description = meta.description || '';
-      const domain = meta.domain;
-      const tools = Array.isArray(meta.tools)
-        ? meta.tools
-        : meta.tool
-        ? [meta.tool]
-        : meta.tools
-        ? String(meta.tools).split(',').map((s) => s.trim())
-        : undefined;
-
-      return {
-        name,
-        description,
-        domain,
-        tools,
-        instructions: body.trim(),
-        sourcePath: filePath,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Lightweight YAML parser for frontmatter blocks (handles strings, lists, arrays).
-   */
-  private static parseSimpleYaml(yamlText: string): Record<string, any> {
-    const result: Record<string, any> = {};
-    const lines = yamlText.split('\n');
-    let currentKey = '';
-    let isList = false;
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line || line.startsWith('#')) continue;
-
-      if (line.startsWith('- ') && currentKey && isList) {
-        result[currentKey].push(line.slice(2).trim().replace(/^["']|["']$/g, ''));
-        continue;
-      }
-
-      const colonIdx = line.indexOf(':');
-      if (colonIdx !== -1) {
-        const key = line.slice(0, colonIdx).trim();
-        let val = line.slice(colonIdx + 1).trim();
-
-        if (!val) {
-          currentKey = key;
-          isList = true;
-          result[key] = [];
-        } else if (val.startsWith('[') && val.endsWith(']')) {
-          result[key] = val
-            .slice(1, -1)
-            .split(',')
-            .map((s) => s.trim().replace(/^["']|["']$/g, ''))
-            .filter(Boolean);
-          isList = false;
-        } else {
-          result[key] = val.replace(/^["']|["']$/g, '');
-          isList = false;
-        }
+      } catch {
+        return null;
       }
     }
 
-    return result;
+    const { attrs, body } = doc;
+    const tools = asStringArray(attrs.tools) ?? asStringArray(attrs.tool);
+
+    return {
+      name: attrString(attrs, 'name') || path.basename(path.dirname(filePath)),
+      description: attrString(attrs, 'description') || '',
+      domain: attrString(attrs, 'domain'),
+      tools,
+      instructions: body,
+      sourcePath: filePath,
+    };
   }
 }

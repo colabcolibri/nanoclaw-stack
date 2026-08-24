@@ -11,7 +11,7 @@
  * the agent remembers, missing the live next occurrence.
  */
 import type { SqliteDatabase } from '../../db/sqlite-compat.js';
-import { runSqliteTransaction, sqliteChanges } from '../../db/sqlite-compat.js';
+import { runSqliteTransaction, sqlParams, sqliteChanges } from '../../db/sqlite-compat.js';
 
 import { nextEvenSeq } from '../../db/session-db.js';
 
@@ -162,7 +162,7 @@ export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdat
       }
       params.push(row.id);
 
-      db.prepare(`UPDATE messages_in SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+      db.prepare(`UPDATE messages_in SET ${sets.join(', ')} WHERE id = ?`).run(...sqlParams(params));
     }
   });
   return rows.length;

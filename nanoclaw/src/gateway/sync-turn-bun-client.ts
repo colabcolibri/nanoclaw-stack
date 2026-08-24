@@ -4,11 +4,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
-import type {
-  OrchestratorTurnRequest,
-  OrchestratorTurnResult,
-  SyncTurnRunnerRequest,
-} from './sync-turn-types.js';
+import type { OrchestratorTurnRequest, OrchestratorTurnResult, SyncTurnRunnerRequest } from './sync-turn-types.js';
 
 const SYNC_TURN_TIMEOUT_MS = 300_000;
 

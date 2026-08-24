@@ -8,7 +8,7 @@ import {
 import { hasDeclaredChannelDefaults } from '../../channels/channel-registry.js';
 import { getAgentGroup, getAgentGroupByFolder } from '../../db/agent-groups.js';
 import { getDb } from '../../db/connection.js';
-import { runSqliteTransaction } from '../../db/sqlite-compat.js';
+import { runSqliteTransaction, sqlRow } from '../../db/sqlite-compat.js';
 import {
   ensureAgentDestinationForWiring,
   getMessagingGroup,
@@ -261,7 +261,7 @@ registerResource({
         runSqliteTransaction(db, () => {
           db.prepare(
             `INSERT INTO messaging_group_agents (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`,
-          ).run(values);
+          ).run(sqlRow(values));
           ensureAgentDestinationForWiring(values as unknown as MessagingGroupAgent);
         });
 

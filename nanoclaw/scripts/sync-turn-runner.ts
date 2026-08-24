@@ -3,6 +3,10 @@
  * stdin: JSON SyncTurnRunnerRequest
  * stdout: single JSON line { ok, result? | error? }
  */
+
+// Typecheck roda sob tipos Node; este processo executa exclusivamente no Bun.
+declare const Bun: { stdin: { text(): Promise<string> } };
+
 import { runOrchestratorTurn } from '../src/gateway/sync-turn-orchestrator-worker.ts';
 import type { SyncTurnRunnerRequest } from '../src/gateway/sync-turn-types.ts';
 

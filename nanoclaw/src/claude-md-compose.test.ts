@@ -112,9 +112,7 @@ describe('composeGroupClaudeMd scheduling instructions (ncl tasks reach-in)', ()
 
     const imports = importsOf(ag.folder);
     expect(imports.some((line) => line.includes('module-._'))).toBe(false);
-    expect(fs.existsSync(path.join(GROUPS_DIR, ag.folder, '.claude-fragments', 'module-._agents.md'))).toBe(
-      false,
-    );
+    expect(fs.existsSync(path.join(GROUPS_DIR, ag.folder, '.claude-fragments', 'module-._agents.md'))).toBe(false);
   });
 
   it('excludes module-scheduling.md (and module-cli.md) when cli_scope is disabled', () => {

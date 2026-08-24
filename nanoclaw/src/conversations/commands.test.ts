@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractMessageText, isRegisteredSlashCommand, parseSlashCommand, unregisteredSlashToken } from '../commands/parse.js';
+import {
+  extractMessageText,
+  isRegisteredSlashCommand,
+  parseSlashCommand,
+  unregisteredSlashToken,
+} from '../commands/parse.js';
 
 describe('conversation commands', () => {
   it('parseConversationCommand recognizes universal commands', () => {

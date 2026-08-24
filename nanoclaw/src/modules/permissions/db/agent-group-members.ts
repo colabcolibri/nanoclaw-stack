@@ -1,6 +1,7 @@
 import type { AgentGroupMember } from '../../../types.js';
 import { getDb } from '../../../db/connection.js';
 import { isAdminOfAgentGroup, isGlobalAdmin, isOwner } from './user-roles.js';
+import { sqlRow } from '../../../db/sqlite-compat.js';
 
 export function addMember(row: AgentGroupMember): void {
   getDb()
@@ -8,7 +9,7 @@ export function addMember(row: AgentGroupMember): void {
       `INSERT OR IGNORE INTO agent_group_members (user_id, agent_group_id, added_by, added_at)
        VALUES (@user_id, @agent_group_id, @added_by, @added_at)`,
     )
-    .run(row);
+    .run(sqlRow(row));
 }
 
 export function removeMember(userId: string, agentGroupId: string): void {

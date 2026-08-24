@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  motor-host:
+    name: Motor (host) — typecheck, lint, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nanoclaw
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: nanoclaw/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+  motor-agent-runner:
+    name: Agent Runner (container) — typecheck, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nanoclaw/container/agent-runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+
+  ui-backend:
+    name: UI Backend — typecheck, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    env:
+      # Valores dummy apenas para satisfazer require-env no import de config.
+      NANOCLAW_PATH: /tmp/nanoclaw
+      NANOCLAW_DEFAULT_GROUP: barao
+      PORT: "3001"
+      ALLOWED_EMAIL: test@example.com
+      RESEND_API_KEY: re_dummy
+      FROM_EMAIL: test@example.com
+      SESSION_SECRET: dummy-secret-for-ci
+      UI_PUBLIC_URL: http://localhost:3001
+      NANOCLAW_MOTOR_URL: http://127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+      - run: bun test src/services
+
+  ui-client:
+    name: UI Client — lint, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui/client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run build

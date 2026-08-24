@@ -20,9 +20,9 @@ export function setLlmProviderApiKey(providerId: string, plaintext: string): voi
 
 /** Whether a provider has a stored ciphertext or legacy .env key. */
 export function providerHasApiKey(providerId: string, keyEnvName: string): boolean {
-  const row = getDb()
-    .prepare(`SELECT api_key_ciphertext FROM llm_providers WHERE id = ?`)
-    .get(providerId) as { api_key_ciphertext: string | null } | undefined;
+  const row = getDb().prepare(`SELECT api_key_ciphertext FROM llm_providers WHERE id = ?`).get(providerId) as
+    | { api_key_ciphertext: string | null }
+    | undefined;
   if (row?.api_key_ciphertext) return true;
   const env = readEnvFile([keyEnvName]);
   return Boolean(env[keyEnvName]?.trim());
@@ -40,7 +40,13 @@ export function getLlmProviderKeysStatus(): Record<string, { hasKey: boolean; ma
     const hasKey = hasCiphertext || Boolean(legacy);
     status[p.id] = {
       hasKey,
-      masked: hasCiphertext ? '•••••••• (vault)' : legacy.length > 8 ? `${legacy.slice(0, 5)}...${legacy.slice(-4)}` : legacy ? '••••••••' : '',
+      masked: hasCiphertext
+        ? '•••••••• (vault)'
+        : legacy.length > 8
+          ? `${legacy.slice(0, 5)}...${legacy.slice(-4)}`
+          : legacy
+            ? '••••••••'
+            : '',
     };
   }
   return status;

@@ -1,0 +1,19 @@
+{
+  "$comment": "Typecheck estrito de TODO o código first-party (host + agent-runner puxado via imports). Sem rootDir/outDir porque é noEmit puro — o build continua usando tsconfig.json (rootDir=src, produção roda via tsx).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "noEmit": true,
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

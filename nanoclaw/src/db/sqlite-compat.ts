@@ -29,7 +29,25 @@ export function runSqliteTransaction<T extends unknown[], R>(
   return tx(...args);
 }
 
+/** Valor bindable em qualquer driver SQLite suportado (boolean não é aceito pelos dois — normalize antes). */
+export type SqlParam = string | number | bigint | null | Uint8Array;
+/** Objeto de bind nomeado (@key). Interfaces sem index signature exigem cast — use sqlRow(). */
+export type SqlBindRecord = Record<string, SqlParam>;
+
 type Stmt = ReturnType<DatabaseSync['prepare']>;
+
+/**
+ * Cast para bind nomeado. O chamador garante que os valores são bindables
+ * (string | number | bigint | boolean | null | Uint8Array). Sem custo em runtime.
+ */
+export function sqlRow(row: object): SqlBindRecord {
+  return row as SqlBindRecord;
+}
+
+/** Cast de array posicional dinâmico para parâmetros SQL. Sem custo em runtime. */
+export function sqlParams(params: readonly unknown[]): SqlParam[] {
+  return params as SqlParam[];
+}
 
 class SqliteCompatStatement {
   readonly reader: boolean;
@@ -42,16 +60,16 @@ class SqliteCompatStatement {
     }
   }
 
-  get(...params: unknown[]) {
+  get(...params: SqlParam[]) {
     return this.stmt.get(...params);
   }
 
-  all(...params: unknown[]) {
+  all(...params: SqlParam[]) {
     return this.stmt.all(...params);
   }
 
-  run(...params: unknown[]) {
-    return this.stmt.run(...params);
+  run(...params: SqlParam[] | [SqlBindRecord]) {
+    return this.stmt.run(...(params as SqlParam[]));
   }
 }
 

@@ -24,11 +24,7 @@ function parseContentText(raw: string, role: 'user' | 'assistant'): string {
 }
 
 /** Read chronological conversation messages from session DBs. */
-export function readConversationHistory(
-  agentGroupId: string,
-  sessionId: string,
-  limit = 50,
-): ConversationMessage[] {
+export function readConversationHistory(agentGroupId: string, sessionId: string, limit = 50): ConversationMessage[] {
   const inPath = inboundDbPath(agentGroupId, sessionId);
   const outPath = outboundDbPath(agentGroupId, sessionId);
   if (!fs.existsSync(inPath) && !fs.existsSync(outPath)) return [];
@@ -41,9 +37,11 @@ export function readConversationHistory(
   if (fs.existsSync(inPath)) {
     const db = openInboundDb(inPath);
     try {
-      const rows = db
-        .prepare(`SELECT timestamp, content, kind FROM messages_in ORDER BY timestamp ASC`)
-        .all() as { timestamp: string; content: string; kind: string }[];
+      const rows = db.prepare(`SELECT timestamp, content, kind FROM messages_in ORDER BY timestamp ASC`).all() as {
+        timestamp: string;
+        content: string;
+        kind: string;
+      }[];
       for (const row of rows) {
         if (row.kind !== 'chat' && row.kind !== 'chat-sdk' && row.kind !== 'system') continue;
         if (cutoffMs !== null && Number.isFinite(cutoffMs) && Date.parse(row.timestamp) <= cutoffMs) continue;
@@ -61,9 +59,10 @@ export function readConversationHistory(
   if (fs.existsSync(outPath)) {
     const db = openOutboundDb(outPath);
     try {
-      const rows = db
-        .prepare(`SELECT timestamp, content FROM messages_out ORDER BY timestamp ASC`)
-        .all() as { timestamp: string; content: string }[];
+      const rows = db.prepare(`SELECT timestamp, content FROM messages_out ORDER BY timestamp ASC`).all() as {
+        timestamp: string;
+        content: string;
+      }[];
       for (const row of rows) {
         if (cutoffMs !== null && Number.isFinite(cutoffMs) && Date.parse(row.timestamp) <= cutoffMs) continue;
         combined.push({
