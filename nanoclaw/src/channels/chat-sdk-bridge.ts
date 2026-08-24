@@ -4,15 +4,12 @@
  *
  * Used by Discord, Slack, and other Chat SDK-supported platforms.
  */
-import http from 'http';
-
 import {
   Chat,
   Card,
   CardText,
   Actions,
   Button,
-  LinkButton,
   type Adapter,
   type CardElement,
   type ConcurrencyStrategy,
@@ -25,6 +22,28 @@ import { registerWebhookAdapter } from '../webhook-server.js';
 import { resolveQuestionRender } from './question-render-registry.js';
 import { normalizeOptions, type NormalizedOption } from './ask-question.js';
 import type { ChannelAdapter, ChannelDefaults, ChannelSetup, InboundMessage } from './adapter.js';
+import {
+  appContextEntities,
+  attachAppContext,
+  cacheAppContext,
+  notifyAgentDmOpened,
+  type AgentDmOpenedEvent,
+  type AppContextEntity,
+} from './chat-sdk-app-context.js';
+import { buildDisplayCard, hasDisplayCardBody, type DisplayCardInput } from './chat-sdk-cards.js';
+import { resolveSelectedOption, startLocalWebhookServer, type GatewayAdapter } from './chat-sdk-gateway.js';
+import { messageToInbound } from './chat-sdk-inbound.js';
+
+// API pública preservada — implementações vivem nos módulos irmãos.
+export type { AgentDmOpenedEvent, AppContextEntity };
+export {
+  attachAppContext,
+  appContextEntities,
+  cacheAppContext,
+  normalizeDmThreadId,
+  setAgentDmOpenedHandler,
+  takeAppContext,
+} from './chat-sdk-app-context.js';
 
 type TelegramSlashRaw = {
   message_id?: number;
@@ -63,142 +82,6 @@ export function slashCommandToInbound(event: SlashCommandEvent): InboundMessage 
     isMention: true,
     isGroup,
   };
-}
-
-const SLACK_TS_RE = /^\d+\.\d+$/;
-const APP_CONTEXT_TTL_MS = 5 * 60 * 1000;
-
-export interface AppContextEntity {
-  type: string;
-  id: string;
-}
-
-export interface AgentDmOpenedEvent {
-  instance: string;
-  channelId: string;
-}
-
-interface CachedAppContext {
-  entities: AppContextEntity[];
-  expiresAt: number;
-}
-
-const appContextCache = new Map<string, CachedAppContext>();
-let agentDmOpenedHandler: (event: AgentDmOpenedEvent) => void = () => {};
-
-function normalizeChannelKey(channelId: string): string {
-  const colon = channelId.indexOf(':');
-  return colon >= 0 ? channelId.slice(colon + 1) : channelId;
-}
-
-function appContextKey(instance: string, channelId: string, userId: string): string {
-  return `${instance}:${normalizeChannelKey(channelId)}:${userId}`;
-}
-
-export function cacheAppContext(
-  instance: string,
-  channelId: string,
-  userId: string,
-  entities: AppContextEntity[],
-  now = Date.now(),
-): void {
-  appContextCache.set(appContextKey(instance, channelId, userId), {
-    entities,
-    expiresAt: now + APP_CONTEXT_TTL_MS,
-  });
-}
-
-export function takeAppContext(
-  instance: string,
-  channelId: string,
-  userId: string,
-  now = Date.now(),
-): AppContextEntity[] | undefined {
-  const entry = appContextCache.get(appContextKey(instance, channelId, userId));
-  if (!entry) return undefined;
-  appContextCache.delete(appContextKey(instance, channelId, userId));
-  if (now > entry.expiresAt) return undefined;
-  return entry.entities;
-}
-
-export function attachAppContext(
-  content: Record<string, unknown>,
-  instance: string,
-  channelId: string,
-  userId: string | undefined,
-): void {
-  if (content.app_context !== undefined || !userId) return;
-  const entities = takeAppContext(instance, channelId, userId);
-  if (entities) content.app_context = { entities };
-}
-
-export function appContextEntities(event: {
-  context?: {
-    channelId?: string;
-    entities?: Array<{ type?: string; id?: string }>;
-  };
-}): AppContextEntity[] {
-  const ctx = event.context;
-  if (!ctx) return [];
-  if (Array.isArray(ctx.entities)) {
-    return ctx.entities
-      .filter(
-        (entity): entity is { type: string; id: string } =>
-          typeof entity.type === 'string' && typeof entity.id === 'string',
-      )
-      .map((entity) => ({ type: entity.type, id: entity.id }));
-  }
-  if (ctx.channelId) return [{ type: 'channel', id: ctx.channelId }];
-  return [];
-}
-
-export function setAgentDmOpenedHandler(handler: (event: AgentDmOpenedEvent) => void): void {
-  agentDmOpenedHandler = handler;
-}
-
-/** Roots agent-view DM threads on the message ts when the SDK leaves threadTs empty. */
-export function normalizeDmThreadId(threadId: string, messageId: string): string {
-  if (!messageId || !SLACK_TS_RE.test(messageId)) return threadId;
-  if (threadId.endsWith(':')) return `${threadId}${messageId}`;
-  return threadId;
-}
-
-interface DisplayCardInput {
-  title?: string;
-  description?: string;
-  children?: string[];
-  actions?: Array<{ label: string; url?: string }>;
-}
-
-function hasDisplayCardBody(card: DisplayCardInput): boolean {
-  if (card.title?.trim()) return true;
-  if (card.description?.trim()) return true;
-  if (card.children?.some((line) => line.trim())) return true;
-  if (card.actions?.some((action) => action.url)) return true;
-  return false;
-}
-
-function buildDisplayCard(cardInput: DisplayCardInput) {
-  const children: ReturnType<typeof CardText>[] = [];
-  if (cardInput.description) children.push(CardText(cardInput.description));
-  for (const line of cardInput.children ?? []) {
-    if (line) children.push(CardText(line));
-  }
-  const linkActions = (cardInput.actions ?? []).filter((action) => action.url);
-  if (linkActions.length > 0) {
-    children.push(Actions(linkActions.map((action) => LinkButton({ label: action.label, url: action.url! }))));
-  }
-  return Card({ title: cardInput.title ?? '', children });
-}
-
-/** Adapter with optional gateway support (e.g., Discord). */
-interface GatewayAdapter extends Adapter {
-  startGatewayListener?(
-    options: { waitUntil?: (task: Promise<unknown>) => void },
-    durationMs?: number,
-    abortSignal?: AbortSignal,
-    webhookUrl?: string,
-  ): Promise<Response>;
 }
 
 /** Reply context extracted from a platform's raw message. */
@@ -268,26 +151,6 @@ export interface ChatSdkBridgeConfig {
  * chunk boundary will render as two independent blocks on the receiving
  * platform, which is the same behavior as manually re-opening a fence.
  */
-/**
- * Decode the actual option value from a button callback. Buttons are encoded
- * with an integer index (to keep under Telegram's 64-byte callback_data cap),
- * and the real value is looked up via `getAskQuestionRender(questionId)`.
- * Falls back to treating the tail as a literal value so old in-flight cards
- * (encoded before this shortening landed) still resolve.
- */
-function resolveSelectedOption(
-  render: { options: NormalizedOption[] } | undefined,
-  eventValue: string | undefined,
-  tail: string | undefined,
-): string {
-  const candidate = eventValue ?? tail ?? '';
-  if (render && /^\d+$/.test(candidate)) {
-    const idx = Number(candidate);
-    if (render.options[idx]) return render.options[idx].value;
-  }
-  return candidate;
-}
-
 export function splitForLimit(text: string, limit: number): string[] {
   if (text.length <= limit) return [text];
   const chunks: string[] = [];
@@ -326,102 +189,8 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
   let setupConfig: ChannelSetup;
   let gatewayAbort: AbortController | null = null;
 
-  async function messageToInbound(
-    message: ChatMessage,
-    isMention: boolean,
-    isGroup?: boolean,
-  ): Promise<InboundMessage> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const serialized = message.toJSON() as Record<string, any>;
-
-    // Download attachment data before serialization loses fetchData()
-    if (message.attachments && message.attachments.length > 0) {
-      const enriched = [];
-      for (const att of message.attachments) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const entry: Record<string, any> = {
-          type: att.type,
-          name: att.name,
-          mimeType: att.mimeType,
-          size: att.size,
-          width: (att as unknown as Record<string, unknown>).width,
-          height: (att as unknown as Record<string, unknown>).height,
-        };
-        if (att.fetchData) {
-          try {
-            const buffer = await att.fetchData();
-            entry.data = buffer.toString('base64');
-
-            // Automatic speech-to-text via local Whisper service if audio attachment
-            // ('voice' não existe em todas as versões do Chat SDK — checagem defensiva)
-            const isAudio =
-              att.type === 'audio' ||
-              (att.type as string) === 'voice' ||
-              (typeof att.mimeType === 'string' && att.mimeType.startsWith('audio/'));
-
-            if (isAudio && buffer.length > 0) {
-              try {
-                const formData = new FormData();
-                const blob = new Blob([buffer], { type: att.mimeType || 'audio/ogg' });
-                formData.append('audio_file', blob, att.name || 'voice.ogg');
-                const whisperRes = await fetch('http://127.0.0.1:9000/asr?task=transcribe&output=txt', {
-                  method: 'POST',
-                  body: formData,
-                });
-                if (whisperRes.ok) {
-                  const transcript = (await whisperRes.text()).trim();
-                  if (transcript) {
-                    entry.transcript = transcript;
-                    serialized.text =
-                      (serialized.text ? `${serialized.text}\n\n` : '') + `🎤 [Áudio transcrito]: "${transcript}"`;
-                    log.info('Voice message transcribed via local Whisper', {
-                      transcriptPreview: transcript.slice(0, 60),
-                    });
-                  }
-                }
-              } catch (whisperErr) {
-                log.warn('Local Whisper transcription failed', { whisperErr });
-              }
-            }
-          } catch (err) {
-            log.warn('Failed to download attachment', { type: att.type, err });
-          }
-        }
-        enriched.push(entry);
-      }
-      serialized.attachments = enriched;
-    }
-
-    // Extract reply context via platform-specific hook
-    if (config.extractReplyContext && message.raw) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const replyTo = config.extractReplyContext(message.raw as Record<string, any>);
-      if (replyTo) serialized.replyTo = replyTo;
-    }
-
-    // Project chat-sdk's nested author into the flat sender fields the router
-    // expects (see src/router.ts extractAndUpsertUser). Native adapters already
-    // populate these directly; this brings chat-sdk adapters in line.
-    const author = serialized.author as { userId?: string; fullName?: string; userName?: string } | undefined;
-    if (author) {
-      const name = author.fullName ?? author.userName;
-      serialized.senderId = author.userId;
-      serialized.sender = name;
-      serialized.senderName = name;
-    }
-
-    // Drop raw to save DB space (can be very large)
-    serialized.raw = undefined;
-
-    return {
-      id: message.id,
-      kind: 'chat-sdk',
-      content: serialized,
-      timestamp: message.metadata.dateSent.toISOString(),
-      isMention,
-      isGroup,
-    };
-  }
+  const inboundFromMessage = (message: ChatMessage, isMention: boolean, isGroup?: boolean): Promise<InboundMessage> =>
+    messageToInbound(message, isMention, isGroup, config.extractReplyContext);
 
   const bridge: ChannelAdapter & { _chat?: Chat } = {
     name: config.instance ?? adapter.name,
@@ -474,7 +243,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         const entities = appContextEntities(event);
         if (entities.length) cacheAppContext(instanceKey(), event.channelId, event.userId, entities);
         try {
-          agentDmOpenedHandler({ instance: instanceKey(), channelId: event.channelId });
+          notifyAgentDmOpened({ instance: instanceKey(), channelId: event.channelId });
         } catch (err) {
           log.error('Agent-DM opened handler failed', { err });
         }
@@ -488,14 +257,14 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
         await setupConfig.onInbound(
           channelId,
           thread.id,
-          await messageToInbound(message, message.isMention === true, true),
+          await inboundFromMessage(message, message.isMention === true, true),
         );
       });
 
       // @mention in an unsubscribed thread — SDK-confirmed bot mention.
       chat.onNewMention(async (thread, message) => {
         const channelId = adapter.channelIdFromThreadId(thread.id);
-        await setupConfig.onInbound(channelId, thread.id, await messageToInbound(message, true, true));
+        await setupConfig.onInbound(channelId, thread.id, await inboundFromMessage(message, true, true));
       });
 
       // DMs — by definition addressed to the bot. Thread id flows through
@@ -512,7 +281,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
           sender: (message.author as any)?.fullName ?? (message.author as any)?.userId ?? 'unknown',
           threadId: thread.id,
         });
-        const inbound = await messageToInbound(message, true, false);
+        const inbound = await inboundFromMessage(message, true, false);
         const userId = (message.author as { userId?: string })?.userId;
         attachAppContext(inbound.content as Record<string, unknown>, instanceKey(), thread.id, userId);
         await setupConfig.onInbound(channelId, thread.id, inbound);
@@ -530,7 +299,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
       // flood gate.
       chat.onNewMessage(/./, async (thread, message) => {
         const channelId = adapter.channelIdFromThreadId(thread.id);
-        await setupConfig.onInbound(channelId, thread.id, await messageToInbound(message, false, true));
+        await setupConfig.onInbound(channelId, thread.id, await inboundFromMessage(message, false, true));
       });
 
       // Handle button clicks (ask_user_question)
@@ -794,132 +563,4 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
   }
 
   return bridge;
-}
-
-/**
- * Start a local HTTP server to receive forwarded Gateway events.
- * This is needed because the Gateway listener in webhook-forwarding mode
- * sends ALL raw events (including INTERACTION_CREATE for button clicks)
- * to the webhookUrl, which we handle here.
- */
-function startLocalWebhookServer(
-  adapter: GatewayAdapter,
-  setupConfig: ChannelSetup,
-  botToken?: string,
-): Promise<string> {
-  return new Promise((resolve) => {
-    const server = http.createServer((req, res) => {
-      const chunks: Buffer[] = [];
-      req.on('data', (chunk: Buffer) => chunks.push(chunk));
-      req.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        handleForwardedEvent(body, adapter, setupConfig, botToken)
-          .then(() => {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end('{"ok":true}');
-          })
-          .catch((err) => {
-            log.error('Webhook server error', { err });
-            res.writeHead(500);
-            res.end('{"error":"internal"}');
-          });
-      });
-    });
-
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address() as { port: number };
-      const url = `http://127.0.0.1:${addr.port}/webhook`;
-      log.info('Local webhook server started', { port: addr.port });
-      resolve(url);
-    });
-  });
-}
-
-async function handleForwardedEvent(
-  body: string,
-  adapter: GatewayAdapter,
-  setupConfig: ChannelSetup,
-  botToken?: string,
-): Promise<void> {
-  let event: { type: string; data: Record<string, unknown> };
-  try {
-    event = JSON.parse(body);
-  } catch {
-    return;
-  }
-
-  // Handle interaction events (button clicks) — not handled by adapter's handleForwardedGatewayEvent
-  if (event.type === 'GATEWAY_INTERACTION_CREATE' && event.data) {
-    const interaction = event.data;
-    // type 3 = MessageComponent (button/select)
-    if (interaction.type === 3) {
-      const customId = (interaction.data as Record<string, unknown>)?.custom_id as string;
-      // In guilds the clicker is at interaction.member.user; in DMs it's interaction.user directly.
-      const user =
-        ((interaction.member as Record<string, unknown>)?.user as Record<string, string> | undefined) ??
-        (interaction.user as Record<string, string> | undefined);
-      const interactionId = interaction.id as string;
-      const interactionToken = interaction.token as string;
-
-      // Parse the selected option from custom_id
-      let questionId: string | undefined;
-      let tail: string | undefined;
-      if (customId?.startsWith('ncq:')) {
-        const colonIdx = customId.indexOf(':', 4); // after "ncq:"
-        if (colonIdx !== -1) {
-          questionId = customId.slice(4, colonIdx);
-          tail = customId.slice(colonIdx + 1);
-        }
-      }
-
-      // Update the card to show the selected answer and remove buttons
-      const originalEmbeds =
-        ((interaction.message as Record<string, unknown>)?.embeds as Array<Record<string, unknown>>) || [];
-      const originalDescription = (originalEmbeds[0]?.description as string) || '';
-      const render = questionId ? resolveQuestionRender(questionId) : undefined;
-      // Discord custom_id mirrors the new index-based encoding (see Button
-      // construction). Decode back to the real option value for downstream.
-      const selectedOption = resolveSelectedOption(render, tail, tail);
-      const cardTitle = render?.title ?? ((originalEmbeds[0]?.title as string) || '❓ Question');
-      const matchedOpt = render?.options.find((o) => o.value === selectedOption);
-      const selectedLabel = matchedOpt?.selectedLabel ?? selectedOption ?? customId;
-      try {
-        await fetch(`https://discord.com/api/v10/interactions/${interactionId}/${interactionToken}/callback`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 7, // UPDATE_MESSAGE — acknowledge + update in one call
-            data: {
-              embeds: [
-                {
-                  title: cardTitle,
-                  description: `${originalDescription}\n\n${selectedLabel}`,
-                },
-              ],
-              components: [], // remove buttons
-            },
-          }),
-        });
-      } catch (err) {
-        log.error('Failed to update interaction', { err });
-      }
-
-      // Dispatch to host
-      if (questionId && selectedOption) {
-        setupConfig.onAction(questionId, selectedOption, user?.id || '');
-      }
-      return;
-    }
-  }
-
-  // Forward other events to the adapter's webhook handler for normal processing
-  const fakeRequest = new Request('http://localhost/webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-discord-gateway-token': botToken || '',
-    },
-    body,
-  });
-  await adapter.handleWebhook(fakeRequest, {});
 }
