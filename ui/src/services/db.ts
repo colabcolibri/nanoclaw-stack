@@ -2,7 +2,6 @@ import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import glob from "fast-glob";
-import { CronExpressionParser } from "cron-parser";
 import { CONFIG } from "../config.js";
 import { CurrencyService } from "./currency.js";
 import {
@@ -11,6 +10,14 @@ import {
   parseToolNameFromPreview,
   resolvePurpose,
 } from "../../../nanoclaw/container/agent-runner/src/services/llm-call-purpose.js";
+import {
+  cancelScheduledTask as cancelOfficialTask,
+  getTaskExecutionLogs,
+  listScheduledTasks,
+  pauseScheduledTask as pauseOfficialTask,
+  resumeScheduledTask as resumeOfficialTask,
+  updateScheduledTask as updateOfficialTask,
+} from "./scheduled-tasks.js";
 
 export interface ChatMessageItem {
   id: string;
@@ -1070,230 +1077,27 @@ export class DatabaseService {
     return traces.slice(0, limit);
   }
 
-  static getScheduledTasks() {
-    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
-    const tasks: any[] = [];
-    if (!fs.existsSync(sessionsRoot)) return tasks;
-
-    try {
-      const groups = fs.readdirSync(sessionsRoot);
-      for (const g of groups) {
-        const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
-        for (const s of sessions) {
-          const dbPath = path.join(gPath, s, "inbound.db");
-          if (fs.existsSync(dbPath)) {
-            try {
-              const inDb = new Database(dbPath);
-              const rows = inDb
-                .query(
-                  `SELECT id, kind, timestamp, status, process_after, recurrence, trigger, channel_type, platform_id, content 
-                   FROM messages_in 
-                   WHERE (process_after IS NOT NULL OR recurrence IS NOT NULL) AND status = 'pending'
-                   ORDER BY timestamp DESC`
-                )
-                .all() as any[];
-
-              for (const r of rows) {
-                let text = "";
-                let isRecurring = Boolean(r.recurrence);
-                let cron = r.recurrence || null;
-                try {
-                  const parsed = JSON.parse(r.content);
-                  text = parsed.text || "";
-                } catch {}
-
-                const cleanPrompt = text.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
-
-                tasks.push({
-                  id: r.id,
-                  kind: isRecurring ? 'Rotina Periódica (Cron)' : (r.kind || 'Tarefa Agendada'),
-                  status: r.status,
-                  createdAt: r.timestamp,
-                  processAfter: r.process_after,
-                  recurrence: cron,
-                  isRecurring,
-                  channelType: r.channel_type || "telegram",
-                  platformId: r.platform_id,
-                  prompt: text,
-                  cleanPrompt: cleanPrompt || text,
-                  dbPath,
-                });
-              }
-              inDb.close();
-            } catch {}
-          }
-        }
-      }
-    } catch {}
-
-    return tasks;
+  static getScheduledTasks(groupFolder?: string) {
+    return listScheduledTasks(groupFolder);
   }
 
   static updateScheduledTask(taskId: string, data: { cron?: string; prompt?: string }) {
-    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
-    if (!fs.existsSync(sessionsRoot)) return false;
-
-    try {
-      const groups = fs.readdirSync(sessionsRoot);
-      for (const g of groups) {
-        const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
-        for (const s of sessions) {
-          const dbPath = path.join(gPath, s, "inbound.db");
-          if (fs.existsSync(dbPath)) {
-            try {
-              const inDb = new Database(dbPath);
-              const existing = inDb.query("SELECT id, recurrence, content FROM messages_in WHERE id = ?").get(taskId) as any;
-              if (existing) {
-                const newCron = data.cron?.trim() || existing.recurrence || '0 * * * *';
-                let newPrompt = data.prompt?.trim();
-                if (!newPrompt) {
-                  try {
-                    const parsed = JSON.parse(existing.content);
-                    newPrompt = parsed.text || '';
-                  } catch {
-                    newPrompt = existing.content;
-                  }
-                }
-
-                let nextRunIso: string | null = null;
-                try {
-                  nextRunIso = CronExpressionParser.parse(newCron).next().toISOString();
-                } catch {}
-
-                const cleanPrompt = (newPrompt ?? "").replace(/^🔄\s*\[.*?\]:\s*/, "").trim();
-                const contentJson = JSON.stringify({
-                  _type: 'chat:Message',
-                  id: taskId,
-                  text: `🔄 [Rotina Periódica Agendada (${newCron})]: ${cleanPrompt}`,
-                  isRecurringRoutine: true,
-                  cron: newCron,
-                });
-
-                inDb.query(
-                  "UPDATE messages_in SET recurrence = ?, process_after = ?, content = ?, status = 'pending' WHERE id = ?"
-                ).run(newCron, nextRunIso, contentJson, taskId);
-
-                inDb.close();
-                return true;
-              }
-              inDb.close();
-            } catch {}
-          }
-        }
-      }
-      return false;
-    } catch {
-      return false;
-    }
+    return updateOfficialTask(taskId, data);
   }
 
   static cancelScheduledTask(taskId: string) {
-    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
-    if (!fs.existsSync(sessionsRoot)) return false;
-
-    try {
-      const groups = fs.readdirSync(sessionsRoot);
-      for (const g of groups) {
-        const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
-        for (const s of sessions) {
-          const dbPath = path.join(gPath, s, "inbound.db");
-          if (fs.existsSync(dbPath)) {
-            try {
-              const inDb = new Database(dbPath);
-              inDb.query("DELETE FROM messages_in WHERE id = ?").run(taskId);
-              inDb.close();
-            } catch {}
-          }
-        }
-      }
-      return true;
-    } catch {
-      return false;
-    }
+    return cancelOfficialTask(taskId);
   }
 
-  static getCronExecutionLogs(limit = 50) {
-    const sessionsRoot = path.join(CONFIG.NANOCLAW_PATH, "data", "v2-sessions");
-    const logs: any[] = [];
-    if (!fs.existsSync(sessionsRoot)) return logs;
+  static pauseScheduledTask(taskId: string) {
+    return pauseOfficialTask(taskId);
+  }
 
-    try {
-      const groups = fs.readdirSync(sessionsRoot);
-      for (const g of groups) {
-        const gPath = path.join(sessionsRoot, g);
-        const sessions = fs.readdirSync(gPath).filter((name: string) => name.startsWith("sess-1"));
-        for (const s of sessions) {
-          const dbPath = path.join(gPath, s, "inbound.db");
-          const outDbPath = path.join(gPath, s, "outbound.db");
-          if (fs.existsSync(dbPath)) {
-            try {
-              const inDb = new Database(dbPath);
-              let outDb: Database | null = null;
-              if (fs.existsSync(outDbPath)) {
-                try {
-                  outDb = new Database(outDbPath);
-                } catch {}
-              }
+  static resumeScheduledTask(taskId: string) {
+    return resumeOfficialTask(taskId);
+  }
 
-              const rows = inDb
-                .query(
-                  `SELECT id, kind, timestamp, status, process_after, recurrence, channel_type, platform_id, content 
-                   FROM messages_in 
-                   WHERE status = 'completed' AND (recurrence IS NOT NULL OR content LIKE '%Rotina Periódica%' OR content LIKE '%isRecurringRoutine%' OR id LIKE '%routine%')
-                   ORDER BY timestamp DESC LIMIT ${limit}`
-                )
-                .all() as any[];
-
-              for (const r of rows) {
-                let text = "";
-                let cron = r.recurrence || null;
-                try {
-                  const parsed = JSON.parse(r.content);
-                  text = parsed.text || "";
-                  if (!cron && parsed.cron) cron = parsed.cron;
-                } catch {}
-
-                let resultText = "";
-                if (outDb) {
-                  try {
-                    const outRow = outDb.query("SELECT content FROM messages_out WHERE in_reply_to = ? ORDER BY timestamp DESC LIMIT 1").get(r.id) as any;
-                    if (outRow && outRow.content) {
-                      try {
-                        const parsedOut = JSON.parse(outRow.content);
-                        resultText = parsedOut.text || outRow.content;
-                      } catch {
-                        resultText = outRow.content;
-                      }
-                    }
-                  } catch {}
-                }
-
-                const cleanPrompt = text.replace(/^🔄\s*\[.*?\]:\s*/, '').trim();
-
-                logs.push({
-                  id: r.id,
-                  timestamp: r.timestamp,
-                  status: r.status || "completed",
-                  cron,
-                  channelType: r.channel_type || "telegram",
-                  prompt: text,
-                  cleanPrompt: cleanPrompt || text,
-                  resultText: resultText ? resultText.replace(/<message\s+to="[^"]*">/gi, '').replace(/<\/message>/gi, '').trim() : undefined,
-                });
-              }
-
-              if (outDb) outDb.close();
-              inDb.close();
-            } catch {}
-          }
-        }
-      }
-    } catch {}
-
-    logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return logs.slice(0, limit);
+  static getCronExecutionLogs(limit = 50, groupFolder?: string) {
+    return getTaskExecutionLogs(limit, groupFolder);
   }
 }

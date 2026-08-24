@@ -6,7 +6,6 @@ import { googleGmailTool } from './google-gmail.js';
 import { notionTool } from './notion.js';
 import { yampiTool } from './yampi.js';
 import { memoryTool } from './memory.js';
-import { schedulerTool } from './scheduler.js';
 import { resalePricingTool } from './resale-pricing.js';
 import { correiosShippingTool } from './shipping.js';
 import { tokenUsageTool } from './token-usage.js';
@@ -24,7 +23,6 @@ export const ALL_TOOLS: Record<string, AgentTool> = {
   resale_pricing: resalePricingTool,
   correios_shipping: correiosShippingTool,
   manage_memory: memoryTool,
-  schedule_followup: schedulerTool,
   token_usage: tokenUsageTool,
   web_search: webSearchTool,
   browse_url: browseUrlTool,

@@ -63,7 +63,8 @@ describe('Multi-Agent & Department Architecture', () => {
     const toolNames = tools.map((t) => t.function.name);
     expect(toolNames).toContain('google_gmail');
     expect(toolNames).toContain('google_calendar');
-    expect(toolNames).toContain('schedule_followup');
+    expect(toolNames).toContain('run_command');
+    expect(toolNames).not.toContain('schedule_followup');
     expect(toolNames).toContain('retrieve_message_context');
     expect(toolNames).not.toContain('yampi_store');
     expect(toolNames).not.toContain('resale_pricing');

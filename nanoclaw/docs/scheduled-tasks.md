@@ -1,10 +1,25 @@
-# Scheduled Tasks
+# Scheduled tasks
 
 Scheduled tasks run an agent prompt at a future time or on a recurring cron
 schedule. Each task belongs to an agent group and runs in its own system
 session, separate from normal chat sessions.
 
 Run `ncl tasks create --help` for the complete and current CLI reference.
+
+## Single scheduling path
+
+All scheduling — host CLI, agent workers, and the web UI — uses **`ncl tasks`**
+and `kind='task'` rows in per-series system sessions (`system:tasks:<series-id>`).
+
+| Surface | How it schedules |
+| ------- | ---------------- |
+| Host / operator | `ncl tasks create …` |
+| Agent worker | `run_command` + `ncl tasks …` (skill: `autonomous-scheduler`) |
+| Web UI (Schedules) | Reads the same task store; cancel/update call the same semantics |
+
+The legacy container tool `schedule_followup` was removed. It wrote `kind='chat'`
+rows into the active chat session and duplicated behavior with weaker recurrence
+and no script gates.
 
 ## Create a recurring task
 

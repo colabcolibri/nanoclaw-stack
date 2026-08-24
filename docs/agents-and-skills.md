@@ -10,7 +10,7 @@ Ver também: [agent-turn-flow.md](agent-turn-flow.md), [DEV-LOCAL.md](DEV-LOCAL.
 ## Arquitetura em 3 camadas
 
 ```
-TOOL (código)     →  google_gmail, schedule_followup, yampi_store …
+TOOL (código)     →  google_gmail, run_command (ncl tasks), yampi_store …
        ↑
 SKILL (SKILL.md)  →  tools: [google_gmail]  + manual operacional
        ↑
@@ -148,7 +148,7 @@ Injetados em todo `WorkerAgentRunner.execute`.
 
 **SKILL** `google-calendar` → `tools: [google_calendar]`  
 **AGENT** `productivity_attendant` → `skills: [gmail-inbox, google-calendar, autonomous-scheduler]`  
-**Runtime** → worker recebe `google_calendar` no schema → chama API → supervisor/sender sintetizam.
+**Runtime** → worker recebe `google_calendar` + `run_command`; skill `autonomous-scheduler` ensina `ncl tasks` para lembretes/cron.
 
 Se faltar qualquer elo, o worker fica só com globais (`load_skill`, `run_command`) e tende a improvisar ou pedir dados ao usuário.
 

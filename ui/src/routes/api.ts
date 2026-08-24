@@ -552,7 +552,7 @@ export class ApiRouter {
     // Scheduler & Autonomous Routines (Cron & Delayed Tasks)
     if (url.pathname === "/api/scheduler/tasks" && method === "GET") {
       const folder = resolveGroupFolder(url.searchParams.get("folder"));
-      const tasks = DatabaseService.getScheduledTasks();
+      const tasks = DatabaseService.getScheduledTasks(folder);
       return jsonResponse({ tasks, total: tasks.length });
     }
 
@@ -562,6 +562,24 @@ export class ApiRouter {
         return jsonResponse({ success: false, error: "taskId é obrigatório." }, 400);
       }
       const ok = DatabaseService.cancelScheduledTask(body.taskId);
+      return jsonResponse({ success: ok });
+    }
+
+    if (url.pathname === "/api/scheduler/pause" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { taskId?: string };
+      if (!body.taskId) {
+        return jsonResponse({ success: false, error: "taskId é obrigatório." }, 400);
+      }
+      const ok = DatabaseService.pauseScheduledTask(body.taskId);
+      return jsonResponse({ success: ok });
+    }
+
+    if (url.pathname === "/api/scheduler/resume" && method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { taskId?: string };
+      if (!body.taskId) {
+        return jsonResponse({ success: false, error: "taskId é obrigatório." }, 400);
+      }
+      const ok = DatabaseService.resumeScheduledTask(body.taskId);
       return jsonResponse({ success: ok });
     }
 
@@ -580,7 +598,7 @@ export class ApiRouter {
     if (url.pathname === "/api/scheduler/logs" && method === "GET") {
       const folder = resolveGroupFolder(url.searchParams.get("folder"));
       const limit = parseInt(url.searchParams.get("limit") || "50", 10);
-      const logs = DatabaseService.getCronExecutionLogs(limit);
+      const logs = DatabaseService.getCronExecutionLogs(limit, folder);
       return jsonResponse({ logs, total: logs.length });
     }
 

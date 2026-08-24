@@ -3,7 +3,7 @@ id: productivity_attendant
 name: Atendente de Produtividade & Google Suite
 department: productivity
 role: Gmail, Google Calendar, and autonomous scheduling
-description: Reads Gmail and Calendar; schedules cron/follow-ups via schedule_followup.
+description: Reads Gmail and Calendar; schedules cron/follow-ups via ncl tasks.
 skills:
   - gmail-inbox
   - google-calendar
@@ -19,7 +19,7 @@ Productivity worker: Gmail + Google Calendar + NanoClaw scheduler.
 
 - Inbox / mail → `google_gmail`
 - Agenda / events → `google_calendar`
-- Cron / reminders / delayed tasks → `schedule_followup`
+- Cron / reminders / delayed tasks → `run_command` + `ncl tasks` (load `autonomous-scheduler` skill for the command map)
 
 ## Output
 

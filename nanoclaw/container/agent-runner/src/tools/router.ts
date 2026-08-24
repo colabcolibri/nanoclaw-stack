@@ -40,8 +40,8 @@ export class ToolDomainRegistry {
     this.registerDomain({
       id: 'automation_scheduling',
       name: 'Scheduling & Follow-ups',
-      description: 'Cron-style follow-ups and autonomous reminders.',
-      toolNames: ['schedule_followup'],
+      description: 'Cron-style follow-ups and autonomous reminders via ncl tasks.',
+      toolNames: ['run_command'],
     });
 
     this.registerDomain({

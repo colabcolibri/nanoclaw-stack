@@ -17,6 +17,8 @@ import {
   Eye,
   FileText,
   Lightbulb,
+  Pause,
+  Play,
   RefreshCw,
   Repeat,
   Save,
@@ -40,6 +42,7 @@ export const SchedulesView: React.FC = () => {
 
   const [deletingTask, setDeletingTask] = useState<ScheduledTask | null>(null)
   const [isDeleting, setIsDeleting] = useState<boolean>(false)
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
@@ -105,7 +108,7 @@ export const SchedulesView: React.FC = () => {
     try {
       const res = await ApiClient.cancelSchedule(deletingTask.id)
       if (res.success) {
-        showNotify('success', 'Rotina cancelada e excluída com sucesso!')
+        showNotify('success', 'Task cancelada com sucesso!')
         setDeletingTask(null)
         loadSchedules()
       } else {
@@ -115,6 +118,40 @@ export const SchedulesView: React.FC = () => {
       showNotify('error', err.message || 'Erro ao excluir rotina.')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handlePause = async (task: ScheduledTask) => {
+    setTogglingTaskId(task.id)
+    try {
+      const res = await ApiClient.pauseSchedule(task.id)
+      if (res.success) {
+        showNotify('success', 'Task pausada.')
+        loadSchedules()
+      } else {
+        showNotify('error', 'Não foi possível pausar a task.')
+      }
+    } catch (err: any) {
+      showNotify('error', err.message || 'Erro ao pausar.')
+    } finally {
+      setTogglingTaskId(null)
+    }
+  }
+
+  const handleResume = async (task: ScheduledTask) => {
+    setTogglingTaskId(task.id)
+    try {
+      const res = await ApiClient.resumeSchedule(task.id)
+      if (res.success) {
+        showNotify('success', 'Task retomada.')
+        loadSchedules()
+      } else {
+        showNotify('error', 'Não foi possível retomar a task.')
+      }
+    } catch (err: any) {
+      showNotify('error', err.message || 'Erro ao retomar.')
+    } finally {
+      setTogglingTaskId(null)
     }
   }
 
@@ -133,7 +170,7 @@ export const SchedulesView: React.FC = () => {
     <div className="flex flex-col gap-6 w-full flex-1">
       <PageHeader
         view="schedules"
-        subtitle="Gerenciamento de rotinas recorrentes (cron), watchdogs periódicos e tarefas autônomas ativas."
+        subtitle="Tarefas oficiais do NanoClaw (ncl tasks): rotinas cron, lembretes one-shot e monitoramentos com script gate."
         actions={
           <Button
             variant="outline"
@@ -172,10 +209,10 @@ export const SchedulesView: React.FC = () => {
               <span>Como funcionam as rotinas ativas no NanoClaw:</span>
             </div>
             <p>
-              • <strong>Agendamento Periódico (Cron):</strong> O sistema acorda o agente de acordo com a periodicidade configurada para monitorar e-mails, processos e tarefas.
+              • <strong>Fonte única (`ncl tasks`):</strong> o agente cria e gerencia agendamentos via CLI; cada série roda em sessão isolada com histórico de execuções.
             </p>
             <p>
-              • <strong>Edição & Controle Visual:</strong> Você pode ajustar o texto de instrução (prompt), a frequência cron ou deletar qualquer agendamento com confirmação segura.
+              • <strong>Pausar / retomar:</strong> equivalente a `ncl tasks pause` e `ncl tasks resume` — a série fica salva, só deixa de disparar até retomar.
             </p>
           </div>
 
@@ -185,7 +222,7 @@ export const SchedulesView: React.FC = () => {
               <EmptyState
                 icon={<Clock className="w-8 h-8 text-(--text-dim)" />}
                 title="Sem rotinas ativas"
-                description="Nenhum agendamento de cron ou watchdog pendente no momento."
+                description="Nenhuma task pendente ou pausada. Crie via agente (`ncl tasks create`) ou peça um lembrete no chat."
               />
             ) : (
               tasks.map((task) => {
@@ -212,9 +249,19 @@ export const SchedulesView: React.FC = () => {
                               <CheckCircle2 className="w-3 h-3" />
                               <span>{task.status?.toUpperCase() || 'PENDING'}</span>
                             </StatusBadge>
-                            {task.channelType && (
+                            {task.agentGroupName && (
                               <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                                <span>{task.channelType}</span>
+                                <span>{task.agentGroupName}</span>
+                              </Badge>
+                            )}
+                            {typeof task.runs === 'number' && task.runs > 0 && (
+                              <Badge variant="outline" className="text-[10px] font-mono">
+                                <span>{task.runs} exec.</span>
+                              </Badge>
+                            )}
+                            {typeof task.failedRuns === 'number' && task.failedRuns > 0 && (
+                              <Badge variant="outline" className="text-[10px] font-mono text-red-500 border-red-500/30">
+                                <span>{task.failedRuns} falhas</span>
                               </Badge>
                             )}
                           </div>
@@ -252,6 +299,30 @@ export const SchedulesView: React.FC = () => {
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Editar</span>
                         </Button>
+
+                        {task.status === 'paused' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResume(task)}
+                            disabled={togglingTaskId === task.id}
+                            className="h-8 gap-1.5 text-xs font-semibold text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            <span>Retomar</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePause(task)}
+                            disabled={togglingTaskId === task.id || task.status !== 'pending'}
+                            className="h-8 gap-1.5 text-xs font-semibold text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+                          >
+                            <Pause className="w-3.5 h-3.5" />
+                            <span>Pausar</span>
+                          </Button>
+                        )}
 
                         <Button
                           variant="outline"

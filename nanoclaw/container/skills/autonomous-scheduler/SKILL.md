@@ -1,38 +1,44 @@
 ---
 name: autonomous-scheduler
-description: Persistent cron routines, delayed one-shot tasks, and follow-ups via schedule_followup. Not host crontab.
-domain: notion_management
+description: Persistent cron routines, delayed one-shot tasks, and follow-ups via ncl tasks. Not host crontab.
+domain: automation_scheduling
 tools:
-  - schedule_followup
+  - run_command
 ---
 
 # Autonomous scheduler
 
-Persistence = `schedule_followup` only. Containers are ephemeral — host `crontab` does not wake the agent.
+Persistence = `ncl tasks` only. Containers are ephemeral — host `crontab` does not wake the agent.
+
+Use the instance timezone from the `<context timezone="..."/>` header for naive local times. Cron expressions follow the group's timezone (same as `ncl tasks create --help`).
 
 ## Decision map
 
-| User intent | `action` | Required params |
-| :--- | :--- | :--- |
-| Recurring job (cron) | `schedule_recurring_routine` | `cron` (5-field UTC), `prompt` (autonomous instruction for wake-up) |
-| One-shot after delay | `schedule_delayed_task` | `delay_minutes` or `run_at` (ISO), `prompt` |
-| List active schedules | `list_scheduled_tasks` | — |
-| Change routine | `update_recurring_routine` | `task_id` (optional), `cron` and/or `prompt` |
-| Cancel | `cancel_task` | `task_id` |
+| User intent | Command |
+| :--- | :--- |
+| Recurring job (cron) | `ncl tasks create --name "<short label>" --recurrence "<5-field cron>" --prompt "<self-contained instruction>"` |
+| One-shot after delay | `ncl tasks create --name "<short label>" --process-after "<ISO or local time>" --prompt "<instruction>"` |
+| List active schedules | `ncl tasks list` |
+| Inspect runs / failures | `ncl tasks get <series-id>` |
+| Change schedule or prompt | `ncl tasks update <series-id> --recurrence "..."` and/or `--prompt "..."` |
+| Pause / resume | `ncl tasks pause <series-id>` / `ncl tasks resume <series-id>` |
+| Cancel | `ncl tasks cancel <series-id>` |
+| Fire once now (test) | `ncl tasks run <series-id>` |
 
-## Cron (UTC, 5 fields)
+## Cron examples (group timezone)
 
 | Pattern | Expression |
 | :--- | :--- |
 | Every 2 hours | `0 */2 * * *` |
-| Daily 09:00 UTC | `0 9 * * *` |
-| Weekdays 11:00 UTC | `0 11 * * 1-5` |
+| Daily 09:00 | `0 9 * * *` |
+| Weekdays 11:00 | `0 11 * * 1-5` |
 
 ## Execution rules
 
-1. CALL `schedule_followup` before claiming create/update/cancel.
-2. SUCCESS only if response contains `"status": "ok"`. Report `task_id`, cron, `process_after` when present.
-3. `list_scheduled_tasks` → pending routines only. Do not confuse with past runs.
-4. NEVER `run_command` / `crontab` / `/etc/cron.d`.
-5. Wake `prompt` must be self-contained (which tools to call, what to report). Example: `Check unread Gmail via google_gmail; summarize; notify user.`
-6. DONE + structured summary. No user small-talk.
+1. CALL `run_command` with `ncl tasks …` before claiming create/update/cancel.
+2. SUCCESS only when the command exits 0 and output is not an error. Report `series_id` / task id, cron, `process_after`, `next_run` when present.
+3. `ncl tasks list` → pending/paused series only. Do not confuse with past runs (`ncl tasks get` for history).
+4. NEVER `crontab` / `/etc/cron.d` / SDK cron builtins.
+5. Task `prompt` must be self-contained: which tools to call, where to deliver (`telegram`, etc.), what to report. Example: `Check unread Gmail via google_gmail; summarize; send summary to telegram.`
+6. Frequent polling needs a `--script` gate — see `ncl tasks create --help`. Do not override recurrence limits without user consent.
+7. DONE + structured summary. No user small-talk.

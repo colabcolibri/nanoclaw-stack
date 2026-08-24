@@ -149,14 +149,20 @@ export interface ScheduledTask {
   kind: string
   status: string
   createdAt: string
-  processAfter?: string
-  recurrence?: string
+  processAfter?: string | null
+  recurrence?: string | null
   isRecurring: boolean
   channelType: string
   platformId?: string
   prompt: string
   cleanPrompt?: string
-  dbPath?: string
+  agentGroupId?: string
+  agentGroupName?: string
+  agentGroupFolder?: string
+  runs?: number
+  failedRuns?: number
+  lastRun?: string | null
+  hasScript?: boolean
 }
 
 export interface CronExecutionLog {
@@ -363,6 +369,20 @@ export class ApiClient {
 
   static async cancelSchedule(taskId: string): Promise<{ success: boolean }> {
     return this.fetchJson('/api/scheduler/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ taskId }),
+    })
+  }
+
+  static async pauseSchedule(taskId: string): Promise<{ success: boolean }> {
+    return this.fetchJson('/api/scheduler/pause', {
+      method: 'POST',
+      body: JSON.stringify({ taskId }),
+    })
+  }
+
+  static async resumeSchedule(taskId: string): Promise<{ success: boolean }> {
+    return this.fetchJson('/api/scheduler/resume', {
       method: 'POST',
       body: JSON.stringify({ taskId }),
     })
