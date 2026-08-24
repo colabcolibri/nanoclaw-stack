@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-APP_VERSION="1.4.1"
+APP_VERSION="1.4.2"
 
 echo "🚀 Iniciando compilação do Barão macOS v${APP_VERSION}..."
 
