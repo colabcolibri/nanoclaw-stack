@@ -329,6 +329,11 @@ export function buildMounts(
     mounts.push({ hostPath: containerJsonPath, containerPath: '/workspace/agent/container.json', readonly: true });
   }
 
+  const etcTimezonePath = path.join(groupDir, '.etc-timezone');
+  if (fs.existsSync(etcTimezonePath)) {
+    mounts.push({ hostPath: etcTimezonePath, containerPath: '/etc/timezone', readonly: true });
+  }
+
   // Stamped plugin content is immutable at runtime (the Agent Plugins
   // contract: writes go to plugin-data/, which stays RW via the group mount).
   // Same nested-RO pattern as container.json; initGroupFilesystem creates the

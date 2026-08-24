@@ -431,6 +431,10 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(p, JSON.stringify(config, null, 2) + '\n');
 
+  // Debian images ship /etc/timezone as Etc/UTC while TZ env follows the group.
+  // Bind-mount this file at spawn so `cat /etc/timezone` matches container.json.
+  fs.writeFileSync(path.join(GROUPS_DIR, group.folder, '.etc-timezone'), `${config.timezone}\n`);
+
   try {
     const modelsPath = path.join(GROUPS_DIR, group.folder, 'llm-models.json');
     fs.writeFileSync(modelsPath, JSON.stringify(registry, null, 2) + '\n');

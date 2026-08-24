@@ -153,6 +153,8 @@ export function formatSchedulingTimezoneRules(tz: string, now = new Date()): str
   const offset = formatUtcOffsetLabel(now, resolved);
   return [
     `- Schedule timezone (ncl tasks cron & naive --process-after): ${resolved} (${offset} now)`,
+    `- Authoritative sources: container.json "timezone", <context timezone="…"/>, /etc/timezone, TZ env — all must match ${resolved}.`,
+    `- Cron expression hours are wall-clock in ${resolved}, NOT UTC.`,
     `- UTC now: ${now.toISOString()}`,
     '- Times the user gives without a timezone → interpret in the schedule timezone above.',
     '- If the user names another timezone (e.g. Brasília, BRT, horário do Brasil):',

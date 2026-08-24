@@ -90,6 +90,9 @@ describe('resolveGroupTimezone', () => {
     updateContainerConfigScalars(GROUP.id, { timezone: 'Asia/Tokyo' });
     const updated = materializeContainerJson(GROUP.id);
     expect(updated.timezone).toBe('Asia/Tokyo');
+    expect(fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, '.etc-timezone'), 'utf-8').trim()).toBe(
+      'Asia/Tokyo',
+    );
   });
 });
 
