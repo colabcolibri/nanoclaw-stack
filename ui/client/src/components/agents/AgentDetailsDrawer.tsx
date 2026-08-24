@@ -10,8 +10,10 @@ import type { InferenceParamsForm } from '@/components/config/RoleInferenceParam
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Sheet,
-  SheetContent,
+  SheetTemplate,
+  SheetTemplateFooter,
+} from '@/components/templates/SheetTemplate'
+import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -181,47 +183,70 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="right"
-        className="flex h-dvh max-h-dvh w-full max-w-3xl flex-col gap-0 overflow-hidden border-l border-(--border-main) bg-(--bg-card)/95 p-0 backdrop-blur-xl sm:max-w-3xl"
-      >
-        <div className="flex h-full min-w-0 flex-col">
-          <SheetHeader className="space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
-            <div className="flex items-start gap-4 pr-8">
-              <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
-                <AgentIcon className="h-6 w-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <SheetTitle className="mb-1 flex flex-wrap items-center gap-2 text-xl">
-                  <span className="wrap-break-word leading-snug">{name || agent.id}</span>
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-500"
-                  >
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {t('drawerActive')}
-                  </Badge>
-                </SheetTitle>
-                <SheetDescription asChild>
-                  <div className="space-y-1">
-                    <p className="font-mono text-xs text-(--text-dim) break-all">ID: {agent.id}</p>
-                    <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-primary">
-                      <Cpu className="h-3 w-3 shrink-0" />
-                      <span className="break-all">{modelDisplay}</span>
-                    </p>
-                  </div>
-                </SheetDescription>
-              </div>
+    <SheetTemplate
+      open={isOpen}
+      onClose={onClose}
+      size="3xl"
+      bodyScrollable={false}
+      header={
+        <SheetHeader className="space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
+          <div className="flex items-start gap-4 pr-8">
+            <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--accent-border) bg-(--accent-subtle)">
+              <AgentIcon className="h-6 w-6 text-primary" />
             </div>
-          </SheetHeader>
-
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <div className="shrink-0 border-b border-(--border-main) px-4 sm:px-6">
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="mb-1 flex flex-wrap items-center gap-2 text-xl">
+                <span className="wrap-break-word leading-snug">{name || agent.id}</span>
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-500"
+                >
+                  <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {t('drawerActive')}
+                </Badge>
+              </SheetTitle>
+              <SheetDescription asChild>
+                <div className="space-y-1">
+                  <p className="font-mono text-xs text-(--text-dim) break-all">ID: {agent.id}</p>
+                  <p className="flex flex-wrap items-center gap-1.5 font-mono text-xs text-primary">
+                    <Cpu className="h-3 w-3 shrink-0" />
+                    <span className="break-all">{modelDisplay}</span>
+                  </p>
+                </div>
+              </SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+      }
+      footer={
+        activeTab !== 'overview' ? (
+          <SheetTemplateFooter>
+            {saveSuccess ? (
+              <Button variant="default" size="sm" disabled className="text-xs">
+                <Check className="mr-1 h-3.5 w-3.5" />
+                {t('saved')}
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
+                  {t('cancel')}
+                </Button>
+                <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving} className="text-xs">
+                  <Save className="mr-1 h-3.5 w-3.5" />
+                  {isSaving ? t('saving') : t('save')}
+                </Button>
+              </>
+            )}
+          </SheetTemplateFooter>
+        ) : undefined
+      }
+    >
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <div className="shrink-0 border-b border-(--border-main) px-4 sm:px-6">
               <div className="overflow-x-auto overflow-y-hidden">
                 <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-5 rounded-none border-0 bg-transparent p-0 shadow-none">
                 <TabsTrigger
@@ -376,31 +401,8 @@ export const AgentDetailsDrawer: React.FC<AgentDetailsDrawerProps> = ({
                   placeholder={t('promptPlaceholder')}
                 />
               </TabsContent>
-            </div>
-          </Tabs>
-
-          {activeTab !== 'overview' && (
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-(--border-main) px-4 py-4 sm:px-6">
-              {saveSuccess ? (
-                <Button variant="default" size="sm" disabled className="text-xs">
-                  <Check className="mr-1 h-3.5 w-3.5" />
-                  {t('saved')}
-                </Button>
-              ) : (
-                <>
-                  <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
-                    {t('cancel')}
-                  </Button>
-                  <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving} className="text-xs">
-                    <Save className="mr-1 h-3.5 w-3.5" />
-                    {isSaving ? t('saving') : t('save')}
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </Tabs>
+    </SheetTemplate>
   )
 }

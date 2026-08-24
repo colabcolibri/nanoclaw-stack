@@ -18,8 +18,12 @@ Productivity worker: Gmail + Google Calendar + NanoClaw scheduler.
 ## Execute
 
 - Inbox / mail → `google_gmail`
-- Agenda / events → `google_calendar`
-- Cron / reminders / delayed tasks → `run_command` + `ncl tasks` (load `autonomous-scheduler` skill for the command map)
+- Agenda / events → `google_calendar` (read/write **events only** — not agent wake-ups)
+- Cron / reminders / delayed agent runs → `run_command` + `ncl tasks` (skill `autonomous-scheduler` — mandatory for any schedule)
+
+## Scheduling rule
+
+If the task is “run the agent every X hours” or “remind me at…”, you **must** call `ncl tasks create` (or list/update/cancel). A calendar event is **not** a NanoClaw schedule. Report the task id from CLI output; never claim success without it.
 
 ## Output
 

@@ -96,7 +96,24 @@ export class SkillsManager {
   }
 
   /**
-   * Generates a compact, domain-grouped catalog of available skills (~80 to 120 tokens).
+   * Full operational manuals for an agent's assigned skills — injected into the worker
+   * system prompt so scheduling/email rules are in context without a load_skill round-trip.
+   */
+  static getAgentSkillsPrompt(skillNames: string[], cwd?: string): string {
+    if (skillNames.length === 0) return '';
+
+    const sections: string[] = [];
+    for (const skillName of skillNames) {
+      const skill = this.getSkillByName(skillName, cwd);
+      if (!skill?.instructions) continue;
+      sections.push(`## Skill: ${skill.name}\n\n${skill.instructions}`);
+    }
+
+    if (sections.length === 0) return '';
+    return ['## Assigned skill manuals (follow these)', ...sections].join('\n\n');
+  }
+
+  /**
    * Replaces multi-thousand token raw markdown dumps in the Stage 1 system prompt.
    */
   static getCompactCatalogPrompt(cwd?: string): string {

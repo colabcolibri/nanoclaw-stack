@@ -42,6 +42,31 @@ Tools do worker vêm **só** de: `AGENT.md` skills → `SKILL.md` `tools:` → `
 
 ---
 
+## Validação do registry (CI + boot)
+
+`validateAgentRegistry()` em `container/agent-runner/src/agents/validate-registry.ts` falha com **erro** quando:
+
+- departamento referencia `agentId` sem `AGENT.md`
+- agente referencia skill inexistente
+- skill declara tool que não existe em `ALL_TOOLS`
+- skill exige tool que o agente não expõe no schema
+- agente não resolve nenhuma tool
+- skills listadas mas sem manual injetável no worker
+
+**Quando roda:**
+
+```bash
+cd nanoclaw/container/agent-runner
+bun run validate:agents   # só a checagem
+bun test                  # inclui validate:agents no início
+```
+
+No **startup do container**, `assertAgentRegistryValid` aborta o processo com a lista de erros — misconfig não chega a rodar turno silencioso.
+
+No **runtime**, `WorkerAgentRunner` também recusa executar agente com skill/tool quebrada.
+
+---
+
 ## Criar uma skill nova
 
 1. Pasta: `nanoclaw/container/skills/<slug>/SKILL.md`

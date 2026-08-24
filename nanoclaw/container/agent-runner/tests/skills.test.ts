@@ -39,4 +39,11 @@ describe("SkillsManager Automated Folder Discovery & Skills on Demand", () => {
     expect(res.domain).toBe("store_attendant");
     expect(res.manual).toContain("Colibri");
   });
+
+  test("Builds assigned skill prompt for worker injection", () => {
+    const prompt = SkillsManager.getAgentSkillsPrompt(["autonomous-scheduler", "gmail-inbox"]);
+    expect(prompt).toContain("Assigned skill manuals");
+    expect(prompt).toContain("ncl tasks");
+    expect(prompt).toContain("google_gmail");
+  });
 });

@@ -37,6 +37,7 @@ import { createProvider, type ProviderName } from './providers/factory.js';
 import { resolvePluginServer } from './plugin-mcp.js';
 import type { McpServerConfig } from './providers/types.js';
 import { runPollLoop } from './poll-loop.js';
+import { assertAgentRegistryValid } from './agents/validate-registry.js';
 
 function log(msg: string): void {
   console.error(`[agent-runner] ${msg}`);
@@ -49,6 +50,13 @@ async function main(): Promise<void> {
   const providerName = config.provider.toLowerCase() as ProviderName;
 
   log(`Starting v2 agent-runner (provider: ${providerName})`);
+
+  try {
+    assertAgentRegistryValid(CWD, (line) => log(line));
+  } catch (err) {
+    log(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
 
   // Every provider shares one persistent memory tree. Legacy imports are an
   // operator-run migration and never happen in this normal startup path.

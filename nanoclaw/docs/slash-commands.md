@@ -30,7 +30,7 @@ The UI can style `command_ack` messages separately from normal chat.
 
 | Command | Admin | Effect | Ack persist |
 |---------|-------|--------|-------------|
-| `/clear` | yes | Clears LLM continuation + sets `history_cutoff`; audit history kept | `current_session` |
+| `/clear` | yes | Clears LLM continuation + sets `history_cutoff`; kills hot container so in-memory session cannot survive; audit history kept | `current_session` |
 | `/new` | yes | Archives current session, creates a new one | `result_session` |
 | `/new-resume` | yes | Same as `/new` plus handoff summary in the new session | `result_session` |
 

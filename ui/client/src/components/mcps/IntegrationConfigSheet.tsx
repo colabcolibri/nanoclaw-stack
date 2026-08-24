@@ -13,13 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { SheetTemplate, SheetTemplateHeader } from '@/components/templates/SheetTemplate'
 
 interface IntegrationConfigSheetProps {
   activeSheet: IntegrationId | null
@@ -100,22 +94,14 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
   }
 
   return (
-    <Sheet open={Boolean(activeSheet)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="right"
-        className="flex h-dvh max-h-dvh w-full max-w-lg flex-col gap-0 overflow-hidden border-l p-0 backdrop-blur-xl sm:max-w-lg"
-      >
-        <div className="flex h-full min-w-0 flex-col">
-          <SheetHeader className="shrink-0 space-y-0 border-b border-(--border-main) bg-(--bg-card-subtle)/50 px-6 pb-5 pt-6">
-            <div className="pr-8">
-              <SheetTitle className="text-lg leading-snug">{sheetTitle}</SheetTitle>
-              <SheetDescription className="mt-1 text-xs leading-relaxed">
-                {sheetDescription}
-              </SheetDescription>
-            </div>
-          </SheetHeader>
-
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
+    <SheetTemplate
+      open={Boolean(activeSheet)}
+      onClose={onClose}
+      size="lg"
+      header={
+        <SheetTemplateHeader title={sheetTitle} description={sheetDescription} />
+      }
+    >
             {activeSheet === 'google' && (
               <div className="space-y-5">
                 {!googleConnected && (
@@ -341,10 +327,7 @@ export const IntegrationConfigSheet: React.FC<IntegrationConfigSheetProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+    </SheetTemplate>
   )
 }
 

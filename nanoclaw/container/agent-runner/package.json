@@ -6,7 +6,8 @@
   "scripts": {
     "start": "bun src/index.ts",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "find . -name '._*' -type f -delete 2>/dev/null || true; bun test"
+    "validate:agents": "bun test tests/agent-registry-validate.test.ts",
+    "test": "find . -name '._*' -type f -delete 2>/dev/null || true; bun run validate:agents && bun test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.197",

@@ -77,6 +77,11 @@ export function createNodeConversationBackend(): ConversationBackend {
       const now = new Date().toISOString();
       clearAllContinuations(agentGroupId, sessionId);
       setHistoryCutoff(agentGroupId, sessionId, now);
+      if (isContainerRunning(sessionId)) {
+        killContainer(sessionId, 'conversation-cleared');
+      }
+      updateSession(sessionId, { container_status: 'stopped' });
+      log.info('Conversation context cleared', { sessionId, agentGroupId });
     },
 
     createConversationSession(ctx: CallerContext, opts?: { conversationId?: string }) {

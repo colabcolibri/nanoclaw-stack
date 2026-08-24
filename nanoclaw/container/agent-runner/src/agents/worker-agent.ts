@@ -5,6 +5,7 @@ import { ResponseParser } from '../orchestrator/parser.js';
 import { AgentAuditLogger } from './audit-logger.js';
 import { ModelRegistry } from '../services/model-registry.js';
 import { PromptLoader } from '../services/prompt-loader.js';
+import { SkillsManager } from '../services/skills-manager.js';
 import { resolveWorkerModel } from '../services/role-models.js';
 import type { SpecialistAgent, WorkerResult, ToolFinding } from './types.js';
 import type { LLMCompletionFn } from '../orchestrator/types.js';
@@ -33,11 +34,25 @@ export class WorkerAgentRunner {
     const toolContext = ToolGateway.createContext(agent.id, profile);
     const tools = AgentRegistry.getToolsForAgent(agent.id, cwd);
     const resolvedToolNames = tools.map((t) => t.function.name);
+    if (tools.length === 0) {
+      throw new Error(
+        `Agente "${agent.id}" sem tools resolvíveis — verifique AGENT.md (skills) e SKILL.md (tools). Rode a validação: bun test tests/agent-registry-validate.test.ts`,
+      );
+    }
+
+    for (const skillName of agent.agentSkills) {
+      if (!SkillsManager.getSkillByName(skillName, cwd)) {
+        throw new Error(
+          `Agente "${agent.id}" referencia skill "${skillName}" inexistente — corrija AGENT.md ou adicione SKILL.md.`,
+        );
+      }
+    }
     const scratchpad = new ExecutionScratchpad(taskDescription, options.history || []);
     const findings: ToolFinding[] = [];
 
     const systemPrompt = [
       agent.systemPrompt,
+      SkillsManager.getAgentSkillsPrompt(agent.agentSkills, cwd),
       PromptLoader.load('core.truthfulness'),
       PromptLoader.load('worker.execution'),
     ]
