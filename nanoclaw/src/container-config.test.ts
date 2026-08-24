@@ -10,11 +10,12 @@ import fs from 'fs';
 import path from 'path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { TIMEZONE } from './config.js';
+import { TIMEZONE, GROUPS_DIR } from './config.js';
 import {
   CONTAINER_PLUGINS_DIR,
   alignRoleModelsWithProvider,
   configFromDb,
+  materializeContainerJson,
   parseMcpServerConfig,
   resolveGroupTimezone,
   sanitizeStoredMcpServers,
@@ -76,6 +77,19 @@ describe('resolveGroupTimezone', () => {
       country: 'Belgica',
       location: 'Tielen, Belgica',
     });
+  });
+
+  it('materializeContainerJson always writes the effective schedule timezone', () => {
+    const config = materializeContainerJson(GROUP.id);
+    expect(config.timezone).toBe(TIMEZONE);
+    const onDisk = JSON.parse(
+      fs.readFileSync(path.join(GROUPS_DIR, GROUP.folder, 'container.json'), 'utf-8'),
+    ) as { timezone?: string };
+    expect(onDisk.timezone).toBe(TIMEZONE);
+
+    updateContainerConfigScalars(GROUP.id, { timezone: 'Asia/Tokyo' });
+    const updated = materializeContainerJson(GROUP.id);
+    expect(updated.timezone).toBe('Asia/Tokyo');
   });
 });
 

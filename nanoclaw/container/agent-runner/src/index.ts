@@ -5,7 +5,7 @@
  * No stdin, no stdout markers, no IPC files.
  *
  * Config is read from /workspace/agent/container.json (mounted RO).
- * Only TZ and OneCLI networking vars come from env.
+ * TZ is synced from container.json at startup (docker also passes -e TZ=…).
  *
  * Mount structure:
  *   /workspace/

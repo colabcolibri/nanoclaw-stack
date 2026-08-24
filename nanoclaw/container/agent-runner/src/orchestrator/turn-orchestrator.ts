@@ -1,42 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { OrchestratorAgent } from '../agents/orchestrator-agent.js';
 import { readContainerLocation } from '../container-location.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
-import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
+import { getTimezone, formatSchedulingTimezoneRules } from '../timezone.js';
 
 export function getTemporalContext(cwd?: string): string {
   const now = new Date();
-  let tz = process.env.TZ?.trim() ?? '';
-  let location = readContainerLocation(cwd);
-
-  const candidateFiles: string[] = [];
-  if (cwd) {
-    candidateFiles.push(path.join(cwd, 'container.json'));
-  }
-  candidateFiles.push(path.join(CONTAINER_AGENT_DIR, 'container.json'));
-  if (process.env.AGENT_GROUP_DIR?.trim()) {
-    candidateFiles.push(path.join(process.env.AGENT_GROUP_DIR.trim(), 'container.json'));
-  }
-
-  for (const f of candidateFiles) {
-    try {
-      if (fs.existsSync(f)) {
-        const parsed = JSON.parse(fs.readFileSync(f, 'utf-8'));
-        if (parsed.timezone) tz = parsed.timezone;
-        break;
-      }
-    } catch {}
-  }
-
-  if (!tz) {
-    throw new Error(
-      'timezone not configured. Set TZ in the environment or timezone in the group container.json.',
-    );
-  }
-
-  const resolvedLocation = location.location;
-  const resolvedTz = tz;
+  const resolvedTz = getTimezone(cwd);
+  const location = readContainerLocation(cwd);
 
   try {
     const formatted = new Intl.DateTimeFormat('en-US', {
@@ -45,11 +15,13 @@ export function getTemporalContext(cwd?: string): string {
       timeStyle: 'medium',
     }).format(now);
 
-    const locationLine = resolvedLocation ? `- User Location: ${resolvedLocation}\n` : '';
-    return `## Temporal & Geographic Context\n${locationLine}- Current Local Date & Time: ${formatted} (${resolvedTz})\n- ISO Timestamp: ${now.toISOString()}`;
+    const locationLine = location.location ? `- User Location: ${location.location}\n` : '';
+    const schedulingRules = formatSchedulingTimezoneRules(resolvedTz, now);
+    return `## Temporal & Geographic Context\n${locationLine}- Current Local Date & Time: ${formatted} (${resolvedTz})\n- ISO Timestamp: ${now.toISOString()}\n${schedulingRules}`;
   } catch {
-    const locationLine = resolvedLocation ? `- User Location: ${resolvedLocation}\n` : '';
-    return `## Temporal & Geographic Context\n${locationLine}- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}`;
+    const locationLine = location.location ? `- User Location: ${location.location}\n` : '';
+    const schedulingRules = formatSchedulingTimezoneRules(resolvedTz, now);
+    return `## Temporal & Geographic Context\n${locationLine}- Current Date & Time: ${now.toUTCString()}\n- ISO Timestamp: ${now.toISOString()}\n${schedulingRules}`;
   }
 }
 

@@ -22,9 +22,8 @@ import {
   GROUPS_DIR,
   ONECLI_API_KEY,
   ONECLI_URL,
-  TIMEZONE,
 } from './config.js';
-import { CONTAINER_PLUGINS_DIR, materializeContainerJson } from './container-config.js';
+import { CONTAINER_PLUGINS_DIR, materializeContainerJson, resolveGroupTimezone } from './container-config.js';
 import { getContainerConfig } from './db/container-configs.js';
 import { updateContainerConfigScalars } from './db/container-configs.js';
 import { CONTAINER_RUNTIME_BIN, hostGatewayArgs, readonlyMountArgs, stopContainer } from './container-runtime.js';
@@ -529,7 +528,7 @@ async function buildContainerArgs(
 
   // Environment — only vars read by code we don't own.
   // Everything NanoClaw-specific is in container.json (read by runner at startup).
-  args.push('-e', `TZ=${containerConfig.timezone ?? TIMEZONE}`);
+  args.push('-e', `TZ=${resolveGroupTimezone(agentGroup.id)}`);
   args.push('-e', `NANOCLAW_DATA_DIR=${DATA_DIR}`);
   const uiPublicUrl = readEnvFile(['UI_PUBLIC_URL']).UI_PUBLIC_URL;
   if (uiPublicUrl) {

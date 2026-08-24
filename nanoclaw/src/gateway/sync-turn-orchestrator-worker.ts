@@ -4,10 +4,13 @@
  */
 import path from 'path';
 
+import { applyGroupTimezoneFromDir } from './apply-group-timezone.js';
 import { createOpenAiCompatibleComplete } from './llm-openai-compatible.js';
 import type { OrchestratorTurnRequest, OrchestratorTurnResult } from './sync-turn-types.js';
 
 export async function runOrchestratorTurn(request: OrchestratorTurnRequest): Promise<OrchestratorTurnResult> {
+  applyGroupTimezoneFromDir(request.groupDir);
+
   const containerSrc = path.join(request.projectRoot, 'container', 'agent-runner', 'src');
 
   const completeFn = await createOpenAiCompatibleComplete({

@@ -1,6 +1,20 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect } from 'bun:test';
 
-import { formatLocalTime, isValidTimezone, parseZonedToUtc, resolveTimezone } from './timezone.js';
+import {
+  formatLocalTime,
+  formatSchedulingTimezoneRules,
+  formatUtcOffsetLabel,
+  getTimezone,
+  isValidTimezone,
+  parseZonedToUtc,
+  readTimezoneFromContainerJson,
+  resolveEffectiveTimezone,
+  resolveTimezone,
+  syncProcessTimezone,
+} from './timezone.js';
 
 // --- formatLocalTime ---
 
@@ -89,5 +103,59 @@ describe('parseZonedToUtc', () => {
   it('treats invalid timezone as UTC', () => {
     const d = parseZonedToUtc('2026-01-15T09:00:00', 'NotATimezone');
     expect(d.toISOString()).toBe('2026-01-15T09:00:00.000Z');
+  });
+});
+
+describe('formatUtcOffsetLabel', () => {
+  it('returns a GMT offset for a known zone', () => {
+    const label = formatUtcOffsetLabel(new Date('2026-06-15T12:00:00.000Z'), 'America/Sao_Paulo');
+    expect(label).toMatch(/GMT[+-]\d/);
+  });
+});
+
+describe('formatSchedulingTimezoneRules', () => {
+  it('includes schedule timezone and conversion rules', () => {
+    const now = new Date('2026-08-24T12:00:00.000Z');
+    const rules = formatSchedulingTimezoneRules('America/Sao_Paulo', now);
+    expect(rules).toContain('Schedule timezone (ncl tasks');
+    expect(rules).toContain('America/Sao_Paulo');
+    expect(rules).toContain('2026-08-24T12:00:00.000Z');
+    expect(rules).toContain('Brasília');
+    expect(rules).toContain('--process-after');
+  });
+});
+
+describe('resolveEffectiveTimezone', () => {
+  it('prefers container.json over process.env.TZ', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nc-tz-'));
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'container.json'),
+        JSON.stringify({ timezone: 'Europe/Brussels' }),
+      );
+      const prev = process.env.TZ;
+      process.env.TZ = 'UTC';
+      expect(readTimezoneFromContainerJson(tmp)).toBe('Europe/Brussels');
+      expect(resolveEffectiveTimezone(tmp)).toBe('Europe/Brussels');
+      expect(getTimezone(tmp)).toBe('Europe/Brussels');
+      process.env.TZ = prev;
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('syncProcessTimezone aligns env with container.json', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nc-tz-sync-'));
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'container.json'),
+        JSON.stringify({ timezone: 'America/Sao_Paulo' }),
+      );
+      process.env.TZ = 'UTC';
+      expect(syncProcessTimezone(tmp)).toBe('America/Sao_Paulo');
+      expect(process.env.TZ).toBe('America/Sao_Paulo');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

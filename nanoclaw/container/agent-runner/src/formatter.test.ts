@@ -15,7 +15,7 @@ import { initTestSessionDb, closeSessionDb, getInboundDb } from './db/connection
 import { getPendingMessages } from './db/messages-in.js';
 import { formatMessages, stripInternalTags, stripLegacyTaskContract } from './formatter.js';
 import { formatContextHeader } from './container-location.js';
-import { TIMEZONE, formatLocalTime } from './timezone.js';
+import { getTimezone, formatLocalTime } from './timezone.js';
 
 beforeEach(() => {
   initTestSessionDb();
@@ -44,17 +44,17 @@ describe('context timezone header', () => {
   it('prepends <context timezone="..."/> to formatted output', () => {
     insertMessage('m1', 'chat', { sender: 'Alice', text: 'hello' });
     const result = formatMessages(getPendingMessages());
-    expect(result).toContain(`<context timezone="${TIMEZONE}"`);
+    expect(result).toContain(`<context timezone="${getTimezone()}"`);
     expect(result).not.toContain('current_time=');
   });
 
   it('includes the header even when the message list is empty', () => {
     const result = formatMessages([]);
-    expect(result).toContain(`<context timezone="${TIMEZONE}"`);
+    expect(result).toContain(`<context timezone="${getTimezone()}"`);
   });
 
   it('includes city and country when configured in container.json', () => {
-    const header = formatContextHeader(TIMEZONE, {
+    const header = formatContextHeader(getTimezone(), {
       city: 'Tielen',
       country: 'Belgica',
       location: 'Tielen, Belgica',
@@ -157,7 +157,7 @@ describe('task timestamps', () => {
   it('falls back to creation time for legacy rows without process_after', () => {
     insertMessage('t1', 'task', { prompt: 'do the thing' }, { timestamp: '2026-01-05T12:00:00.000Z' });
     const result = formatMessages(getPendingMessages());
-    expect(result).toContain(`time="${formatLocalTime('2026-01-05T12:00:00.000Z', TIMEZONE)}"`);
+    expect(result).toContain(`time="${formatLocalTime('2026-01-05T12:00:00.000Z', getTimezone())}"`);
   });
 
   it('renders the scheduled time plus the current run time', () => {
@@ -167,8 +167,8 @@ describe('task timestamps', () => {
 
     const result = formatMessages(getPendingMessages());
 
-    expect(result).toContain(`time="${formatLocalTime(scheduled, TIMEZONE)}"`);
-    expect(result).not.toContain(`time="${formatLocalTime(created, TIMEZONE)}"`);
+    expect(result).toContain(`time="${formatLocalTime(scheduled, getTimezone())}"`);
+    expect(result).not.toContain(`time="${formatLocalTime(created, getTimezone())}"`);
     expect(result).toMatch(/current_time="(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), [^"]+"/);
   });
 });

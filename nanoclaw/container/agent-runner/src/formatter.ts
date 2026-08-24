@@ -1,7 +1,7 @@
 import { findByRouting } from './destinations.js';
 import type { MessageInRow } from './db/messages-in.js';
 import { formatContextHeader } from './container-location.js';
-import { TIMEZONE, formatLocalTime } from './timezone.js';
+import { getTimezone, formatLocalTime } from './timezone.js';
 
 /**
  * Command categories for messages starting with '/'.
@@ -133,7 +133,7 @@ export function extractRouting(messages: MessageInRow[]): RoutingContext {
  * Strips routing fields — the agent never sees platform_id, channel_type, thread_id.
  */
 export function formatMessages(messages: MessageInRow[]): string {
-  const header = `${formatContextHeader(TIMEZONE)}\n`;
+  const header = `${formatContextHeader(getTimezone())}\n`;
   if (messages.length === 0) return header;
 
   // Group by kind
@@ -175,7 +175,7 @@ function formatChatMessages(messages: MessageInRow[]): string {
 function formatSingleChat(msg: MessageInRow): string {
   const content = parseContent(msg.content);
   const sender = content.sender || content.author?.fullName || content.author?.userName || 'Unknown';
-  const time = formatLocalTime(msg.timestamp, TIMEZONE);
+  const time = formatLocalTime(msg.timestamp, getTimezone());
   const text = content.text || '';
   const idAttr = msg.seq != null ? ` id="${msg.seq}"` : '';
   const replyAttr = content.replyTo?.id ? ` reply_to="${escapeXml(String(content.replyTo.id))}"` : '';
@@ -205,9 +205,9 @@ function originAttr(msg: MessageInRow): string {
 function formatTaskMessage(msg: MessageInRow): string {
   const content = parseContent(msg.content);
   const from = originAttr(msg);
-  const time = formatLocalTime(msg.process_after ?? msg.timestamp, TIMEZONE);
+  const time = formatLocalTime(msg.process_after ?? msg.timestamp, getTimezone());
   const currentTime = new Date().toLocaleString('en-US', {
-    timeZone: TIMEZONE,
+    timeZone: getTimezone(),
     dateStyle: 'full',
     timeStyle: 'short',
   });

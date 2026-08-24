@@ -10,7 +10,25 @@ tools:
 
 Persistence = `ncl tasks` only. Containers are ephemeral — host `crontab` does not wake the agent.
 
-Use the instance timezone from the `<context timezone="..."/>` header for naive local times. Cron expressions follow the group's timezone (same as `ncl tasks create --help`).
+Use the **schedule timezone** from `<context timezone="..."/>` and from `## Temporal & Geographic Context` (`Schedule timezone (ncl tasks …)`). Cron and naive `--process-after` always use that IANA zone — not the host OS clock unless they match.
+
+## Timezones
+
+| User says | You do |
+| :--- | :--- |
+| "6h", "às 15h" (no zone named) | Treat as schedule timezone |
+| "6h Brasília", "BRT", "horário do Brasil" | Convert to schedule timezone before `ncl tasks` |
+| Always uses another country | Suggest `ncl groups config update --timezone America/Sao_Paulo` (or their IANA id) |
+
+**One-shot with explicit zone** — ISO + offset; `ncl` stores UTC correctly:
+
+```bash
+ncl tasks create --name "…" --process-after "2026-08-24T06:00:00-03:00" --prompt "…"
+```
+
+**Cron** — hours in the **schedule timezone**. Example: user wants 06:00–18:00 BRT every 3h but group is `Europe/Brussels` (CEST): convert 6,9,12,15,18 BRT → 11,14,17,20,23 Brussels → `0 11,14,17,20,23 * * *`. Tell the user both the original and translated hours.
+
+**Preferred fix** when the user lives in Brazil: set group timezone to `America/Sao_Paulo` so `0 6,9,12,15,18 * * *` means what they said.
 
 ## Decision map
 

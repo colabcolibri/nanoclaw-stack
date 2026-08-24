@@ -8,6 +8,7 @@
 import fs from 'fs';
 
 import type { McpServerConfig } from './providers/types.js';
+import { isValidTimezone, syncProcessTimezone } from './timezone.js';
 
 const CONFIG_PATH = '/workspace/agent/container.json';
 
@@ -23,6 +24,7 @@ export interface RunnerConfig {
   orchestratorModel?: string;
   senderModel?: string;
   memoModel?: string;
+  timezone?: string;
 }
 
 const DEFAULT_MAX_MESSAGES = 10;
@@ -55,7 +57,11 @@ export function loadConfig(): RunnerConfig {
     orchestratorModel: (raw.orchestratorModel as string) || undefined,
     senderModel: (raw.senderModel as string) || undefined,
     memoModel: (raw.memoModel as string) || undefined,
+    timezone:
+      typeof raw.timezone === 'string' && isValidTimezone(raw.timezone) ? raw.timezone : undefined,
   };
+
+  syncProcessTimezone();
 
   return _config;
 }

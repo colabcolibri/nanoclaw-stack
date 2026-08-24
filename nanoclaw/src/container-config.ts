@@ -422,6 +422,9 @@ export function materializeContainerJson(agentGroupId: string): ContainerConfig 
 
   const registry = readMaterializedLlmRegistry() ?? materializeLlmModelsJson();
   const config = alignRoleModelsWithProvider(configFromDb(row, group), registry);
+  // Always materialize the effective schedule timezone so container.json, docker
+  // TZ, and ncl tasks agree — even when the DB override is null (install default).
+  config.timezone = resolveGroupTimezone(agentGroupId);
 
   const p = path.join(GROUPS_DIR, group.folder, 'container.json');
   const dir = path.dirname(p);

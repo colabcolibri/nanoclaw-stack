@@ -11,6 +11,8 @@
  */
 import { Database } from 'bun:sqlite';
 
+import { getTimezone } from '../timezone.js';
+
 // ---------------------------------------------------------------------------
 // Frame types (mirrors src/cli/frame.ts on the host)
 // ---------------------------------------------------------------------------
@@ -196,7 +198,7 @@ const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$/;
 // means what it shows.
 function localTime(iso: string): string {
   return new Date(iso).toLocaleString('sv-SE', {
-    timeZone: process.env.TZ || 'UTC',
+    timeZone: getTimezone(),
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
