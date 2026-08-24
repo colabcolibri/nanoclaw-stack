@@ -36,14 +36,14 @@ export class WorkerAgentRunner {
     const resolvedToolNames = tools.map((t) => t.function.name);
     if (tools.length === 0) {
       throw new Error(
-        `Agente "${agent.id}" sem tools resolvíveis — verifique AGENT.md (skills) e SKILL.md (tools). Rode a validação: bun test tests/agent-registry-validate.test.ts`,
+        `Agent "${agent.id}" has no resolvable tools — check AGENT.md (skills) and SKILL.md (tools). Run validation: bun test tests/agent-registry-validate.test.ts`,
       );
     }
 
     for (const skillName of agent.agentSkills) {
       if (!SkillsManager.getSkillByName(skillName, cwd)) {
         throw new Error(
-          `Agente "${agent.id}" referencia skill "${skillName}" inexistente — corrija AGENT.md ou adicione SKILL.md.`,
+          `Agent "${agent.id}" references missing skill "${skillName}" — fix AGENT.md or add SKILL.md.`,
         );
       }
     }

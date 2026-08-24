@@ -1,15 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { OrchestratorAgent } from '../agents/orchestrator-agent.js';
+import { readContainerLocation } from '../container-location.js';
 import type { LLMCompletionFn, TurnOptions, OrchestratorResult } from './types.js';
 import { CONTAINER_AGENT_DIR } from '../runtime-paths.js';
 
 export function getTemporalContext(cwd?: string): string {
   const now = new Date();
   let tz = process.env.TZ?.trim() ?? '';
-  let city = '';
-  let country = '';
-  let location = '';
+  let location = readContainerLocation(cwd);
 
   const candidateFiles: string[] = [];
   if (cwd) {
@@ -25,9 +24,6 @@ export function getTemporalContext(cwd?: string): string {
       if (fs.existsSync(f)) {
         const parsed = JSON.parse(fs.readFileSync(f, 'utf-8'));
         if (parsed.timezone) tz = parsed.timezone;
-        if (parsed.city) city = parsed.city;
-        if (parsed.country) country = parsed.country;
-        if (parsed.location) location = parsed.location;
         break;
       }
     } catch {}
@@ -39,7 +35,7 @@ export function getTemporalContext(cwd?: string): string {
     );
   }
 
-  const resolvedLocation = [city, country].filter(Boolean).join(', ') || location;
+  const resolvedLocation = location.location;
   const resolvedTz = tz;
 
   try {

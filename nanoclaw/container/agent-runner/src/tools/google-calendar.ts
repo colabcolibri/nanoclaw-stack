@@ -54,7 +54,7 @@ export const googleCalendarTool: AgentTool = {
     if (!token) {
       return JSON.stringify({
         status: 'error',
-        error: 'Conta do Google não conectada ainda. Conecte sua conta clicando em "Conectar Conta Google" no painel Web na aba MCPs.',
+        error: 'Google account not connected yet. Connect via "Connect Google Account" in the web panel (MCPs tab).',
       });
     }
 
@@ -69,7 +69,7 @@ export const googleCalendarTool: AgentTool = {
       const data = (await calRes.json()) as any;
       const calendars = (data.items || []).map((cal: any) => ({
         id: cal.id,
-        summary: cal.summary || '(Sem nome)',
+        summary: cal.summary || '(No name)',
         primary: !!cal.primary,
       }));
       return JSON.stringify({ status: 'ok', calendars });
@@ -129,7 +129,7 @@ export const googleCalendarTool: AgentTool = {
       if (desc.length > 80) desc = desc.slice(0, 77) + '...';
       return {
         cal: calName,
-        title: ev.summary || '(Sem título)',
+        title: ev.summary || '(No title)',
         start: ev.start?.dateTime || ev.start?.date,
         end: ev.end?.dateTime || ev.end?.date,
         loc: ev.location ? ev.location.slice(0, 60) : undefined,

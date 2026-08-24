@@ -374,6 +374,6 @@ export const LLM_MODEL_CATALOG: LlmModelCatalogEntry[] = [
 const providerIds = new Set(LLM_PROVIDER_CATALOG.map((p) => p.id));
 for (const model of LLM_MODEL_CATALOG) {
   if (!providerIds.has(model.providerId)) {
-    throw new Error(`Catálogo inválido: modelo "${model.id}" referencia provider inexistente "${model.providerId}"`);
+    throw new Error(`Invalid catalog: model "${model.id}" references nonexistent provider "${model.providerId}"`);
   }
 }

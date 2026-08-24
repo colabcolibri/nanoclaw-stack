@@ -7,7 +7,7 @@ export const CONTAINER_AGENT_DIR = '/workspace/agent';
 export function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
-    throw new Error(`Variável de ambiente obrigatória ausente no agent-runner: ${name}`);
+    throw new Error(`Required environment variable missing in agent-runner: ${name}`);
   }
   return value;
 }
@@ -28,8 +28,8 @@ export function resolveAgentGroupDir(cwd?: string): string {
     return cwd;
   }
   throw new Error(
-    'Diretório do grupo de agente não encontrado. ' +
-      'No container espere /workspace/agent; no host defina AGENT_GROUP_DIR.',
+    'Agent group directory not found. ' +
+      'In the container expect /workspace/agent; on the host set AGENT_GROUP_DIR.',
   );
 }
 
@@ -37,7 +37,7 @@ export function resolveAgentGroupFile(filename: string, cwd?: string): string {
   const groupDir = resolveAgentGroupDir(cwd);
   const filePath = path.join(groupDir, filename);
   if (!fs.existsSync(filePath)) {
-    throw new Error(`Arquivo do grupo não encontrado: ${filePath}`);
+    throw new Error(`Group file not found: ${filePath}`);
   }
   return filePath;
 }
@@ -52,15 +52,15 @@ export function resolveNanoclawDataDir(): string {
     return fromEnv;
   }
   throw new Error(
-    'NANOCLAW_DATA_DIR não configurado ou inexistente. ' +
-      'O motor deve passar -e NANOCLAW_DATA_DIR=<caminho/data> ao spawnar o container.',
+    'NANOCLAW_DATA_DIR is not configured or does not exist. ' +
+      'The host must pass -e NANOCLAW_DATA_DIR=<path/to/data> when spawning the container.',
   );
 }
 
 export function resolveNanoclawDataFile(relativePath: string): string {
   const filePath = path.join(resolveNanoclawDataDir(), relativePath);
   if (!fs.existsSync(filePath)) {
-    throw new Error(`Arquivo de dados NanoClaw não encontrado: ${filePath}`);
+    throw new Error(`NanoClaw data file not found: ${filePath}`);
   }
   return filePath;
 }
@@ -73,7 +73,7 @@ export function resolveInboundDbPath(cwd: string): string {
   const fromEnv = process.env.SESSION_INBOUND_DB_PATH?.trim();
   if (fromEnv) {
     if (!fs.existsSync(fromEnv)) {
-      throw new Error(`SESSION_INBOUND_DB_PATH aponta para arquivo inexistente: ${fromEnv}`);
+      throw new Error(`SESSION_INBOUND_DB_PATH points to a missing file: ${fromEnv}`);
     }
     return fromEnv;
   }
@@ -89,6 +89,6 @@ export function resolveInboundDbPath(cwd: string): string {
   }
 
   throw new Error(
-    'inbound.db não encontrado. Esperado em SESSION_INBOUND_DB_PATH, /workspace/inbound.db ou cwd/inbound.db.',
+    'inbound.db not found. Expected at SESSION_INBOUND_DB_PATH, /workspace/inbound.db, or cwd/inbound.db.',
   );
 }

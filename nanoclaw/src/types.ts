@@ -26,6 +26,10 @@ export interface ContainerConfigRow {
   additional_mounts: string; // JSON: AdditionalMountConfig[]
   cli_scope: string; // 'disabled' | 'group' | 'global'
   timezone: string | null; // IANA id; NULL = follow the install-global timezone
+  city: string | null;
+  country: string | null;
+  /** Legacy combined label; kept in sync with city/country on write paths. */
+  location: string | null;
   orchestrator_model: string | null;
   sender_model: string | null;
   memo_model: string | null;

@@ -107,7 +107,7 @@ interface MaterializedRegistryFile {
 function requireNonEmpty(value: string | undefined | null, label: string): string {
   const trimmed = value?.trim();
   if (!trimmed) {
-    throw new Error(`Campo obrigatório ausente em llm-models.json: ${label}`);
+    throw new Error(`Required field missing in llm-models.json: ${label}`);
   }
   return trimmed;
 }
@@ -116,7 +116,7 @@ function parseProtocol(value: string, label: string): LlmProtocol {
   if (value === 'openai-compatible' || value === 'anthropic') {
     return value;
   }
-  throw new Error(`Protocolo inválido em llm-models.json (${label}): "${value}"`);
+  throw new Error(`Invalid protocol in llm-models.json (${label}): "${value}"`);
 }
 
 export class ModelRegistry {
@@ -165,7 +165,7 @@ export class ModelRegistry {
     this.providers.clear();
 
     if (!raw.modelsById || Object.keys(raw.modelsById).length === 0) {
-      throw new Error('llm-models.json inválido: modelsById ausente ou vazio');
+      throw new Error('llm-models.json invalid: modelsById missing or empty');
     }
 
     if (raw.providers) {
@@ -231,13 +231,13 @@ export class ModelRegistry {
   static requireModelId(modelId: string | undefined, fieldName: string, cwd?: string): string {
     const id = modelId?.trim();
     if (!id) {
-      throw new Error(`${fieldName} não configurado em container.json`);
+      throw new Error(`${fieldName} not configured in container.json`);
     }
     if (!this.loadFromDisk(cwd)) {
-      throw new Error('llm-models.json não encontrado. Reinicie o NanoClaw para materializar o catálogo.');
+      throw new Error('llm-models.json not found. Restart NanoClaw to materialize the catalog.');
     }
     if (!this.models.has(id)) {
-      throw new Error(`Modelo "${id}" (${fieldName}) não existe no catálogo llm-models.json`);
+      throw new Error(`Model "${id}" (${fieldName}) does not exist in llm-models.json catalog`);
     }
     return id;
   }

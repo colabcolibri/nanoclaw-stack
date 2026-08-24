@@ -35,7 +35,7 @@ export async function summarizeConversation(
     summary = await summarizeWithLlm(relevant);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(`Falha ao resumir conversa com LLM: ${detail}`);
+    throw new Error(`Failed to summarize conversation with LLM: ${detail}`);
   }
 
   const trimmed = summary.trim();

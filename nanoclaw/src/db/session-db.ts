@@ -6,7 +6,7 @@
  * (open-write-close per op). See session-manager.ts header for invariants.
  */
 import { INBOUND_SCHEMA, OUTBOUND_SCHEMA } from './schema.js';
-import { openSqliteDatabase, type SqliteDatabase } from './sqlite-compat.js';
+import { openSqliteDatabase, runSqliteTransaction, sqliteChanges, type SqliteDatabase } from './sqlite-compat.js';
 
 type SessionDbMode = 'inbound' | 'outbound-readonly' | 'outbound-rw';
 
@@ -70,15 +70,14 @@ export interface DestinationRow {
 }
 
 export function replaceDestinations(db: SqliteDatabase, entries: DestinationRow[]): void {
-  const tx = db.transaction((rows: DestinationRow[]) => {
+  runSqliteTransaction(db, (rows: DestinationRow[]) => {
     db.prepare('DELETE FROM destinations').run();
     const stmt = db.prepare(
       `INSERT INTO destinations (name, display_name, type, channel_type, platform_id, agent_group_id)
        VALUES (@name, @display_name, @type, @channel_type, @platform_id, @agent_group_id)`,
     );
     for (const row of rows) stmt.run(row);
-  });
-  tx(entries);
+  }, entries);
 }
 
 // ---------------------------------------------------------------------------
@@ -202,11 +201,11 @@ export function syncProcessingAcks(inDb: SqliteDatabase, outDb: SqliteDatabase):
   const failStmt = inDb.prepare(
     "UPDATE messages_in SET status = 'failed' WHERE id = ? AND status NOT IN ('completed', 'failed')",
   );
-  inDb.transaction(() => {
+  runSqliteTransaction(inDb, () => {
     for (const { message_id, status } of completed) {
       (status === 'script-skip:error' ? failStmt : completeStmt).run(message_id);
     }
-  })();
+  });
 }
 
 export interface ProcessingClaim {
@@ -231,7 +230,7 @@ export function getProcessingClaims(outDb: SqliteDatabase): ProcessingClaim[] {
  * running (we just killed it). Returns the number of rows deleted.
  */
 export function deleteOrphanProcessingClaims(outDb: SqliteDatabase): number {
-  return outDb.prepare("DELETE FROM processing_ack WHERE status = 'processing'").run().changes;
+  return sqliteChanges(outDb.prepare("DELETE FROM processing_ack WHERE status = 'processing'").run());
 }
 
 export interface ContainerState {

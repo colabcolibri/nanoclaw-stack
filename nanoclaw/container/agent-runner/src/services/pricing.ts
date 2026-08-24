@@ -72,7 +72,7 @@ export class ResalePricingEngine {
     }
 
     if (!csvContent) {
-      throw new Error('Arquivo tabela_precos_revenda.csv não encontrado no disco.');
+      throw new Error('File tabela_precos_revenda.csv not found on disk.');
     }
 
     const rows: ProductPriceRow[] = [];

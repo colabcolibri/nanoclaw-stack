@@ -13,6 +13,7 @@ import {
 import {
   cancelScheduledTask as cancelOfficialTask,
   getTaskExecutionLogs,
+  getTaskExecutionLogsWithTotal,
   listScheduledTasks,
   pauseScheduledTask as pauseOfficialTask,
   resumeScheduledTask as resumeOfficialTask,
@@ -369,11 +370,19 @@ export class DatabaseService {
   }
 
   static getRealTokenRecords(limit = 200): any[] {
+    return this.getRealTokenRecordsWithTotal(limit).records;
+  }
+
+  static getRealTokenRecordsWithTotal(
+    limit?: number,
+    offset = 0,
+  ): { records: any[]; total: number } {
     const recordMap = new Map<string, any>();
     const searchDirs = [
       path.join(CONFIG.GROUPS_PATH),
       path.join(CONFIG.DATA_PATH, "v2-sessions"),
     ];
+    const dbDirs = new Set<string>();
 
     const upsertRecord = (rec: any) => {
       if (!rec?.id) return;
@@ -387,34 +396,34 @@ export class DatabaseService {
 
     for (const baseDir of searchDirs) {
       if (!fs.existsSync(baseDir)) continue;
-      const ledgerFiles = glob.sync(`${baseDir}/**/token_ledger.jsonl`);
-      for (const file of ledgerFiles) {
-        try {
-          const content = fs.readFileSync(file, "utf-8");
-          const lines = content.split("\n").filter((line: string) => line.trim().length > 0);
-          for (const line of lines) {
-            try {
-              upsertRecord(JSON.parse(line));
-            } catch {}
-          }
-        } catch {}
-      }
 
       const dbFiles = glob.sync(`${baseDir}/**/token_ledger.db`);
       for (const dbPath of dbFiles) {
+        dbDirs.add(path.dirname(dbPath));
         try {
           const db = new Database(dbPath, { readonly: true });
           try {
-            const rows = db
-              .query(
-                `SELECT id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
-                        cache_miss_tokens, completion_tokens, total_tokens, cost_usd, cost_brl,
-                        has_tool_calls, tool_calls_count, latency_ms, preview, content
-                 FROM token_ledger
-                 ORDER BY timestamp DESC
-                 LIMIT ?`
-              )
-              .all(limit * 2) as any[];
+            const sqlLimit = typeof limit === "number" ? limit + offset : undefined;
+            const rows = (sqlLimit
+              ? db
+                  .query(
+                    `SELECT id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
+                            cache_miss_tokens, completion_tokens, total_tokens, cost_usd, cost_brl,
+                            has_tool_calls, tool_calls_count, latency_ms, preview, content
+                     FROM token_ledger
+                     ORDER BY timestamp DESC
+                     LIMIT ?`,
+                  )
+                  .all(sqlLimit)
+              : db
+                  .query(
+                    `SELECT id, timestamp, model, message_id, purpose, prompt_tokens, cache_hit_tokens,
+                            cache_miss_tokens, completion_tokens, total_tokens, cost_usd, cost_brl,
+                            has_tool_calls, tool_calls_count, latency_ms, preview, content
+                     FROM token_ledger
+                     ORDER BY timestamp DESC`,
+                  )
+                  .all()) as any[];
             for (const row of rows) {
               upsertRecord({
                 id: row.id,
@@ -441,11 +450,30 @@ export class DatabaseService {
           }
         } catch {}
       }
+
+      const ledgerFiles = glob.sync(`${baseDir}/**/token_ledger.jsonl`);
+      for (const file of ledgerFiles) {
+        if (dbDirs.has(path.dirname(file))) continue;
+        try {
+          const content = fs.readFileSync(file, "utf-8");
+          const lines = content.split("\n").filter((line: string) => line.trim().length > 0);
+          for (const line of lines) {
+            try {
+              upsertRecord(JSON.parse(line));
+            } catch {}
+          }
+        } catch {}
+      }
     }
 
     const records = Array.from(recordMap.values());
     records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return records.slice(0, limit);
+    const start = Math.max(0, offset);
+    const end = typeof limit === "number" ? start + limit : undefined;
+    return {
+      records: records.slice(start, end),
+      total: records.length,
+    };
   }
 
   static getDefaultModel(): string {
@@ -1004,9 +1032,16 @@ export class DatabaseService {
   }
 
   static getDetailedRuns(limit = 100): IntermediateRunItem[] {
-    const runs: IntermediateRunItem[] = [];
-    const ledgerRecords = this.getRealTokenRecords(limit);
+    return this.getDetailedRunsWithTotal(limit).runs;
+  }
+
+  static getDetailedRunsWithTotal(
+    limit?: number,
+    offset = 0,
+  ): { runs: IntermediateRunItem[]; total: number } {
+    const { records: ledgerRecords, total } = this.getRealTokenRecordsWithTotal(limit, offset);
     const defaultModel = this.getDefaultModel();
+    const runs: IntermediateRunItem[] = [];
     for (const rec of ledgerRecords) {
       const purpose = resolvePurpose({
         purpose: rec.purpose,
@@ -1052,11 +1087,22 @@ export class DatabaseService {
       });
     }
 
-    return runs.slice(0, limit);
+    return {
+      runs,
+      total,
+    };
   }
 
   /** Traces estruturados de agent_audit.jsonl (supervisor, workers, triagem, sender). */
   static getAgentAuditTraces(limit = 300, groupFolder?: string): AgentAuditTraceItem[] {
+    return this.getAgentAuditTracesWithTotal(limit, groupFolder).traces;
+  }
+
+  static getAgentAuditTracesWithTotal(
+    limit?: number,
+    groupFolder?: string,
+    offset = 0,
+  ): { traces: AgentAuditTraceItem[]; total: number } {
     const traces: AgentAuditTraceItem[] = [];
 
     const auditFiles = groupFolder
@@ -1074,7 +1120,12 @@ export class DatabaseService {
     }
 
     traces.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return traces.slice(0, limit);
+    const start = Math.max(0, offset);
+    const end = typeof limit === "number" ? start + limit : undefined;
+    return {
+      traces: traces.slice(start, end),
+      total: traces.length,
+    };
   }
 
   static getScheduledTasks(groupFolder?: string) {
@@ -1097,7 +1148,11 @@ export class DatabaseService {
     return resumeOfficialTask(taskId);
   }
 
-  static getCronExecutionLogs(limit = 50, groupFolder?: string) {
-    return getTaskExecutionLogs(limit, groupFolder);
+  static getCronExecutionLogs(limit?: number, groupFolder?: string, offset = 0) {
+    return getTaskExecutionLogs(limit, groupFolder, offset);
+  }
+
+  static getCronExecutionLogsWithTotal(limit?: number, groupFolder?: string, offset = 0) {
+    return getTaskExecutionLogsWithTotal(limit, groupFolder, offset);
   }
 }

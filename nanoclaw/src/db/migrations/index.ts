@@ -1,4 +1,5 @@
 import type { SqliteDatabase } from '../sqlite-compat.js';
+import { runSqliteTransaction } from '../sqlite-compat.js';
 
 import { log } from '../../log.js';
 import { migration001 } from './001-initial.js';
@@ -25,6 +26,7 @@ import { migration023 } from './023-llm-models-registry.js';
 import { migration024 } from './024-llm-inference-config.js';
 import { migration025 } from './025-conversation-lifecycle.js';
 import { migration026 } from './026-container-config-memo-and-inference.js';
+import { migration027 } from './027-container-config-location.js';
 
 export interface Migration {
   version: number;
@@ -74,6 +76,7 @@ export const migrations: Migration[] = [
   migration024,
   migration025,
   migration026,
+  migration027,
 ];
 
 /**
@@ -147,7 +150,7 @@ export function runMigrations(db: SqliteDatabase, list: readonly Migration[] = g
     // recreate rolls back atomically with nothing committed.
     if (m.disableForeignKeys) db.pragma('foreign_keys = OFF');
     try {
-      db.transaction(() => {
+      runSqliteTransaction(db, () => {
         // Snapshot violations BEFORE up() runs: live DBs can carry latent
         // FK orphans (e.g. parents deleted through a FK-OFF sqlite3 CLI
         // session — ensureUserDm tolerates exactly this at runtime). The
@@ -180,7 +183,7 @@ export function runMigrations(db: SqliteDatabase, list: readonly Migration[] = g
           m.name,
           new Date().toISOString(),
         );
-      })();
+      });
     } finally {
       if (m.disableForeignKeys) db.pragma('foreign_keys = ON');
     }

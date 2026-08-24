@@ -35,17 +35,17 @@ export const memoryTool: AgentTool = {
 
     if (action === 'remember') {
       if (!args.fact || !args.fact.trim()) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro "fact" é obrigatório para remember.' });
+        return JSON.stringify({ status: 'error', error: 'Parameter "fact" is required for remember.' });
       }
-      const res = MemoryManager.remember(cwd, args.fact, args.category || 'Geral');
+      const res = MemoryManager.remember(cwd, args.fact, args.category || 'General');
       return JSON.stringify({ status: res.success ? 'ok' : 'error', message: res.message });
     }
 
     if (action === 'recall') {
       const memoryText = MemoryManager.loadCoreMemory(cwd);
-      return JSON.stringify({ status: 'ok', memory: memoryText || 'Nenhuma memória de longo prazo registrada ainda.' });
+      return JSON.stringify({ status: 'ok', memory: memoryText || 'No long-term memory recorded yet.' });
     }
 
-    return JSON.stringify({ status: 'error', error: `Ação "${action}" não reconhecida.` });
+    return JSON.stringify({ status: 'error', error: `Unknown action: "${action}".` });
   },
 };

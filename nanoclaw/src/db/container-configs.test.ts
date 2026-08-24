@@ -69,4 +69,27 @@ describe('ensureContainerConfig provider stamping', () => {
     updateContainerConfigScalars('ag-tz', { timezone: null });
     expect(getContainerConfig('ag-tz')?.timezone).toBeNull();
   });
+
+  it('sets and clears city/country location fields', () => {
+    makeGroup('ag-loc');
+    ensureContainerConfig('ag-loc');
+
+    updateContainerConfigScalars('ag-loc', {
+      city: 'Tielen',
+      country: 'Belgica',
+      location: 'Tielen, Belgica',
+    });
+    expect(getContainerConfig('ag-loc')).toMatchObject({
+      city: 'Tielen',
+      country: 'Belgica',
+      location: 'Tielen, Belgica',
+    });
+
+    updateContainerConfigScalars('ag-loc', { city: null, country: null, location: null });
+    expect(getContainerConfig('ag-loc')).toMatchObject({
+      city: null,
+      country: null,
+      location: null,
+    });
+  });
 });

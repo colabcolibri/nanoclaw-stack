@@ -1,5 +1,6 @@
 import { findByRouting } from './destinations.js';
 import type { MessageInRow } from './db/messages-in.js';
+import { formatContextHeader } from './container-location.js';
 import { TIMEZONE, formatLocalTime } from './timezone.js';
 
 /**
@@ -122,17 +123,17 @@ export function extractRouting(messages: MessageInRow[]): RoutingContext {
 /**
  * Format a batch of messages_in rows into a prompt string.
  *
- * Prepends a `<context timezone="<IANA>" />` header so the agent always knows
- * what timezone it's in — every timestamp it sees in message bodies is the
- * user's local time, and every time it produces (schedules, suggests) should
- * be interpreted as local time in that same zone. This header is v1 behavior
- * (src/v1/router.ts:20-22); dropping it led to misinterpretations where the
- * agent scheduled tasks for the wrong hour.
+ * Prepends a `<context timezone="<IANA>" [city="…"] [country="…"] />` header so
+ * the agent always knows what timezone it's in and where the user is based —
+ * every timestamp it sees in message bodies is the user's local time, and every
+ * time it produces (schedules, suggests) should be interpreted as local time in
+ * that same zone. This header is v1 behavior (src/v1/router.ts:20-22); dropping
+ * it led to misinterpretations where the agent scheduled tasks for the wrong hour.
  *
  * Strips routing fields — the agent never sees platform_id, channel_type, thread_id.
  */
 export function formatMessages(messages: MessageInRow[]): string {
-  const header = `<context timezone="${escapeXml(TIMEZONE)}" />\n`;
+  const header = `${formatContextHeader(TIMEZONE)}\n`;
   if (messages.length === 0) return header;
 
   // Group by kind

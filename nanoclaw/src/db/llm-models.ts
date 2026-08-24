@@ -89,7 +89,7 @@ export function getLlmModel(id: string): LlmModelRow | undefined {
 
 export function upsertLlmProvider(input: LlmProviderInput): void {
   if (!input.protocol?.trim()) {
-    throw new Error(`protocol é obrigatório para provider "${input.id}"`);
+    throw new Error(`protocol is required for provider "${input.id}"`);
   }
   const now = new Date().toISOString();
   getDb()

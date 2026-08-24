@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatCount } from '@/lib/format-count'
 import { cn } from '@/lib/utils'
 import { getPageNumbers, PAGE_SIZE_OPTIONS, type PageSize } from '@/lib/pagination'
 import {
@@ -68,8 +69,8 @@ export const ListPaginationBar: React.FC<ListPaginationBarProps> = ({
       )}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <p className="text-xs text-(--text-muted) font-mono">
-          {t('pagination.range', { start: rangeStart, end: rangeEnd, total: totalItems })}
+        <p className="font-mono text-xs tabular-nums text-(--text-muted)">
+          {formatCount(rangeStart)}–{formatCount(rangeEnd)} de {formatCount(totalItems)}
         </p>
 
         <div className="flex items-center gap-2">

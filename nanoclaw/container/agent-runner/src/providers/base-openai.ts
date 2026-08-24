@@ -147,7 +147,7 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
       if (!ModelRegistry.loadFromDisk(input.cwd)) {
         yield {
           type: 'result',
-          text: 'Error: llm-models.json não encontrado. Reinicie o NanoClaw para materializar o catálogo.',
+          text: 'Error: llm-models.json not found. Restart NanoClaw to materialize the catalog.',
           isError: true,
         };
         return;
@@ -159,22 +159,22 @@ export abstract class BaseOpenAiProvider implements AgentProvider {
 
           const callModel = options?.model?.trim();
           if (!callModel) {
-            throw new Error('model é obrigatório em cada chamada LLM');
+            throw new Error('model is required on every LLM call');
           }
 
           const targetModel = ModelRegistry.requireModelId(callModel, 'model', input.cwd);
           const invocation = ModelRegistry.requireInvocation(targetModel, input.cwd);
           if (invocation.protocol !== 'openai-compatible') {
             throw new Error(
-              `Modelo "${targetModel}" usa protocolo ${invocation.protocol}. Use provider claude para Anthropic.`,
+              `Model "${targetModel}" uses protocol ${invocation.protocol}. Use the claude provider for Anthropic.`,
             );
           }
 
           const callApiKey = process.env[invocation.keyEnvName]?.trim();
           if (!callApiKey) {
             throw new Error(
-              `API key ausente (${invocation.keyEnvName}) para o modelo "${targetModel}" (provider ${invocation.providerId}). ` +
-                `O grupo usa o driver "${providerName}" — configure a chave em Credenciais LLM e use modelos do mesmo provider em container.json.`,
+              `Missing API key (${invocation.keyEnvName}) for model "${targetModel}" (provider ${invocation.providerId}). ` +
+                `This group uses driver "${providerName}" — configure the key in LLM Credentials and use models from the same provider in container.json.`,
             );
           }
 

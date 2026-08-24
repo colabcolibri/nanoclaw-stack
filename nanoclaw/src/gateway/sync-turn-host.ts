@@ -46,7 +46,7 @@ function stripDeliveryEnvelope(raw: string): string {
 function resolveAgentGroupId(groupFolder: string): string {
   const group = getAgentGroupByFolder(groupFolder);
   if (!group?.id) {
-    throw new Error(`Grupo de agente não encontrado para pasta: ${groupFolder}`);
+    throw new Error(`Agent group not found for folder: ${groupFolder}`);
   }
   return group.id;
 }
@@ -54,7 +54,7 @@ function resolveAgentGroupId(groupFolder: string): string {
 function resolveContainerModels(agentGroupId: string) {
   const resolved = resolveGroupRoleModels(agentGroupId);
   if (!resolved) {
-    throw new Error('não foi possível resolver modelos do grupo — verifique provider e catálogo llm-models.json');
+    throw new Error('Could not resolve group models — check provider and llm-models.json catalog');
   }
   return {
     defaultModel: resolved.model,
@@ -78,8 +78,8 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
   let pinnedSession: Session | null = null;
   if (input.sessionId?.trim()) {
     const row = getSession(input.sessionId.trim());
-    if (!row) throw new Error('Sessão não encontrada.');
-    if (row.agent_group_id !== agentGroupId) throw new Error('Sessão inválida para este grupo.');
+    if (!row) throw new Error('Session not found.');
+    if (row.agent_group_id !== agentGroupId) throw new Error('Session does not belong to this agent group.');
     pinnedSession = row;
     if (row.thread_id) threadId = row.thread_id;
   }
@@ -122,7 +122,7 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
       explicitCommandId: conversationMode,
     });
     if (modeOutcome.kind !== 'handled') {
-      throw new Error(`Falha ao executar comando de conversa: ${conversationMode}`);
+      throw new Error(`Failed to run conversation command: ${conversationMode}`);
     }
     sessionAfterMode = modeOutcome.result.session;
     modeSlashReply = modeOutcome.result.reply;
@@ -158,7 +158,7 @@ export async function processSyncTurn(input: SyncTurnInput): Promise<SyncTurnRes
     ?? (pinnedSession
       ? pinnedSession.status !== 'active'
         ? (() => {
-            throw new Error('Esta conversa está arquivada. Inicie uma nova conversa para continuar.');
+            throw new Error('This conversation is archived. Start a new conversation to continue.');
           })()
         : pinnedSession
       : resolveActiveSession(callerContext).session);
@@ -256,7 +256,7 @@ export async function resetSyncSession(
     explicitCommandId: mode,
   });
   if (outcome.kind !== 'handled') {
-    throw new Error(`Falha ao reiniciar sessão (${mode}).`);
+    throw new Error(`Failed to reset session (${mode}).`);
   }
   return { reply: outcome.result.reply, sessionId: outcome.result.session.id };
 }

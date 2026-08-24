@@ -8,6 +8,7 @@ import {
 import { hasDeclaredChannelDefaults } from '../../channels/channel-registry.js';
 import { getAgentGroup, getAgentGroupByFolder } from '../../db/agent-groups.js';
 import { getDb } from '../../db/connection.js';
+import { runSqliteTransaction } from '../../db/sqlite-compat.js';
 import {
   ensureAgentDestinationForWiring,
   getMessagingGroup,
@@ -257,12 +258,12 @@ registerResource({
         const colNames = Object.keys(values);
         const placeholders = colNames.map((c) => `@${c}`);
         const db = getDb();
-        db.transaction(() => {
+        runSqliteTransaction(db, () => {
           db.prepare(
             `INSERT INTO messaging_group_agents (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`,
           ).run(values);
           ensureAgentDestinationForWiring(values as unknown as MessagingGroupAgent);
-        })();
+        });
 
         // postCommit parity — live-refresh with `ncl destinations add`: the
         // transaction above only wrote the central `agent_destinations` row.

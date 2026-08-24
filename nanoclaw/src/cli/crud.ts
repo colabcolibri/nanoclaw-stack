@@ -9,6 +9,7 @@
 import { randomUUID } from 'crypto';
 
 import { getDb } from '../db/connection.js';
+import { runSqliteTransaction } from '../db/sqlite-compat.js';
 import { renderVerbHelp } from './help-render.js';
 import { register } from './registry.js';
 import type { Access } from './registry.js';
@@ -262,10 +263,10 @@ function genericCreate(def: ResourceDef) {
     // Anything async or outside the central DB — filesystem, session-DB
     // projection — belongs in `postCommit`, which runs after commit below.
     const db = getDb();
-    db.transaction(() => {
+    runSqliteTransaction(db, () => {
       db.prepare(`INSERT INTO ${def.table} (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`).run(values);
       if (def.postCreate) def.postCreate(values);
-    })();
+    });
     if (def.postCommit) await def.postCommit(values);
     return values;
   };

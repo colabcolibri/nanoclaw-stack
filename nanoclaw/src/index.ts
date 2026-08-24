@@ -6,7 +6,7 @@
  */
 import path from 'path';
 
-import { backfillContainerConfigs } from './backfill-container-configs.js';
+import { backfillContainerConfigs, syncContainerConfigLocationFromDisk } from './backfill-container-configs.js';
 import { DATA_DIR } from './config.js';
 import { enforceStartupBackoff, resetCircuitBreaker } from './circuit-breaker.js';
 import { ensureCentralDb } from './db/ensure-central-db.js';
@@ -88,6 +88,7 @@ async function main(): Promise<void> {
   // 1b. Backfill container_configs from legacy container.json files.
   // Idempotent — skips groups that already have a config row.
   backfillContainerConfigs();
+  syncContainerConfigLocationFromDisk();
 
   // Internal sync-turn API for UI / macOS app (Node motor only).
   registerMacInternalApi();

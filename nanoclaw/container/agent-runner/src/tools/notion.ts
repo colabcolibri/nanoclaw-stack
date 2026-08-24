@@ -93,7 +93,7 @@ export const notionTool: AgentTool = {
     if (!auth || !auth.apiKey) {
       return JSON.stringify({
         status: 'error',
-        error: `Chave do Notion não configurada. Conecte sua integração com o Notion pelo painel Web (${resolveUiPublicUrl()} na aba Servidores/Integrações) ou crie o arquivo notion_tokens.json.`,
+        error: `Notion API key not configured. Connect Notion in the web panel (${resolveUiPublicUrl()}, Servers/Integrations tab) or create notion_tokens.json.`,
       });
     }
 
@@ -119,12 +119,12 @@ export const notionTool: AgentTool = {
         }
         const data = (await searchRes.json()) as any;
         const results = (data.results || []).map((item: any) => {
-          let name = '(Sem título)';
+          let name = '(No title)';
           if (item.object === 'database') {
-            name = item.title?.[0]?.plain_text || '(Database sem título)';
+            name = item.title?.[0]?.plain_text || '(Untitled database)';
           } else if (item.object === 'page') {
             const titleProp = Object.values(item.properties || {}).find((p: any) => p.type === 'title') as any;
-            name = titleProp?.title?.[0]?.plain_text || '(Página sem título)';
+            name = titleProp?.title?.[0]?.plain_text || '(Untitled page)';
           }
           return {
             id: item.id,
@@ -154,7 +154,7 @@ export const notionTool: AgentTool = {
           } else {
             return JSON.stringify({
               status: 'error',
-              error: 'ID da página pai (parent_id) é obrigatório para criar um banco de dados no Notion.',
+              error: 'Parent page ID (parent_id) is required to create a Notion database.',
             });
           }
         }
@@ -204,7 +204,7 @@ export const notionTool: AgentTool = {
           id: createdDb.id,
           title: args.title || 'Notas e Tarefas do Barão',
           url: createdDb.url,
-          message: 'Banco de dados criado com sucesso no Notion.',
+          message: 'Notion database created successfully.',
         });
       }
 
@@ -324,7 +324,7 @@ export const notionTool: AgentTool = {
           if (!parentPageId) {
             return JSON.stringify({
               status: 'error',
-              error: 'ID da página pai (parent_id) ou database_id é necessário para criar a nota.',
+              error: 'Parent page ID (parent_id) or database_id is required to create the note.',
             });
           }
 
@@ -352,7 +352,7 @@ export const notionTool: AgentTool = {
           id: createdPage.id,
           title: pageTitle,
           url: createdPage.url,
-          message: 'Página/Nota criada com sucesso no Notion.',
+          message: 'Notion page/note created successfully.',
         });
       }
 
@@ -360,7 +360,7 @@ export const notionTool: AgentTool = {
       if (args.action === 'query_database') {
         const dbId = args.database_id || auth.defaultDatabaseId;
         if (!dbId) {
-          return JSON.stringify({ status: 'error', error: 'database_id é obrigatório para consultar tabela.' });
+          return JSON.stringify({ status: 'error', error: 'database_id is required to query a table.' });
         }
 
         const queryRes = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
@@ -391,7 +391,7 @@ export const notionTool: AgentTool = {
       // 5. Append Content to existing page
       if (args.action === 'append_content') {
         if (!args.page_id) {
-          return JSON.stringify({ status: 'error', error: 'page_id é obrigatório para adicionar conteúdo.' });
+          return JSON.stringify({ status: 'error', error: 'page_id is required to append content.' });
         }
         const textContent = args.content || args.query || '';
         const appendRes = await fetch(`https://api.notion.com/v1/blocks/${args.page_id}/children`, {
@@ -410,13 +410,13 @@ export const notionTool: AgentTool = {
         if (!appendRes.ok) {
           return JSON.stringify({ status: 'error', code: appendRes.status, text: await appendRes.text() });
         }
-        return JSON.stringify({ status: 'ok', message: 'Conteúdo adicionado à página com sucesso.' });
+        return JSON.stringify({ status: 'ok', message: 'Content appended to page successfully.' });
       }
 
       // 6. Get Page details
       if (args.action === 'get_page') {
         if (!args.page_id) {
-          return JSON.stringify({ status: 'error', error: 'page_id é obrigatório para ler uma página.' });
+          return JSON.stringify({ status: 'error', error: 'page_id is required to read a page.' });
         }
         const pageRes = await fetch(`https://api.notion.com/v1/pages/${args.page_id}`, { headers });
         const blocksRes = await fetch(`https://api.notion.com/v1/blocks/${args.page_id}/children?page_size=30`, { headers });
@@ -445,7 +445,7 @@ export const notionTool: AgentTool = {
       if (args.action === 'update_database') {
         const dbId = args.database_id || auth.defaultDatabaseId;
         if (!dbId) {
-          return JSON.stringify({ status: 'error', error: 'database_id é obrigatório para atualizar estrutura da tabela.' });
+          return JSON.stringify({ status: 'error', error: 'database_id is required to update table structure.' });
         }
 
         const payload: any = {};
@@ -470,14 +470,14 @@ export const notionTool: AgentTool = {
           status: 'ok',
           id: updatedDb.id,
           url: updatedDb.url,
-          message: 'Estrutura / Colunas do banco de dados no Notion atualizadas com sucesso.',
+          message: 'Notion database structure/columns updated successfully.',
         });
       }
 
       // 8. Update Page Properties
       if (args.action === 'update_page') {
         if (!args.page_id) {
-          return JSON.stringify({ status: 'error', error: 'page_id é obrigatório para atualizar campos da página/registro.' });
+          return JSON.stringify({ status: 'error', error: 'page_id is required to update page/record fields.' });
         }
 
         const updatePageRes = await fetch(`https://api.notion.com/v1/pages/${args.page_id}`, {
@@ -494,11 +494,11 @@ export const notionTool: AgentTool = {
           status: 'ok',
           id: updatedPage.id,
           url: updatedPage.url,
-          message: 'Página / Registro atualizado com sucesso no Notion.',
+          message: 'Notion page/record updated successfully.',
         });
       }
 
-      return `Ação desconhecida: ${args.action}`;
+      return `Unknown action: ${args.action}`;
     } catch (err: any) {
       return JSON.stringify({ status: 'error', error: err.message || String(err) });
     }

@@ -64,7 +64,7 @@ export class MemoryManager {
   /**
    * Appends or updates a long-term memory fact.
    */
-  static remember(cwd: string, fact: string, category = 'Geral'): { success: boolean; message: string } {
+  static remember(cwd: string, fact: string, category = 'General'): { success: boolean; message: string } {
     let memPath = this.findMemoryPath(cwd);
     if (!memPath) {
       const groupDir = resolveAgentGroupDir(cwd);
@@ -76,7 +76,7 @@ export class MemoryManager {
     try {
       let content = fs.existsSync(memPath) ? fs.readFileSync(memPath, 'utf-8') : '# Memory Index\n\n## Core Memory\n';
       const cleanFact = fact.trim().replace(/^[-*]\s*/, '');
-      const entry = `- **[${category}]** ${cleanFact} *(registrado em ${new Date().toLocaleDateString('pt-BR')})*`;
+      const entry = `- **[${category}]** ${cleanFact} *(recorded on ${new Date().toLocaleDateString('en-US')})*`;
 
       if (content.includes('## Core Memory')) {
         content = content.replace('## Core Memory', `## Core Memory\n\n${entry}`);
@@ -85,10 +85,10 @@ export class MemoryManager {
       }
 
       fs.writeFileSync(memPath, content.trim() + '\n', 'utf-8');
-      return { success: true, message: `Memória memorizada com sucesso: "${cleanFact}"` };
+      return { success: true, message: `Memory saved successfully: "${cleanFact}"` };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return { success: false, message: `Erro ao salvar memória: ${message}` };
+      return { success: false, message: `Failed to save memory: ${message}` };
     }
   }
 }

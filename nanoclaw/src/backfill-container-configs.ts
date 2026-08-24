@@ -10,8 +10,9 @@ import path from 'path';
 
 import { GROUPS_DIR } from './config.js';
 import type { McpServerConfig, AdditionalMountConfig } from './container-config.js';
+import { parseLocationFields } from './container-config.js';
 import { getAllAgentGroups } from './db/agent-groups.js';
-import { getContainerConfig, createContainerConfig } from './db/container-configs.js';
+import { getContainerConfig, createContainerConfig, updateContainerConfigScalars } from './db/container-configs.js';
 import { log } from './log.js';
 import type { ContainerConfigRow } from './types.js';
 
@@ -24,6 +25,10 @@ interface LegacyContainerJson {
   provider?: string;
   assistantName?: string;
   maxMessagesPerPrompt?: number;
+  city?: string;
+  country?: string;
+  location?: string;
+  timezone?: string;
 }
 
 export function backfillContainerConfigs(): void {
@@ -50,6 +55,11 @@ export function backfillContainerConfigs(): void {
 
     // DB agent_provider wins over file provider (matches old cascade)
     const provider = group.agent_provider || legacy.provider || null;
+    const locationFields = parseLocationFields({
+      city: legacy.city,
+      country: legacy.country,
+      location: legacy.location,
+    });
 
     const row: ContainerConfigRow = {
       agent_group_id: group.id,
@@ -65,7 +75,10 @@ export function backfillContainerConfigs(): void {
       packages_npm: JSON.stringify(legacy.packages?.npm ?? []),
       additional_mounts: JSON.stringify(legacy.additionalMounts ?? []),
       cli_scope: 'group',
-      timezone: null,
+      timezone: legacy.timezone ?? null,
+      city: locationFields.city || null,
+      country: locationFields.country || null,
+      location: locationFields.location || null,
       orchestrator_model: (legacy as { orchestratorModel?: string }).orchestratorModel ?? null,
       sender_model: (legacy as { senderModel?: string }).senderModel ?? null,
       memo_model: (legacy as { memoModel?: string }).memoModel ?? null,
@@ -81,5 +94,45 @@ export function backfillContainerConfigs(): void {
 
   if (backfilled > 0) {
     log.info('Backfilled container_configs from disk', { count: backfilled });
+  }
+}
+
+/** Copy city/country from on-disk container.json when the DB row has no location yet. */
+export function syncContainerConfigLocationFromDisk(): void {
+  let synced = 0;
+
+  for (const group of getAllAgentGroups()) {
+    const row = getContainerConfig(group.id);
+    if (!row) continue;
+    if (row.city || row.country || row.location) continue;
+
+    const filePath = path.join(GROUPS_DIR, group.folder, 'container.json');
+    if (!fs.existsSync(filePath)) continue;
+
+    try {
+      const legacy = JSON.parse(fs.readFileSync(filePath, 'utf8')) as LegacyContainerJson;
+      const fields = parseLocationFields({
+        city: legacy.city,
+        country: legacy.country,
+        location: legacy.location,
+      });
+      if (!fields.city && !fields.country && !fields.location) continue;
+
+      updateContainerConfigScalars(group.id, {
+        city: fields.city || null,
+        country: fields.country || null,
+        location: fields.location || null,
+      });
+      synced++;
+    } catch (err) {
+      log.warn('Location sync: failed to parse container.json', {
+        folder: group.folder,
+        err: String(err),
+      });
+    }
+  }
+
+  if (synced > 0) {
+    log.info('Synced container location fields from disk', { count: synced });
   }
 }

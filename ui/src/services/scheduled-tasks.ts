@@ -340,7 +340,38 @@ export function updateScheduledTask(
   }
 }
 
-export function getTaskExecutionLogs(limit = 50, groupFolder?: string): TaskExecutionLogItem[] {
+export function countTaskExecutionLogs(groupFolder?: string): number {
+  const central = centralDb();
+  let total = 0;
+  try {
+    for (const sess of listTaskSessions(central, groupFolder)) {
+      const dbPath = findTaskSession(sess.agentGroupId, sess.sessionId);
+      if (!dbPath) continue;
+      const inDb = new Database(dbPath, { readonly: true });
+      try {
+        const row = inDb
+          .query(
+            `SELECT COUNT(*) AS count
+             FROM messages_in
+             WHERE kind = 'task' AND status IN ('completed', 'failed')`,
+          )
+          .get() as { count: number };
+        total += row?.count ?? 0;
+      } finally {
+        inDb.close();
+      }
+    }
+  } finally {
+    central.close();
+  }
+  return total;
+}
+
+export function getTaskExecutionLogs(
+  limit?: number,
+  groupFolder?: string,
+  offset = 0,
+): TaskExecutionLogItem[] {
   const central = centralDb();
   const logs: TaskExecutionLogItem[] = [];
   try {
@@ -361,10 +392,9 @@ export function getTaskExecutionLogs(limit = 50, groupFolder?: string): TaskExec
             `SELECT id, series_id, timestamp, status, process_after, recurrence, content
              FROM messages_in
              WHERE kind = 'task' AND status IN ('completed', 'failed')
-             ORDER BY timestamp DESC
-             LIMIT ?`,
+             ORDER BY timestamp DESC`,
           )
-          .all(limit) as Array<{
+          .all() as Array<{
           id: string;
           series_id: string | null;
           timestamp: string;
@@ -411,8 +441,20 @@ export function getTaskExecutionLogs(limit = 50, groupFolder?: string): TaskExec
     }
 
     logs.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
-    return logs.slice(0, limit);
+    const start = Math.max(0, offset);
+    const end = typeof limit === "number" ? start + limit : undefined;
+    return logs.slice(start, end);
   } finally {
     central.close();
   }
+}
+
+export function getTaskExecutionLogsWithTotal(
+  limit?: number,
+  groupFolder?: string,
+  offset = 0,
+): { logs: TaskExecutionLogItem[]; total: number } {
+  const total = countTaskExecutionLogs(groupFolder);
+  const logs = getTaskExecutionLogs(limit, groupFolder, offset);
+  return { logs, total };
 }

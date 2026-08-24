@@ -23,7 +23,7 @@ export class CurrencyService {
         return agentPath;
       }
       throw new Error(
-        'NANOCLAW_DATA_DIR não configurado — impossível persistir cotação USD/BRL.',
+        'NANOCLAW_DATA_DIR is not configured — cannot persist USD/BRL exchange rate.',
       );
     }
   }
@@ -147,7 +147,7 @@ export class CurrencyService {
       return this.cachedRate;
     }
 
-    throw new Error('Não foi possível obter a cotação USD/BRL nos provedores oficiais de mercado.');
+    throw new Error('Could not fetch USD/BRL rate from official market providers.');
   }
 
   /**
@@ -172,7 +172,7 @@ export class CurrencyService {
     // Dispara a busca em background para popular imediatamente
     this.getUsdToBrlRate().catch(() => {});
     throw new Error(
-      'Cotação USD/BRL indisponível. Aguarde a busca em background ou verifique conectividade.',
+      'USD/BRL rate unavailable. Wait for background fetch or check connectivity.',
     );
   }
 

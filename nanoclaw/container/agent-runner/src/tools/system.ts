@@ -49,6 +49,6 @@ export const readFileTool: AgentTool = {
     if (fs.existsSync(targetPath)) {
       return fs.readFileSync(targetPath, 'utf-8');
     }
-    return `Arquivo não encontrado: ${args.path}`;
+    return `File not found: ${args.path}`;
   },
 };

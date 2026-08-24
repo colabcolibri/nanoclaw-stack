@@ -11,6 +11,7 @@
  * the agent remembers, missing the live next occurrence.
  */
 import type { SqliteDatabase } from '../../db/sqlite-compat.js';
+import { runSqliteTransaction, sqliteChanges } from '../../db/sqlite-compat.js';
 
 import { nextEvenSeq } from '../../db/session-db.js';
 
@@ -69,40 +70,49 @@ export function insertTaskRow(
 // occurrence is distinguishable from a real run and never inflates run history;
 // recurrence is cleared so the series isn't re-armed by handleRecurrence.
 export function cancelTask(db: SqliteDatabase, taskId: string): number {
-  return db
-    .prepare(
-      "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status IN ('pending', 'paused')",
-    )
-    .run(taskId, taskId).changes;
+  return sqliteChanges(
+    db
+      .prepare(
+        "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status IN ('pending', 'paused')",
+      )
+      .run(taskId, taskId),
+  );
 }
 
 export function cancelAllTasks(db: SqliteDatabase): number {
-  return db
-    .prepare(
-      "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE kind = 'task' AND status IN ('pending', 'paused')",
-    )
-    .run().changes;
+  return sqliteChanges(
+    db
+      .prepare(
+        "UPDATE messages_in SET status = 'cancelled', recurrence = NULL WHERE kind = 'task' AND status IN ('pending', 'paused')",
+      )
+      .run(),
+  );
 }
 
 export function pauseTask(db: SqliteDatabase, taskId: string): number {
-  return db
-    .prepare(
-      "UPDATE messages_in SET status = 'paused' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'pending'",
-    )
-    .run(taskId, taskId).changes;
+  return sqliteChanges(
+    db
+      .prepare(
+        "UPDATE messages_in SET status = 'paused' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'pending'",
+      )
+      .run(taskId, taskId),
+  );
 }
 
 export function resumeTask(db: SqliteDatabase, taskId: string): number {
-  return db
-    .prepare(
-      "UPDATE messages_in SET status = 'pending' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'paused'",
-    )
-    .run(taskId, taskId).changes;
+  return sqliteChanges(
+    db
+      .prepare(
+        "UPDATE messages_in SET status = 'pending' WHERE (id = ? OR series_id = ?) AND kind = 'task' AND status = 'paused'",
+      )
+      .run(taskId, taskId),
+  );
 }
 
 export function deleteTask(db: SqliteDatabase, taskId: string): number {
-  return db.prepare("DELETE FROM messages_in WHERE (id = ? OR series_id = ?) AND kind = 'task'").run(taskId, taskId)
-    .changes;
+  return sqliteChanges(
+    db.prepare("DELETE FROM messages_in WHERE (id = ? OR series_id = ?) AND kind = 'task'").run(taskId, taskId),
+  );
 }
 
 export interface TaskUpdate {
@@ -129,7 +139,7 @@ export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdat
   const setRecurrence = update.recurrence !== undefined;
   const mergeContent = update.prompt !== undefined || update.script !== undefined;
 
-  const tx = db.transaction(() => {
+  runSqliteTransaction(db, () => {
     for (const row of rows) {
       let content = row.content;
       if (mergeContent) {
@@ -155,7 +165,6 @@ export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdat
       db.prepare(`UPDATE messages_in SET ${sets.join(', ')} WHERE id = ?`).run(...params);
     }
   });
-  tx();
   return rows.length;
 }
 

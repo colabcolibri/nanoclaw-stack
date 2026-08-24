@@ -38,12 +38,12 @@ export async function createOpenAiCompatibleComplete(
   const containerSrc = path.join(options.projectRoot, 'container', 'agent-runner', 'src');
 
   if (!options.defaultModel?.trim()) {
-    throw new Error('model não configurado em container_configs');
+    throw new Error('model not configured in container_configs');
   }
 
   const { ModelRegistry } = await import(path.join(containerSrc, 'services', 'model-registry.ts'));
   if (!ModelRegistry.loadFromDisk(options.registryPath)) {
-    throw new Error('llm-models.json não encontrado. Reinicie o NanoClaw.');
+    throw new Error('llm-models.json not found. Restart NanoClaw to materialize the catalog.');
   }
 
   const envMap = readLocalEnvFile();
@@ -72,12 +72,12 @@ export async function createOpenAiCompatibleComplete(
     );
     const invocation = ModelRegistry.requireInvocation(targetModel, options.registryPath);
     if (invocation.protocol !== 'openai-compatible') {
-      throw new Error(`Modelo "${targetModel}" usa protocolo ${invocation.protocol} — não suportado neste gateway.`);
+      throw new Error(`Model "${targetModel}" uses protocol ${invocation.protocol} — not supported in this gateway.`);
     }
 
     const apiKey = (envMap[invocation.keyEnvName] ?? process.env[invocation.keyEnvName])?.trim();
     if (!apiKey) {
-      throw new Error(`API key ausente (${invocation.keyEnvName}). Configure no .env do NanoClaw.`);
+      throw new Error(`Missing API key (${invocation.keyEnvName}). Set it in the NanoClaw .env file.`);
     }
 
     const payload: Record<string, unknown> = {

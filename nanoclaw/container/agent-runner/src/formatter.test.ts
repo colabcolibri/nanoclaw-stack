@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { initTestSessionDb, closeSessionDb, getInboundDb } from './db/connection.js';
 import { getPendingMessages } from './db/messages-in.js';
 import { formatMessages, stripInternalTags, stripLegacyTaskContract } from './formatter.js';
+import { formatContextHeader } from './container-location.js';
 import { TIMEZONE, formatLocalTime } from './timezone.js';
 
 beforeEach(() => {
@@ -50,6 +51,16 @@ describe('context timezone header', () => {
   it('includes the header even when the message list is empty', () => {
     const result = formatMessages([]);
     expect(result).toContain(`<context timezone="${TIMEZONE}"`);
+  });
+
+  it('includes city and country when configured in container.json', () => {
+    const header = formatContextHeader(TIMEZONE, {
+      city: 'Tielen',
+      country: 'Belgica',
+      location: 'Tielen, Belgica',
+    });
+    expect(header).toContain('city="Tielen"');
+    expect(header).toContain('country="Belgica"');
   });
 
   it('header comes before the first <message> block when multiple are present', () => {

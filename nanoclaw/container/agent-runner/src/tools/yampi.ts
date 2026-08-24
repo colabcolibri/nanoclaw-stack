@@ -94,7 +94,7 @@ export const yampiTool: AgentTool = {
       return JSON.stringify({
         status: 'error',
         error:
-          `Credenciais da Yampi não configuradas. Cadastre seu Alias, User-Token e Secret-Key no painel Web (${resolveUiPublicUrl()} na aba Contas & Integrações).`,
+          `Yampi credentials not configured. Set Alias, User-Token, and Secret-Key in the web panel (${resolveUiPublicUrl()}, Accounts & Integrations tab).`,
       });
     }
 
@@ -125,7 +125,7 @@ export const yampiTool: AgentTool = {
           price: p.prices?.data?.price,
           promotional_price: p.prices?.data?.promotional_price,
           in_stock: totalStock > 0 || p.has_unlimited_stock,
-          availability: totalStock > 0 || p.has_unlimited_stock ? 'Disponível para pronta entrega' : 'Esgotado no momento',
+          availability: totalStock > 0 || p.has_unlimited_stock ? 'In stock for immediate shipment' : 'Out of stock',
           url: p.url,
           description: p.description ? p.description.replace(/<[^>]*>/g, ' ').slice(0, 300).trim() : '',
         };
@@ -144,7 +144,7 @@ export const yampiTool: AgentTool = {
       const requested = Number(args.requested_quantity) || 1;
 
       if (!q) {
-        return JSON.stringify({ status: 'error', error: 'Informe o nome ou ID do produto para verificar a quantidade.' });
+        return JSON.stringify({ status: 'error', error: 'Provide product name or ID to check quantity.' });
       }
 
       const res = await fetch(`${baseURL}/catalog/products?q=${encodeURIComponent(q)}`, { headers });
@@ -155,7 +155,7 @@ export const yampiTool: AgentTool = {
       const data = (await res.json()) as any;
       const product = data.data?.[0];
       if (!product) {
-        return JSON.stringify({ status: 'not_found', message: `Produto "${q}" não encontrado no catálogo.` });
+        return JSON.stringify({ status: 'not_found', message: `Product "${q}" not found in catalog.` });
       }
 
       const totalStock = (product.skus?.data || []).reduce((acc: number, s: any) => acc + (s.stock?.data?.quantity || 0), 0);
@@ -169,10 +169,10 @@ export const yampiTool: AgentTool = {
         can_fulfill: canFulfill,
         in_stock: totalStock > 0 || hasUnlimited,
         message: canFulfill
-          ? `Temos a quantidade solicitada (${requested} unidades) disponível para envio imediato.`
+          ? `Requested quantity (${requested} units) is available for immediate shipment.`
           : totalStock > 0
-          ? `Não temos toda essa quantidade (${requested} un.) em estoque para envio imediato no momento, mas temos uma quantidade menor disponível pronta para envio.`
-          : `O produto "${product.name}" encontra-se temporariamente esgotado.`,
+          ? `Not enough stock (${requested} units requested) for immediate shipment, but a smaller quantity is available.`
+          : `Product "${product.name}" is temporarily out of stock.`,
       });
     }
 
@@ -182,7 +182,7 @@ export const yampiTool: AgentTool = {
       const clientEmail = args.client_email ? String(args.client_email).trim().toLowerCase() : null;
 
       if (!orderNumber) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro order_number é obrigatório.' });
+        return JSON.stringify({ status: 'error', error: 'Parameter order_number is required.' });
       }
 
       const res = await fetch(`${baseURL}/orders?q=${encodeURIComponent(orderNumber)}&include=customer,items,shipping`, { headers });
@@ -196,7 +196,7 @@ export const yampiTool: AgentTool = {
       );
 
       if (!order) {
-        return JSON.stringify({ status: 'not_found', message: `Pedido #${orderNumber} não encontrado na loja.` });
+        return JSON.stringify({ status: 'not_found', message: `Order #${orderNumber} not found in store.` });
       }
 
       const buyerEmail = (order.customer?.data?.email || '').trim().toLowerCase();
@@ -205,7 +205,7 @@ export const yampiTool: AgentTool = {
       if (clientEmail && buyerEmail && buyerEmail !== clientEmail) {
         return JSON.stringify({
           status: 'security_denied',
-          message: 'TRAVA DE SEGURANÇA ATIVADA: Os dados deste pedido pertencem a outro cliente. Não é permitido visualizar ou divulgar informações de terceiros.',
+          message: 'SECURITY LOCK ACTIVE: This order belongs to another customer. Viewing or disclosing third-party data is not allowed.',
         });
       }
 
@@ -236,7 +236,7 @@ export const yampiTool: AgentTool = {
     if (action === 'get_client_orders') {
       const clientEmail = args.client_email ? String(args.client_email).trim().toLowerCase() : null;
       if (!clientEmail) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro client_email é obrigatório para consultar histórico do cliente.' });
+        return JSON.stringify({ status: 'error', error: 'Parameter client_email is required to look up customer order history.' });
       }
 
       const res = await fetch(`${baseURL}/orders?q=${encodeURIComponent(clientEmail)}&include=items,shipping&limit=10`, { headers });
@@ -288,6 +288,6 @@ export const yampiTool: AgentTool = {
       });
     }
 
-    return JSON.stringify({ status: 'error', error: `Ação "${action}" não reconhecida.` });
+    return JSON.stringify({ status: 'error', error: `Unknown action: "${action}".` });
   },
 };

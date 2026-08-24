@@ -30,7 +30,7 @@ describe('AgentAuditLogger', () => {
     expect(traces[0].step).toBe('supervisor_turn_start');
   });
 
-  test('record persists JSONL to cwd/logs/agent_audit.jsonl', () => {
+  test('record persists JSONL and SQLite to cwd/logs', () => {
     AgentAuditLogger.recordStep(tmpDir, {
       step: 'worker_execution',
       agent: 'productivity_attendant',
@@ -41,7 +41,9 @@ describe('AgentAuditLogger', () => {
     });
 
     const logPath = path.join(tmpDir, 'logs', 'agent_audit.jsonl');
+    const dbPath = path.join(tmpDir, 'logs', 'agent_audit.db');
     expect(fs.existsSync(logPath)).toBe(true);
+    expect(fs.existsSync(dbPath)).toBe(true);
 
     const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
     expect(lines.length).toBe(1);

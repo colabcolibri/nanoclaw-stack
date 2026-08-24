@@ -48,12 +48,12 @@ export async function executeTool(name: string, args: any, cwd: string): Promise
   const resolved = normalized === 'web_research' ? 'web_search' : normalized;
   const tool = ALL_TOOLS[name] || ALL_TOOLS[normalized] || ALL_TOOLS[resolved];
   if (!tool) {
-    return `Ferramenta desconhecida: ${name}`;
+    return `Unknown tool: ${name}`;
   }
   try {
     return await tool.execute(args, cwd);
   } catch (err: any) {
-    return `Erro ao executar ${name}: ${err.message || String(err)}`;
+    return `Error executing ${name}: ${err.message || String(err)}`;
   }
 }
 

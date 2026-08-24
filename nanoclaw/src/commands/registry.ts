@@ -64,7 +64,7 @@ const definitions: SlashCommandDefinition[] = [
     requiresAdmin: true,
     async execute({ caller, summarizeWithLlm }): Promise<CommandExecutionResult> {
       if (!summarizeWithLlm) {
-        throw new Error('new-resume requer resumo com LLM (pipeline não configurou summarizeWithLlm)');
+        throw new Error('new-resume requires LLM summarization (pipeline did not configure summarizeWithLlm)');
       }
       const { session: current } = resolveActiveSession(caller);
       const { session: next } = await startNewConversationWithResume(caller, current, summarizeWithLlm);

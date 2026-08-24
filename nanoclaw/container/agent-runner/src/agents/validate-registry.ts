@@ -39,7 +39,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
     issues.push({
       level: 'error',
       code: 'no_agents',
-      message: 'Nenhum AGENT.md descoberto — o registry de especialistas está vazio.',
+      message: 'No AGENT.md discovered — specialist registry is empty.',
     });
     return issues;
   }
@@ -50,7 +50,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
         level: 'error',
         code: 'empty_department',
         departmentId: dept.id,
-        message: `Departamento "${dept.id}" não tem agentes registrados.`,
+        message: `Department "${dept.id}" has no registered agents.`,
       });
     }
 
@@ -61,7 +61,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
           code: 'department_unknown_agent',
           departmentId: dept.id,
           agentId,
-          message: `Departamento "${dept.id}" referencia agente "${agentId}" sem AGENT.md descoberto.`,
+          message: `Department "${dept.id}" references agent "${agentId}" with no discovered AGENT.md.`,
         });
       }
     }
@@ -73,7 +73,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
         level: 'error',
         code: 'empty_system_prompt',
         agentId: agent.id,
-        message: `Agente "${agent.id}" tem corpo vazio em AGENT.md.`,
+        message: `Agent "${agent.id}" has an empty AGENT.md body.`,
       });
     }
 
@@ -82,7 +82,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
         level: 'warning',
         code: 'no_skills',
         agentId: agent.id,
-        message: `Agente "${agent.id}" não declara skills: — só terá tools globais.`,
+        message: `Agent "${agent.id}" declares no skills: — only global tools will be available.`,
       });
     }
 
@@ -94,7 +94,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
           code: 'missing_skill',
           agentId: agent.id,
           skill: skillName,
-          message: `Agente "${agent.id}" referencia skill "${skillName}" inexistente (sem SKILL.md).`,
+          message: `Agent "${agent.id}" references missing skill "${skillName}" (no SKILL.md).`,
         });
         continue;
       }
@@ -105,7 +105,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
           code: 'empty_skill_manual',
           agentId: agent.id,
           skill: skillName,
-          message: `Skill "${skillName}" (agente "${agent.id}") tem manual vazio.`,
+          message: `Skill "${skillName}" (agent "${agent.id}") has an empty manual.`,
         });
       }
 
@@ -117,7 +117,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
             code: 'skill_unknown_tool',
             agentId: agent.id,
             skill: skillName,
-            message: `Skill "${skillName}" declara tool "${toolName}" que não existe em ALL_TOOLS.`,
+            message: `Skill "${skillName}" declares tool "${toolName}" which does not exist in ALL_TOOLS.`,
           });
         }
       }
@@ -128,7 +128,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
           code: 'skill_no_tools',
           agentId: agent.id,
           skill: skillName,
-          message: `Skill "${skillName}" não declara tools: no frontmatter.`,
+          message: `Skill "${skillName}" does not declare tools: in frontmatter.`,
         });
       }
     }
@@ -139,7 +139,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
         level: 'error',
         code: 'agent_no_tools',
         agentId: agent.id,
-        message: `Agente "${agent.id}" não resolve nenhuma tool — verifique skills e allow_global_skills.`,
+        message: `Agent "${agent.id}" resolves no tools — check skills and allow_global_skills.`,
       });
     }
 
@@ -154,7 +154,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
             code: 'skill_tool_not_on_agent',
             agentId: agent.id,
             skill: skillName,
-            message: `Agente "${agent.id}" não expõe tool "${toolName}" exigida pela skill "${skillName}".`,
+            message: `Agent "${agent.id}" does not expose tool "${toolName}" required by skill "${skillName}".`,
           });
         }
       }
@@ -166,7 +166,7 @@ export function validateAgentRegistry(cwd?: string): AgentRegistryIssue[] {
         level: 'error',
         code: 'skills_not_injectable',
         agentId: agent.id,
-        message: `Agente "${agent.id}" tem skills listadas mas nenhum manual injetável no worker.`,
+        message: `Agent "${agent.id}" lists skills but none have an injectable manual for the worker.`,
       });
     }
   }

@@ -64,6 +64,19 @@ describe('resolveGroupTimezone', () => {
     updateContainerConfigScalars(GROUP.id, { timezone: 'Not/AZone' });
     expect(configFromDb(getContainerConfig(GROUP.id)!, GROUP).timezone).toBeUndefined();
   });
+
+  it('configFromDb ships city and country to the container', () => {
+    updateContainerConfigScalars(GROUP.id, {
+      city: 'Tielen',
+      country: 'Belgica',
+      location: 'Tielen, Belgica',
+    });
+    expect(configFromDb(getContainerConfig(GROUP.id)!, GROUP)).toMatchObject({
+      city: 'Tielen',
+      country: 'Belgica',
+      location: 'Tielen, Belgica',
+    });
+  });
 });
 
 describe('parseMcpServerConfig', () => {

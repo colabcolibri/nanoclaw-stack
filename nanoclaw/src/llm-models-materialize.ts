@@ -59,7 +59,7 @@ export interface MaterializedLlmRegistry {
 
 function requireField<T>(value: T | null | undefined, label: string): T {
   if (value === null || value === undefined || value === '') {
-    throw new Error(`Campo obrigatório ausente no catálogo LLM: ${label}`);
+    throw new Error(`Required field missing in LLM catalog: ${label}`);
   }
   return value;
 }
@@ -87,10 +87,10 @@ export function buildLlmRegistryPayload(): MaterializedLlmRegistry {
   for (const m of models) {
     const provider = providerMap[m.provider_id];
     if (!provider) {
-      throw new Error(`Modelo "${m.id}" referencia provider desconhecido "${m.provider_id}"`);
+      throw new Error(`Model "${m.id}" references unknown provider "${m.provider_id}"`);
     }
     if (!m.context_window?.trim()) {
-      throw new Error(`Modelo "${m.id}" sem context_window definido no catálogo`);
+      throw new Error(`Model "${m.id}" is missing context_window in the catalog`);
     }
 
     const item = {

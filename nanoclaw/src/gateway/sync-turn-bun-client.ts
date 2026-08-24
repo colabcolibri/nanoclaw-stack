@@ -47,7 +47,7 @@ async function invokeBunRunner<T>(payload: SyncTurnRunnerRequest): Promise<T> {
 
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
-      reject(new Error('Turn sync excedeu o tempo limite (5 min).'));
+      reject(new Error('Sync turn timed out (5 min).'));
     }, SYNC_TURN_TIMEOUT_MS);
 
     child.on('error', (err) => {
@@ -56,7 +56,7 @@ async function invokeBunRunner<T>(payload: SyncTurnRunnerRequest): Promise<T> {
       if (code === 'ENOENT') {
         reject(
           new Error(
-            `Bun não encontrado (${bunBin}). Instale Bun — o canal Mac precisa do runtime Bun para o orquestrador.`,
+            `Bun not found (${bunBin}). Install Bun — the Mac channel requires the Bun runtime for the orchestrator.`,
           ),
         );
         return;
@@ -70,7 +70,7 @@ async function invokeBunRunner<T>(payload: SyncTurnRunnerRequest): Promise<T> {
       try {
         const parsed = JSON.parse(line) as RunnerResponse<T>;
         if (!parsed.ok) {
-          reject(new Error(parsed.error || 'Falha no subprocesso sync-turn.'));
+          reject(new Error(parsed.error || 'sync-turn subprocess failed.'));
           return;
         }
         resolve(parsed.result);
@@ -80,7 +80,7 @@ async function invokeBunRunner<T>(payload: SyncTurnRunnerRequest): Promise<T> {
           reject(new Error(detail || `sync-turn subprocess exit ${code}`));
           return;
         }
-        reject(new Error('Resposta inválida do subprocesso sync-turn.'));
+        reject(new Error('Invalid response from sync-turn subprocess.'));
       }
     });
 

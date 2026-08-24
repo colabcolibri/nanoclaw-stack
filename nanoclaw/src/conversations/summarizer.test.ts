@@ -18,7 +18,7 @@ describe('conversation summarizer', () => {
     const summarizeWithLlm = vi.fn().mockRejectedValue(new Error('provider offline'));
     await expect(
       summarizeConversation([{ role: 'user', text: 'oi', timestamp: new Date().toISOString() }], summarizeWithLlm),
-    ).rejects.toThrow(/Falha ao resumir conversa com LLM/);
+    ).rejects.toThrow(/Failed to summarize conversation with LLM/);
   });
 
   it('summarizeConversation throws when LLM returns empty', async () => {

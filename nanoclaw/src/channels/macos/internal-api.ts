@@ -30,7 +30,7 @@ function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
       try {
         resolve(JSON.parse(raw));
       } catch {
-        reject(new Error('JSON inválido.'));
+        reject(new Error('Invalid JSON.'));
       }
     });
     req.on('error', reject);
@@ -72,13 +72,13 @@ export function registerMacInternalApi(): void {
     const groupFolder = resolveGroupFolder(query.get('group'));
 
     if (req.method !== 'POST') {
-      jsonResponse(res, 405, { error: 'Método não permitido.' });
+      jsonResponse(res, 405, { error: 'Method not allowed.' });
       return;
     }
 
     const token = parseBearer(req);
     if (!validateMacApiKey(token, groupFolder)) {
-      jsonResponse(res, 401, { error: 'Token de autenticação inválido.' });
+      jsonResponse(res, 401, { error: 'Invalid authentication token.' });
       return;
     }
 
@@ -87,7 +87,7 @@ export function registerMacInternalApi(): void {
         const body = (await readJsonBody(req)) as MacPromptRequest;
         const prompt = body.prompt?.trim();
         if (!prompt) {
-          jsonResponse(res, 400, { error: 'Prompt é obrigatório.' });
+          jsonResponse(res, 400, { error: 'Prompt is required.' });
           return;
         }
         const result = await processSyncTurn({
@@ -122,7 +122,7 @@ export function registerMacInternalApi(): void {
         return;
       }
 
-      jsonResponse(res, 404, { error: 'Rota interna não encontrada.' });
+      jsonResponse(res, 404, { error: 'Internal route not found.' });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       log.error('Mac internal API error', { suffix, groupFolder, err: message });

@@ -17,13 +17,13 @@ const REGISTRY_PATH = path.join(DATA_DIR, 'llm-models.json');
 export function buildConversationSummarizeFn(agentGroupId: string): SummarizeMessagesFn {
   const group = getAgentGroup(agentGroupId);
   if (!group?.folder) {
-    throw new Error(`Grupo de agente não encontrado: ${agentGroupId}`);
+    throw new Error(`Agent group not found: ${agentGroupId}`);
   }
 
   const resolved = resolveGroupRoleModels(agentGroupId);
   if (!resolved?.memoModel) {
     throw new Error(
-      'Não foi possível resolver o modelo memo do grupo — configure model, orchestrator, sender e memo em container config',
+      'Could not resolve group memo model — configure model, orchestrator, sender, and memo in container config',
     );
   }
 

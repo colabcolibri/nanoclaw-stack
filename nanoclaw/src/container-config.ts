@@ -258,6 +258,9 @@ export interface ContainerConfig {
   model?: string;
   effort?: string;
   timezone?: string;
+  city?: string;
+  country?: string;
+  location?: string;
   orchestratorModel?: string;
   senderModel?: string;
   memoModel?: string;
@@ -291,6 +294,43 @@ export function alignRoleModelsWithProvider(
 export function resolveGroupTimezone(agentGroupId: string): string {
   const tz = getContainerConfig(agentGroupId)?.timezone;
   return tz && isValidTimezone(tz) ? tz : TIMEZONE;
+}
+
+/** Normalize city/country/location fields from DB or container.json shapes. */
+export function parseLocationFields(input: {
+  city?: string | null;
+  country?: string | null;
+  location?: string | null;
+}): { city: string; country: string; location: string } {
+  let city = (input.city ?? '').trim();
+  let country = (input.country ?? '').trim();
+  const rawLocation = (input.location ?? '').trim();
+
+  if (!city && !country && rawLocation) {
+    const parts = rawLocation.split(',').map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      city = parts[0];
+      country = parts.slice(1).join(', ');
+    } else if (parts.length === 1) {
+      city = parts[0];
+    }
+  }
+
+  const location = rawLocation || [city, country].filter(Boolean).join(', ');
+  return { city, country, location };
+}
+
+function locationConfigFromRow(row: ContainerConfigRow): Pick<ContainerConfig, 'city' | 'country' | 'location'> {
+  const fields = parseLocationFields({
+    city: row.city,
+    country: row.country,
+    location: row.location,
+  });
+  const out: Pick<ContainerConfig, 'city' | 'country' | 'location'> = {};
+  if (fields.city) out.city = fields.city;
+  if (fields.country) out.country = fields.country;
+  if (fields.location) out.location = fields.location;
+  return out;
 }
 
 /**
@@ -360,6 +400,7 @@ export function configFromDb(row: ContainerConfigRow, group: AgentGroup): Contai
     model: row.model ?? undefined,
     effort: row.effort ?? undefined,
     timezone: row.timezone && isValidTimezone(row.timezone) ? row.timezone : undefined,
+    ...locationConfigFromRow(row),
     orchestratorModel: row.orchestrator_model ?? undefined,
     senderModel: row.sender_model ?? undefined,
     memoModel: row.memo_model ?? undefined,

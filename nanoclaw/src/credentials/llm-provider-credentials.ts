@@ -8,7 +8,7 @@ export function setLlmProviderApiKey(providerId: string, plaintext: string): voi
   const key = getCredentialsEncryptionKey();
   if (!key) {
     throw new Error(
-      'NANOCLAW_CREDENTIALS_ENCRYPTION_KEY não configurada no host. Defina no .env do NanoClaw (nunca no container).',
+      'NANOCLAW_CREDENTIALS_ENCRYPTION_KEY is not configured on the host. Set it in the NanoClaw .env (never in the container).',
     );
   }
   const ciphertext = encryptSecret(plaintext.trim(), key);

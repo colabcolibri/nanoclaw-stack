@@ -44,6 +44,17 @@ function resolveGroupFolder(param: string | null | undefined): string {
   return CONFIG.DEFAULT_GROUP_FOLDER;
 }
 
+function parseOffset(value: string | null | undefined): number {
+  const parsed = Number.parseInt(value || "0", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function parseOptionalInt(value: string | null | undefined): number | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function jsonResponse(data: any, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -596,10 +607,13 @@ export class ApiRouter {
     }
 
     if (url.pathname === "/api/scheduler/logs" && method === "GET") {
-      const folder = resolveGroupFolder(url.searchParams.get("folder"));
-      const limit = parseInt(url.searchParams.get("limit") || "50", 10);
-      const logs = DatabaseService.getCronExecutionLogs(limit, folder);
-      return jsonResponse({ logs, total: logs.length });
+      const folderParam = url.searchParams.get("folder");
+      const folder =
+        folderParam === "all" ? undefined : resolveGroupFolder(folderParam);
+      const limit = parseOptionalInt(url.searchParams.get("limit")) ?? 50;
+      const offset = parseOffset(url.searchParams.get("offset"));
+      const { logs, total } = DatabaseService.getCronExecutionLogsWithTotal(limit, folder, offset);
+      return jsonResponse({ logs, total, limit, offset, hasMore: offset + logs.length < total });
     }
 
     // Chat & Stats
@@ -628,19 +642,42 @@ export class ApiRouter {
     }
 
     // Intermediate Runs
+    if (url.pathname === "/api/runs/feed" && method === "GET") {
+      const { queryRunsFeed } = await import("../services/runs-feed.js");
+      const offset = parseOffset(url.searchParams.get("offset"));
+      const limit = parseOptionalInt(url.searchParams.get("limit")) ?? 96;
+      const kind = (url.searchParams.get("kind") || "all") as import("../services/runs-feed.js").RunFilterKind;
+      const q = url.searchParams.get("q") || "";
+      const group = url.searchParams.get("group")?.trim() || undefined;
+      return jsonResponse(queryRunsFeed({ offset, limit, kind, q, groupFolder: group }));
+    }
+
+    if (url.pathname === "/api/runs/feed/detail" && method === "GET") {
+      const { getRunDetail } = await import("../services/runs-feed.js");
+      const id = url.searchParams.get("id")?.trim();
+      const source = url.searchParams.get("source")?.trim() as import("../services/runs-feed.js").RunDetailRef["source"] | undefined;
+      const sourceDb = url.searchParams.get("sourceDb")?.trim();
+      if (!id || !source || !sourceDb) {
+        return jsonResponse({ error: "Parâmetros id, source e sourceDb são obrigatórios." }, 400);
+      }
+      const detail = getRunDetail({ source, sourceDb }, id);
+      if (!detail) return jsonResponse({ error: "Execução não encontrada." }, 404);
+      return jsonResponse({ detail });
+    }
+
     if (url.pathname === "/api/runs" && method === "GET") {
-      const limit = parseInt(url.searchParams.get("limit") || "100", 10);
-      return jsonResponse({
-        runs: DatabaseService.getDetailedRuns(limit),
-      });
+      const limit = parseOptionalInt(url.searchParams.get("limit")) ?? 100;
+      const offset = parseOffset(url.searchParams.get("offset"));
+      const { runs, total } = DatabaseService.getDetailedRunsWithTotal(limit, offset);
+      return jsonResponse({ runs, total, limit, offset, hasMore: offset + runs.length < total });
     }
 
     if (url.pathname === "/api/audit-traces" && method === "GET") {
-      const limit = parseInt(url.searchParams.get("limit") || "300", 10);
+      const limit = parseOptionalInt(url.searchParams.get("limit")) ?? 300;
+      const offset = parseOffset(url.searchParams.get("offset"));
       const group = url.searchParams.get("group") || undefined;
-      return jsonResponse({
-        traces: DatabaseService.getAgentAuditTraces(limit, group),
-      });
+      const { traces, total } = DatabaseService.getAgentAuditTracesWithTotal(limit, group, offset);
+      return jsonResponse({ traces, total, limit, offset, hasMore: offset + traces.length < total });
     }
 
     // Security & Users

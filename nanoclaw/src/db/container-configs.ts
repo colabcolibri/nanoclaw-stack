@@ -11,6 +11,9 @@ const SCALAR_COLUMNS = new Set([
   'max_messages_per_prompt',
   'cli_scope',
   'timezone',
+  'city',
+  'country',
+  'location',
   'orchestrator_model',
   'sender_model',
   'memo_model',
@@ -99,6 +102,9 @@ export function updateContainerConfigScalars(
       | 'max_messages_per_prompt'
       | 'cli_scope'
       | 'timezone'
+      | 'city'
+      | 'country'
+      | 'location'
       | 'orchestrator_model'
       | 'sender_model'
       | 'memo_model'

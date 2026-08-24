@@ -237,6 +237,37 @@ export interface AgentAuditTraceItem {
   metadata?: Record<string, unknown>
 }
 
+export interface RunFeedDetailRef {
+  source: 'ledger' | 'audit' | 'cron'
+  sourceDb: string
+}
+
+export interface RunFeedListItem {
+  id: string
+  kind: string
+  category: string
+  timestamp: string
+  status: string
+  model?: string
+  tokens?: number
+  costBrl?: number
+  latencyMs?: number
+  messageId?: string
+  detailRef: RunFeedDetailRef
+}
+
+export interface RunFeedDetailItem extends RunFeedListItem {
+  cron?: string
+  channel?: string
+  agent?: string
+  department?: string
+  supervisorStep?: number
+  decision?: string
+  prompt?: string
+  output?: string
+  auditMetadata?: Record<string, unknown>
+}
+
 export class ApiClient {
   private static async fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(url, {
@@ -309,11 +340,52 @@ export class ApiClient {
     return this.fetchJson(`/api/usage?limit=${limit}`)
   }
 
-  static async getRuns(limit = 96): Promise<{ runs: IntermediateRunItem[] }> {
+  static async getRunsFeed(params: {
+    offset?: number
+    limit?: number
+    kind?: string
+    q?: string
+    group?: string
+  }): Promise<{
+    items: RunFeedListItem[]
+    total: number
+    offset: number
+    limit: number
+    hasMore: boolean
+    counts: Record<string, number>
+    scannedTotal: number
+    indexSyncedAt: string | null
+  }> {
+    const qs = new URLSearchParams()
+    if (params.offset != null) qs.set('offset', String(params.offset))
+    if (params.limit != null) qs.set('limit', String(params.limit))
+    if (params.kind) qs.set('kind', params.kind)
+    if (params.q) qs.set('q', params.q)
+    if (params.group) qs.set('group', params.group)
+    return this.fetchJson(`/api/runs/feed?${qs}`)
+  }
+
+  static async getRunDetail(params: {
+    id: string
+    source: string
+    sourceDb: string
+  }): Promise<{ detail: RunFeedDetailItem }> {
+    const qs = new URLSearchParams({
+      id: params.id,
+      source: params.source,
+      sourceDb: params.sourceDb,
+    })
+    return this.fetchJson(`/api/runs/feed/detail?${qs}`)
+  }
+
+  static async getRuns(limit = 96): Promise<{ runs: IntermediateRunItem[]; total: number; limit: number }> {
     return this.fetchJson(`/api/runs?limit=${limit}`)
   }
 
-  static async getAuditTraces(limit = 96, group?: string): Promise<{ traces: AgentAuditTraceItem[] }> {
+  static async getAuditTraces(
+    limit = 96,
+    group?: string,
+  ): Promise<{ traces: AgentAuditTraceItem[]; total: number; limit: number }> {
     const qs = new URLSearchParams({ limit: String(limit) })
     if (group) qs.set('group', group)
     return this.fetchJson(`/api/audit-traces?${qs}`)
@@ -395,8 +467,8 @@ export class ApiClient {
     })
   }
 
-  static async getCronLogs(): Promise<{ logs: CronExecutionLog[] }> {
-    return this.fetchJson('/api/scheduler/logs')
+  static async getCronLogs(limit = 500): Promise<{ logs: CronExecutionLog[]; total: number }> {
+    return this.fetchJson(`/api/scheduler/logs?limit=${limit}`)
   }
 
   static async getSecurity(): Promise<{ users: any[]; pendingApprovals: any[] }> {

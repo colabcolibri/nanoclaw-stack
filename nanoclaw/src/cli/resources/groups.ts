@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 
 import {
   mcpServerPluginOwner,
+  parseLocationFields,
   parseMcpServerConfig,
   validateMcpServerName,
   type AdditionalMountConfig,
@@ -11,6 +12,7 @@ import { buildAgentGroupImage, killContainer, wakeContainer } from '../../contai
 import { restartAgentGroupContainers } from '../../container-restart.js';
 import { createAgentGroup, getAgentGroupByFolder } from '../../db/agent-groups.js';
 import { getDb, hasTable } from '../../db/connection.js';
+import { sqliteChanges, runSqliteTransaction } from '../../db/sqlite-compat.js';
 import { getSession } from '../../db/sessions.js';
 import { writeSessionMessage } from '../../session-manager.js';
 import {
@@ -49,6 +51,12 @@ function parseTimezoneFlag(value: unknown): string | null | undefined {
   return tz;
 }
 
+function parseLocationScalarFlag(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 /** Deserialize JSON columns for display. */
 function presentConfig(row: ContainerConfigRow): Record<string, unknown> {
   return {
@@ -66,6 +74,9 @@ function presentConfig(row: ContainerConfigRow): Record<string, unknown> {
     additional_mounts: JSON.parse(row.additional_mounts),
     cli_scope: row.cli_scope,
     timezone: row.timezone,
+    city: row.city,
+    country: row.country,
+    location: row.location,
     orchestrator_model: row.orchestrator_model,
     sender_model: row.sender_model,
     updated_at: row.updated_at,
@@ -211,7 +222,10 @@ registerResource({
         // we missed), so the central DB stays consistent. The `removed` counts
         // are sourced from each DELETE's `changes` so they describe exactly
         // what the transaction did, not a separate pre-flight snapshot.
-        const cascade = db.transaction((groupId: string) => {
+        const removed = runSqliteTransaction(db, (groupId: string) => {
+          const deleteCount = (sql: string, ...params: unknown[]) =>
+            sqliteChanges(db.prepare(sql).run(...params));
+
           const counts = {
             sessions: 0,
             pending_questions: 0,
@@ -227,48 +241,48 @@ registerResource({
           };
 
           if (hasAgentDestinations) {
-            counts.agent_destinations_owned = db
-              .prepare('DELETE FROM agent_destinations WHERE agent_group_id = ?')
-              .run(groupId).changes;
-            counts.agent_destinations_pointing = db
-              .prepare('DELETE FROM agent_destinations WHERE target_type = ? AND target_id = ?')
-              .run('agent', groupId).changes;
+            counts.agent_destinations_owned = deleteCount(
+              'DELETE FROM agent_destinations WHERE agent_group_id = ?',
+              groupId,
+            );
+            counts.agent_destinations_pointing = deleteCount(
+              'DELETE FROM agent_destinations WHERE target_type = ? AND target_id = ?',
+              'agent',
+              groupId,
+            );
           }
-          counts.pending_questions = db
-            .prepare(
-              'DELETE FROM pending_questions WHERE session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
-            )
-            .run(groupId).changes;
+          counts.pending_questions = deleteCount(
+            'DELETE FROM pending_questions WHERE session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
+            groupId,
+          );
           if (hasPendingApprovals) {
-            counts.pending_approvals = db
-              .prepare(
-                'DELETE FROM pending_approvals WHERE agent_group_id = ? OR session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
-              )
-              .run(groupId, groupId).changes;
+            counts.pending_approvals = deleteCount(
+              'DELETE FROM pending_approvals WHERE agent_group_id = ? OR session_id IN (SELECT id FROM sessions WHERE agent_group_id = ?)',
+              groupId,
+              groupId,
+            );
           }
-          counts.sessions = db.prepare('DELETE FROM sessions WHERE agent_group_id = ?').run(groupId).changes;
-          counts.pending_sender_approvals = db
-            .prepare('DELETE FROM pending_sender_approvals WHERE agent_group_id = ?')
-            .run(groupId).changes;
-          counts.pending_channel_approvals = db
-            .prepare('DELETE FROM pending_channel_approvals WHERE agent_group_id = ?')
-            .run(groupId).changes;
-          counts.messaging_group_agents = db
-            .prepare('DELETE FROM messaging_group_agents WHERE agent_group_id = ?')
-            .run(groupId).changes;
-          counts.agent_group_members = db
-            .prepare('DELETE FROM agent_group_members WHERE agent_group_id = ?')
-            .run(groupId).changes;
-          counts.user_roles = db.prepare('DELETE FROM user_roles WHERE agent_group_id = ?').run(groupId).changes;
+          counts.sessions = deleteCount('DELETE FROM sessions WHERE agent_group_id = ?', groupId);
+          counts.pending_sender_approvals = deleteCount(
+            'DELETE FROM pending_sender_approvals WHERE agent_group_id = ?',
+            groupId,
+          );
+          counts.pending_channel_approvals = deleteCount(
+            'DELETE FROM pending_channel_approvals WHERE agent_group_id = ?',
+            groupId,
+          );
+          counts.messaging_group_agents = deleteCount(
+            'DELETE FROM messaging_group_agents WHERE agent_group_id = ?',
+            groupId,
+          );
+          counts.agent_group_members = deleteCount('DELETE FROM agent_group_members WHERE agent_group_id = ?', groupId);
+          counts.user_roles = deleteCount('DELETE FROM user_roles WHERE agent_group_id = ?', groupId);
           // migration-014 has ON DELETE CASCADE on container_configs.agent_group_id;
           // the explicit delete here mirrors the other tables and surfaces the count.
-          counts.container_configs = db
-            .prepare('DELETE FROM container_configs WHERE agent_group_id = ?')
-            .run(groupId).changes;
+          counts.container_configs = deleteCount('DELETE FROM container_configs WHERE agent_group_id = ?', groupId);
           db.prepare('DELETE FROM agent_groups WHERE id = ?').run(groupId);
           return counts;
-        });
-        const removed = cascade(id);
+        }, id);
 
         return { deleted: id, removed };
       },
@@ -339,7 +353,8 @@ registerResource({
         'Update container config scalar fields. Changes are saved but do NOT take effect until you run `ncl groups restart`. ' +
         'Use --id <group-id> and any of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope, ' +
         '--orchestrator-model, --sender-model, ' +
-        '--timezone (IANA id like "Europe/Lisbon"; "" clears back to the install default; scheduled-task times follow it immediately, message display after restart).',
+        '--timezone (IANA id like "Europe/Lisbon"; "" clears back to the install default; scheduled-task times follow it immediately, message display after restart), ' +
+        '--city, --country (geographic context injected into every agent turn; "" clears).',
       handler: async (args) => {
         const id = args.id as string;
         if (!id) throw new Error('--id is required');
@@ -357,6 +372,9 @@ registerResource({
             | 'max_messages_per_prompt'
             | 'cli_scope'
             | 'timezone'
+            | 'city'
+            | 'country'
+            | 'location'
             | 'orchestrator_model'
             | 'sender_model'
           >
@@ -364,6 +382,10 @@ registerResource({
         if (args.provider !== undefined) updates.provider = args.provider as string;
         const timezone = parseTimezoneFlag(args.timezone);
         if (timezone !== undefined) updates.timezone = timezone;
+        const city = parseLocationScalarFlag(args.city);
+        if (city !== undefined) updates.city = city;
+        const country = parseLocationScalarFlag(args.country);
+        if (country !== undefined) updates.country = country;
         if (args.model !== undefined) updates.model = args.model as string;
         if (args.orchestrator_model !== undefined) updates.orchestrator_model = args.orchestrator_model as string;
         if (args.sender_model !== undefined) updates.sender_model = args.sender_model as string;
@@ -380,9 +402,20 @@ registerResource({
           updates.cli_scope = scope;
         }
 
+        if (city !== undefined || country !== undefined) {
+          const current = parseLocationFields({
+            city: city !== undefined ? city : row.city,
+            country: country !== undefined ? country : row.country,
+            location: row.location,
+          });
+          updates.city = current.city || null;
+          updates.country = current.country || null;
+          updates.location = current.location || null;
+        }
+
         if (Object.keys(updates).length === 0) {
           throw new Error(
-            'Nothing to update — provide at least one of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope, --orchestrator-model, --sender-model, --timezone',
+            'Nothing to update — provide at least one of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope, --orchestrator-model, --sender-model, --timezone, --city, --country',
           );
         }
 

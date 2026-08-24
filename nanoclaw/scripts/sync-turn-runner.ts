@@ -20,7 +20,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  emit({ ok: false, error: 'Payload inválido para sync-turn-runner.' });
+  emit({ ok: false, error: 'Invalid payload for sync-turn-runner.' });
   process.exit(1);
 }
 

@@ -50,7 +50,7 @@ export const tokenUsageTool: AgentTool = {
       if (!dbPath) {
         return JSON.stringify({
           status: 'ok',
-          message: 'Nenhum registro de consumo encontrado ainda.',
+          message: 'No usage records found yet.',
           summary: { totalTokens: 0, costBrl: 'R$ 0,00', costUsd: '$ 0.00' },
         });
       }

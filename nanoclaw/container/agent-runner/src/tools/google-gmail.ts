@@ -195,7 +195,7 @@ export const googleGmailTool: AgentTool = {
       return JSON.stringify({
         status: 'error',
         error:
-          `Conta do Gmail não conectada ainda. Conecte sua conta clicando em "Conectar Conta Google" no painel Web (${resolveUiPublicUrl()} na aba Servidores MCP).`,
+          `Gmail account not connected yet. Connect via "Connect Google Account" in the web panel (${resolveUiPublicUrl()}, MCP Servers tab).`,
       });
     }
 
@@ -205,7 +205,7 @@ export const googleGmailTool: AgentTool = {
     if (action === 'delete_draft') {
       const draftId = args.draft_id || args.id || args.draftId;
       if (!draftId) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro "draft_id" é obrigatório para excluir um rascunho.' });
+        return JSON.stringify({ status: 'error', error: 'Parameter "draft_id" is required to delete a draft.' });
       }
 
       const delRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
@@ -216,7 +216,7 @@ export const googleGmailTool: AgentTool = {
       if (delRes.status === 204 || delRes.ok) {
         return JSON.stringify({
           status: 'ok',
-          message: `Rascunho ${draftId} excluído com sucesso do Gmail.`,
+          message: `Draft ${draftId} deleted from Gmail.`,
         });
       }
 
@@ -279,7 +279,7 @@ export const googleGmailTool: AgentTool = {
     if (action === 'read_message' || action === 'read_thread') {
       const msgId = args.message_id || args.id || args.thread_id;
       if (!msgId) {
-        return JSON.stringify({ status: 'error', error: 'Parâmetro message_id ou thread_id é obrigatório.' });
+        return JSON.stringify({ status: 'error', error: 'Parameter message_id or thread_id is required.' });
       }
 
       // Try fetching as thread first to get full conversation history
@@ -394,14 +394,14 @@ export const googleGmailTool: AgentTool = {
       if (policy.mode === 'notify_only') {
         return JSON.stringify({
           status: 'policy_blocked',
-          message: 'POLÍTICA DE E-MAIL ATIVA (Apenas Notificar): O envio ou criação de rascunhos pelo Gmail está desativado pela política do sistema.',
+          message: 'EMAIL POLICY ACTIVE (notify-only): Gmail send and draft creation is disabled by system policy.',
         });
       }
 
       if (!args.to || !args.subject || !args.body) {
         return JSON.stringify({
           status: 'error',
-          error: 'Parâmetros "to", "subject" e "body" são obrigatórios para envio/rascunho.',
+          error: 'Parameters "to", "subject", and "body" are required for send/draft.',
         });
       }
 
@@ -487,8 +487,8 @@ export const googleGmailTool: AgentTool = {
         return JSON.stringify({
           status: isInterceptedToDraft ? 'draft_created_for_approval' : 'ok',
           message: isInterceptedToDraft
-            ? 'TRAVA DE SEGURANÇA DETERMINÍSTICA ATIVA: O modo "Rascunho & Aprovação" está ativo. A mensagem foi gravada como Rascunho na mesma thread do Gmail para aprovação prévia no Telegram antes do envio definitivo.'
-            : 'Rascunho criado com sucesso na thread do Gmail.',
+            ? 'DETERMINISTIC SAFETY LOCK ACTIVE: Draft & Approval mode is on. The message was saved as a Gmail draft in the same thread for Telegram approval before final send.'
+            : 'Draft created successfully in the Gmail thread.',
           draftId: draftData.id,
           threadId: draftData.message?.threadId || targetThreadId,
         });
@@ -509,7 +509,7 @@ export const googleGmailTool: AgentTool = {
       const sendData = (await sendRes.json()) as any;
       return JSON.stringify({
         status: 'ok',
-        message: 'E-mail enviado com sucesso na thread.',
+        message: 'Email sent successfully in thread.',
         messageId: sendData.id,
         threadId: sendData.threadId || targetThreadId,
       });

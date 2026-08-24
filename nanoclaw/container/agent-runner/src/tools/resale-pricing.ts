@@ -74,7 +74,7 @@ export const resalePricingTool: AgentTool = {
       if (!args.items || !Array.isArray(args.items) || args.items.length === 0) {
         return JSON.stringify({
           status: 'error',
-          error: 'Parâmetro "items" é obrigatório com ao menos 1 item para calcular o orçamento.',
+          error: 'Parameter "items" is required with at least one item to calculate the quote.',
         });
       }
 
@@ -92,7 +92,7 @@ export const resalePricingTool: AgentTool = {
 
         return JSON.stringify({
           status: 'ok',
-          message: 'Orçamento comercial de revenda calculado com sucesso.',
+          message: 'Wholesale/resale quote calculated successfully.',
           buyer: proposal.buyer,
           totalQuantity: proposal.totalQuantity,
           totalCoverValue: proposal.totalCoverValue,
@@ -106,6 +106,6 @@ export const resalePricingTool: AgentTool = {
       }
     }
 
-    return JSON.stringify({ status: 'error', message: `Ação desconhecida: ${action}` });
+    return JSON.stringify({ status: 'error', message: `Unknown action: ${action}` });
   },
 };

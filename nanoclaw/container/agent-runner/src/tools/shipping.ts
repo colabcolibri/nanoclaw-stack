@@ -142,7 +142,7 @@ export const correiosShippingTool: AgentTool = {
     if (rawCep.length !== 8) {
       return JSON.stringify({
         status: 'error',
-        error: `CEP inválido: "${args.destination_cep}". Informe um CEP válido com 8 dígitos.`,
+        error: `Invalid postal code (CEP): "${args.destination_cep}". Provide a valid 8-digit CEP.`,
       });
     }
 

@@ -29,7 +29,7 @@ function readGroupCoreMemory(groupDir: string): string {
     if (!fs.existsSync(memPath)) return '';
     const content = fs.readFileSync(memPath, 'utf-8').trim();
     if (!content) return '';
-    return `### 🧠 Memória Persistente de Longo Prazo:\n${content}`;
+    return `### Long-term memory\n${content}`;
   } catch (err) {
     if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'ENOENT') return '';
     throw err;

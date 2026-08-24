@@ -7,6 +7,28 @@ import { DatabaseSync } from 'node:sqlite';
 export type OpenSqliteOptions = { readonly?: boolean };
 export type SqliteDatabase = SqliteCompatDatabase | import('better-sqlite3').Database;
 
+/** Normalize statement.run().changes to number across better-sqlite3 and node:sqlite. */
+export function sqliteChanges(result: { changes: number | bigint }): number {
+  const { changes } = result;
+  return typeof changes === 'bigint' ? Number(changes) : changes;
+}
+
+type SqliteTransactionCallback<T extends unknown[], R> = (...args: T) => R;
+
+/**
+ * Run a synchronous transaction on either SQLite backend.
+ * Unifies the better-sqlite3 / node:sqlite transaction typing difference.
+ */
+export function runSqliteTransaction<T extends unknown[], R>(
+  db: SqliteDatabase,
+  fn: SqliteTransactionCallback<T, R>,
+  ...args: T
+): R {
+  type TxFactory = (callback: SqliteTransactionCallback<T, R>) => SqliteTransactionCallback<T, R>;
+  const tx = (db as { transaction: TxFactory }).transaction(fn);
+  return tx(...args);
+}
+
 type Stmt = ReturnType<DatabaseSync['prepare']>;
 
 class SqliteCompatStatement {
@@ -69,7 +91,7 @@ export default class SqliteCompatDatabase {
     this.db.exec(sql);
   }
 
-  transaction<T extends (...args: never[]) => unknown>(fn: T): T {
+  transaction<T extends (...args: any[]) => any>(fn: T): T {
     const wrapped = (...args: Parameters<T>): ReturnType<T> => {
       this.db.exec('BEGIN');
       try {
