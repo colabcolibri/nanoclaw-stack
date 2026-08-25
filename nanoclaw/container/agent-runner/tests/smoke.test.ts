@@ -105,9 +105,9 @@ describe("Agent Runner Smoke & Regression Tests", () => {
       // Verify that calling registerMemorySessionHook does not crash
       expect(() => {
         p.registerMemorySessionHook({
-          name: "test-memory-hook",
-          description: "Test hook",
-          source: "/tmp",
+          command: "bun /tmp/test-memory-hook.ts",
+          legacyCommands: [],
+          sources: [],
         });
       }).not.toThrow();
     }

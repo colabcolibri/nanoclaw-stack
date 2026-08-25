@@ -7,8 +7,8 @@ import { AgentAuditLogger } from '../src/agents/audit-logger.js';
 import { ModelRegistry } from '../src/services/model-registry.js';
 import { WorkerAgentRunner } from '../src/agents/worker-agent.js';
 import { TurnSupervisor } from '../src/orchestrator/turn-supervisor.js';
-import type { LLMResponse } from '../src/orchestrator/types.js';
-import type { WorkerResult } from '../src/agents/types.js';
+import type { LLMCallOptions, LLMResponse } from '../src/orchestrator/types.js';
+import type { SpecialistAgent, WorkerResult } from '../src/agents/types.js';
 
 const TEST_MODEL = 'deepseek-chat';
 
@@ -54,8 +54,12 @@ describe('TurnSupervisor.runDelegation', () => {
   });
 
   test('delegate then finish records full supervisor audit timeline', async () => {
-    const mockComplete = async (_messages: unknown[], _tools: unknown, options: { purpose?: string }): Promise<LLMResponse> => {
-      if (options.purpose === 'orchestrator_supervisor') {
+    const mockComplete = async (
+      _messages: unknown[],
+      _tools: unknown,
+      options?: LLMCallOptions,
+    ): Promise<LLMResponse> => {
+      if (options?.purpose === 'orchestrator_supervisor') {
         supervisorCalls++;
         if (supervisorCalls === 1) {
           return {
@@ -76,7 +80,7 @@ describe('TurnSupervisor.runDelegation', () => {
         };
       }
 
-      if (options.purpose === 'stage1_action') {
+      if (options?.purpose === 'stage1_action') {
         workerCalls++;
         return { content: 'DONE — 2 unread emails' };
       }
@@ -123,7 +127,7 @@ describe('TurnSupervisor.runDelegation', () => {
 
   test('no specialists registered writes no_agents summary', async () => {
     const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nanoclaw-empty-'));
-    const discoverSpy = mock(() => {});
+    const discoverSpy = mock((): SpecialistAgent[] => []);
     const originalDiscover = AgentRegistry.discoverAgents;
     const originalGetAll = AgentRegistry.getAllAgents;
 
@@ -171,8 +175,8 @@ describe('TurnSupervisor.runDelegation', () => {
     };
 
     let supervisorCall = 0;
-    const mockComplete = async (_m: unknown[], _t: unknown, options: { purpose?: string }): Promise<LLMResponse> => {
-      if (options.purpose !== 'orchestrator_supervisor') {
+    const mockComplete = async (_m: unknown[], _t: unknown, options?: LLMCallOptions): Promise<LLMResponse> => {
+      if (options?.purpose !== 'orchestrator_supervisor') {
         return { content: 'DONE' };
       }
       supervisorCall++;

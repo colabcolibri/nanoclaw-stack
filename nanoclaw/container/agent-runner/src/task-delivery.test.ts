@@ -10,8 +10,14 @@ import { closeSessionDb, getInboundDb, getOutboundDb, initTestSessionDb } from '
 import { getUndeliveredMessages, writeMessageOut } from './db/messages-out.js';
 import { getTaskSeriesId } from './db/session-routing.js';
 import { sendFile, sendMessage } from './mcp-tools/core.js';
-import { autoAppendTaskLog, buildTaskBlockNudge, dispatchResultText, shouldNudgeTaskBlocks } from './poll-loop.js';
-import type { RoutingContext } from './formatter.js';
+import {
+  autoAppendTaskLog,
+  buildTaskBlockNudge,
+  dispatchResultText,
+  emitTaskNotify,
+  shouldNudgeTaskBlocks,
+} from './poll-loop.js';
+import { extractRouting, type RoutingContext } from './formatter.js';
 
 function seedSessionRouting(channelType: string | null, platformId: string | null, threadId: string | null): void {
   const db = getInboundDb();
@@ -39,6 +45,7 @@ const taskRouting: RoutingContext = {
   threadId: 'system:tasks:daily-digest-a1b2',
   inReplyTo: 'run-1',
   taskRun: true,
+  taskNotify: null,
 };
 
 beforeEach(() => {
@@ -181,6 +188,98 @@ describe('final-output blocks in a task run', () => {
     }[];
     expect(rows).toHaveLength(1);
     expect(JSON.parse(rows[0].content).text).toContain('[undelivered → family] digest');
+  });
+});
+
+describe('post-run notification (emitTaskNotify)', () => {
+  it('writes a routed chat row so the host pipeline delivers the final text', () => {
+    emitTaskNotify(
+      'Checked the inbox — 1 draft created.',
+      { channelType: 'telegram', platformId: 'telegram:99' },
+      'run-9',
+    );
+
+    const rows = getUndeliveredMessages();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe('chat');
+    expect(rows[0].channel_type).toBe('telegram');
+    expect(rows[0].platform_id).toBe('telegram:99');
+    expect(JSON.parse(rows[0].content).text).toBe('Checked the inbox — 1 draft created.');
+  });
+
+  it('strips <internal> scratchpad and inert <message> envelopes from the delivered text', () => {
+    emitTaskNotify(
+      '<internal>checking feeds…</internal>Digest ready. <message to="family">3 new posts</message>',
+      { channelType: 'telegram', platformId: 'telegram:99' },
+      null,
+    );
+
+    const rows = getUndeliveredMessages();
+    expect(rows).toHaveLength(1);
+    const text = JSON.parse(rows[0].content).text as string;
+    expect(text).not.toContain('<internal>');
+    expect(text).not.toContain('<message');
+    expect(text).toContain('Digest ready.');
+  });
+
+  it('emits nothing when the text is only scratchpad', () => {
+    emitTaskNotify('<internal>nothing to say</internal>', { channelType: 'telegram', platformId: 'telegram:99' }, null);
+    expect(getUndeliveredMessages()).toHaveLength(0);
+  });
+
+  it('extractRouting reads the notify target from the task row content', () => {
+    getInboundDb()
+      .prepare(
+        `INSERT INTO messages_in (id, seq, timestamp, status, tries, trigger, kind, platform_id, channel_type, thread_id, content)
+         VALUES ('t1', 2, '2026-01-01', 'pending', 0, 1, 'task', NULL, NULL, NULL, ?)`,
+      )
+      .run(
+        JSON.stringify({
+          prompt: 'p',
+          notify: { channelType: 'telegram', platformId: 'telegram:42' },
+        }),
+      );
+    const routing = extractRouting([
+      {
+        id: 't1',
+        seq: 2,
+        kind: 'task',
+        timestamp: '2026-01-01',
+        status: 'pending',
+        process_after: null,
+        recurrence: null,
+        tries: 0,
+        trigger: 1,
+        platform_id: null,
+        channel_type: null,
+        thread_id: 'system:tasks:x',
+        content: JSON.stringify({ prompt: 'p', notify: { channelType: 'telegram', platformId: 'telegram:42' } }),
+      },
+    ]);
+    expect(routing.taskRun).toBe(true);
+    expect(routing.taskNotify).toEqual({ channelType: 'telegram', platformId: 'telegram:42' });
+  });
+
+  it('extractRouting yields a null notify target for legacy content without the field', () => {
+    const routing = extractRouting([
+      {
+        id: 't2',
+        seq: 4,
+        kind: 'task',
+        timestamp: '2026-01-01',
+        status: 'pending',
+        process_after: null,
+        recurrence: null,
+        tries: 0,
+        trigger: 1,
+        platform_id: null,
+        channel_type: null,
+        thread_id: 'system:tasks:y',
+        content: JSON.stringify({ prompt: 'legacy' }),
+      },
+    ]);
+    expect(routing.taskRun).toBe(true);
+    expect(routing.taskNotify).toBeNull();
   });
 });
 

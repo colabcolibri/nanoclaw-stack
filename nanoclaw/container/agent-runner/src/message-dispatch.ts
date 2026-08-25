@@ -1,4 +1,5 @@
 import { findByName, type DestinationEntry } from './destinations.js';
+import type { TaskNotifyTarget } from './formatter.js';
 import { writeMessageOut } from './db/messages-out.js';
 import { getInboundDb } from './db/connection.js';
 import { stripInternalTags, type RoutingContext } from './formatter.js';
@@ -165,6 +166,38 @@ export function autoAppendTaskLog(text: string): void {
     content: JSON.stringify({ text: line }),
   });
   log('Task run log auto-appended from final text');
+}
+
+/**
+ * Post-run notification: when the task series carries a `notify` target, the
+ * run's final text is ALSO written as a routed `chat` row so the normal host
+ * delivery pipeline (retry → channel adapter → markDelivered) sends it to the
+ * user. This is the guaranteed post-cron message — it does not depend on the
+ * agent remembering to call send_message. Internal scratchpad and inert
+ * `<message>` envelopes are stripped; thread_id resolves from the last inbound
+ * on that channel, mirroring sendToDestination.
+ */
+export function emitTaskNotify(
+  text: string,
+  notify: TaskNotifyTarget,
+  inReplyTo: string | null,
+): void {
+  const clean = stripInternalTags(text)
+    .replace(/<message\s+to="[^"]*">/gi, '')
+    .replace(/<\/message>/gi, '')
+    .trim();
+  if (!clean) return;
+  const destRouting = resolveDestinationThread(notify.channelType, notify.platformId);
+  writeMessageOut({
+    id: generateId(),
+    in_reply_to: destRouting?.inReplyTo ?? inReplyTo,
+    kind: 'chat',
+    platform_id: notify.platformId,
+    channel_type: notify.channelType,
+    thread_id: destRouting?.threadId ?? null,
+    content: JSON.stringify({ text: clean }),
+  });
+  log(`Task notify emitted → ${notify.channelType}:${notify.platformId}`);
 }
 
 function sendToDestination(dest: DestinationEntry, body: string, routing: RoutingContext, memo?: string): void {

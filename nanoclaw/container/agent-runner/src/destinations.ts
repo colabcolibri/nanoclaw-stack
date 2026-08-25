@@ -21,7 +21,7 @@ export interface DestinationEntry {
   agentGroupId?: string;
 }
 
-export type SessionMode = { kind: 'chat' } | { kind: 'task'; taskId: string };
+export type SessionMode = { kind: 'chat' } | { kind: 'task'; taskId: string; /** Series carries a --notify target: the final text is delivered after the run. */ notifies?: boolean };
 
 interface DestRow {
   name: string;
@@ -124,9 +124,15 @@ function buildDestinationsSection(mode: SessionMode): string {
 
   if (mode.kind === 'task') {
     lines.push(
-      'This is an isolated task run with no attached chat. Only notify someone when the task asks you to. For a user-visible message, call `send_message({ to: "name", text: "..." })`; for a file, call `send_file` with `to`. Always pass the explicit named destination.',
+      'This is an isolated task run with no attached chat. For a user-visible message MID-run, call `send_message({ to: "name", text: "..." })`; for a file, call `send_file` with `to`. Always pass the explicit named destination.',
       '',
-      `Your final output is not sent to the user. End with a concise work-log summary. It is recorded automatically in \`tasks/${mode.taskId}.md\`. Read that file when you need context from earlier runs. Use \`ncl tasks append-log --msg "…"\` only for optional mid-run notes.`,
+      mode.notifies
+        ? 'This task has a notification destination configured: your FINAL OUTPUT TEXT is delivered there automatically when the run ends. End with a clean, user-facing summary in the task\'s language — no tool calls, envelopes or scratchpad in the final text (wrap internal notes in <internal> tags).'
+        : `Your final output is not delivered anywhere; it is recorded automatically in \`tasks/${mode.taskId}.md\`. End with a concise work-log summary.`,
+    );
+    lines.push('');
+    lines.push(
+      `Read \`tasks/${mode.taskId}.md\` when you need context from earlier runs. Use \`ncl tasks append-log --msg "…"\` only for optional mid-run notes.`,
     );
     return lines.join('\n');
   }

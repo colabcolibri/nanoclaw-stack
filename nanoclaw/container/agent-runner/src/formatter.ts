@@ -90,6 +90,35 @@ function extractSenderId(msg: MessageInRow, content: any): string | null {
   return `${msg.channel_type}:${raw}`;
 }
 
+/** Where a completed task run's summary is delivered automatically.
+ *  Stamped on the task row's content JSON by the host at creation time
+ *  (`notify` field); the runner only reads it here. */
+export interface TaskNotifyTarget {
+  channelType: string;
+  platformId: string;
+}
+
+function parseTaskNotify(messages: MessageInRow[]): TaskNotifyTarget | null {
+  const task = messages.find((m) => m.kind === 'task');
+  if (!task) return null;
+  try {
+    const parsed = JSON.parse(task.content) as { notify?: { channelType?: unknown; platformId?: unknown } };
+    const notify = parsed.notify;
+    if (
+      notify &&
+      typeof notify.channelType === 'string' &&
+      notify.channelType.length > 0 &&
+      typeof notify.platformId === 'string' &&
+      notify.platformId.length > 0
+    ) {
+      return { channelType: notify.channelType, platformId: notify.platformId };
+    }
+  } catch {
+    // Legacy plain-string content predating the JSON envelope — no notify.
+  }
+  return null;
+}
+
 /**
  * Routing context extracted from messages_in rows.
  * Copied to messages_out by default so responses go back to the sender.
@@ -103,6 +132,9 @@ export interface RoutingContext {
    *  delivers from a task session; final-text `<message to>` blocks are inert
    *  and the final text auto-appends to the series run log. */
   taskRun: boolean;
+  /** Configured post-run notification target for this task series (null when
+   *  unset — then the final text goes to the run log only). */
+  taskNotify: TaskNotifyTarget | null;
 }
 
 /**
@@ -117,6 +149,7 @@ export function extractRouting(messages: MessageInRow[]): RoutingContext {
     threadId: first?.thread_id ?? null,
     inReplyTo: first?.id ?? null,
     taskRun: messages.length > 0 && messages.every((m) => m.kind === 'task'),
+    taskNotify: parseTaskNotify(messages),
   };
 }
 

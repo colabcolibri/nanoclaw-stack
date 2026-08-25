@@ -4,12 +4,15 @@ import path from 'path';
 
 const BASE = '/tmp/nanoclaw-memory-hook-test';
 
-function runHook(input: string): ReturnType<typeof Bun.spawnSync> {
+function runHook(input: string): { exitCode: number; stdout: string } {
   const inputFile = path.join(BASE, 'hook-input.json');
   fs.writeFileSync(inputFile, input);
-  return Bun.spawnSync(['bun', path.join(import.meta.dir, 'hook.ts'), BASE], {
+  // Bun types mark the captured streams optional on this overload (stdin as a
+  // file); the hook never inherits stdio, so narrow once at the boundary.
+  const proc = Bun.spawnSync(['bun', path.join(import.meta.dir, 'hook.ts'), BASE], {
     stdin: Bun.file(inputFile),
   });
+  return { exitCode: proc.exitCode, stdout: proc.stdout?.toString() ?? '' };
 }
 
 beforeEach(() => {
@@ -26,18 +29,18 @@ describe('memory-hook script', () => {
     const proc = runHook(JSON.stringify({ source: 'startup' }));
 
     expect(proc.exitCode).toBe(0);
-    expect(proc.stdout.toString()).toContain('## Memory');
+    expect(proc.stdout).toContain('## Memory');
   });
 
   it('prints nothing for resume', () => {
     const proc = runHook(JSON.stringify({ source: 'resume' }));
 
     expect(proc.exitCode).toBe(0);
-    expect(proc.stdout.toString()).toBe('');
+    expect(proc.stdout).toBe('');
   });
 
   it('fails closed for missing or malformed source input', () => {
-    expect(runHook('{}').stdout.toString()).toBe('');
-    expect(runHook('{not-json').stdout.toString()).toBe('');
+    expect(runHook('{}').stdout).toBe('');
+    expect(runHook('{not-json').stdout).toBe('');
   });
 });

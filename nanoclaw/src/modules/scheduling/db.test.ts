@@ -17,6 +17,7 @@ import {
   resumeTask,
   updateTask,
   getCompletedRecurring,
+  parseTaskContent,
   type RecurringMessage,
 } from './db.js';
 
@@ -251,6 +252,46 @@ describe('updateTask', () => {
 
     const touched = updateTask(db, 'task-1', { prompt: 'new' });
     expect(touched).toBe(0);
+  });
+});
+
+describe('task notify target', () => {
+  it('parses a valid notify envelope and rejects malformed ones', () => {
+    expect(
+      parseTaskContent(JSON.stringify({ prompt: 'p', notify: { channelType: 'telegram', platformId: 'telegram:7' } }))
+        .notify,
+    ).toEqual({ channelType: 'telegram', platformId: 'telegram:7' });
+    for (const bad of [undefined, null, {}, { channelType: 'telegram' }, { channelType: '', platformId: 'x' }]) {
+      expect(parseTaskContent(JSON.stringify({ prompt: 'p', notify: bad })).notify).toBeNull();
+    }
+    // Legacy plain-string content predating the JSON envelope.
+    expect(parseTaskContent('just a prompt').notify).toBeNull();
+  });
+
+  it('updateTask merges notify in and clears it with null without clobbering siblings', () => {
+    const db = freshDb();
+    insertTaskRow(db, {
+      id: 'task-1',
+      seriesId: 'task-1',
+      processAfter: new Date().toISOString(),
+      recurrence: null,
+      content: JSON.stringify({ prompt: 'p', script: 'echo hi', extra: 'keep' }),
+    });
+
+    updateTask(db, 'task-1', { notify: { channelType: 'telegram', platformId: 'telegram:7' } });
+    let row = db.prepare('SELECT content FROM messages_in WHERE id = ?').get('task-1') as { content: string };
+    let parsed = JSON.parse(row.content);
+    expect(parsed.notify).toEqual({ channelType: 'telegram', platformId: 'telegram:7' });
+    expect(parsed.prompt).toBe('p');
+    expect(parsed.script).toBe('echo hi');
+    expect(parsed.extra).toBe('keep');
+
+    updateTask(db, 'task-1', { notify: null });
+    row = db.prepare('SELECT content FROM messages_in WHERE id = ?').get('task-1') as { content: string };
+    parsed = JSON.parse(row.content);
+    expect(parsed.notify).toBeNull();
+    expect(parsed.extra).toBe('keep');
+    db.close();
   });
 });
 

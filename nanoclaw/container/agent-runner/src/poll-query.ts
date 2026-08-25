@@ -14,6 +14,7 @@ import {
   buildTaskBlockNudge,
   deliverErrorResult,
   dispatchResultText,
+  emitTaskNotify,
   shouldNudgeTaskBlocks,
 } from './message-dispatch.js';
 import { log } from './poll-shared.js';
@@ -224,6 +225,13 @@ export async function processQuery(
           // A corrective retry handles delivery only; its result is not a
           // second run summary.
           if (routing.taskRun && !taskBlockNudged) autoAppendTaskLog(event.text);
+          // Guaranteed post-run notification: when the series carries a
+          // notify target, the final text is delivered to it through the
+          // normal host pipeline — independent of any send_message call the
+          // agent did or didn't make mid-turn. Error turns stay log-only.
+          if (routing.taskRun && routing.taskNotify && event.isError !== true) {
+            emitTaskNotify(event.text, routing.taskNotify, routing.inReplyTo ?? null);
+          }
           if (sent === 0 && event.isError === true && !routing.taskRun) {
             // Non-retryable error turn (e.g. a 403 billing_error) with no
             // <message> envelope: deliver the notice instead of dropping it as

@@ -144,7 +144,13 @@ export function prepareScheduledTask(input: {
 export function createScheduledTask(
   agentGroupId: string,
   task: PreparedScheduledTask,
-  options?: { status?: 'pending' | 'paused'; originSessionId?: string | null },
+  options?: {
+    status?: 'pending' | 'paused';
+    originSessionId?: string | null;
+    /** Post-run notification target. The runner delivers each run's final text
+     *  here through the normal outbound pipeline (null/undefined = log-only). */
+    notify?: { channelType: string; platformId: string } | null;
+  },
 ): { session: { id: string; agent_group_id: string }; row: ScheduledTaskRow } {
   const id = makeTaskId(task.name);
   const { session } = resolveTaskSession(agentGroupId, id);
@@ -162,6 +168,7 @@ export function createScheduledTask(
         prompt: task.prompt,
         script: task.script,
         originSessionId: options?.originSessionId ?? null,
+        notify: options?.notify ?? null,
       }),
       status: options?.status ?? 'pending',
     });

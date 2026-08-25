@@ -181,5 +181,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 export { isCorruptionError, processQuery } from './poll-query.js';
-export { autoAppendTaskLog, buildTaskBlockNudge, dispatchResultText, shouldNudgeTaskBlocks } from './message-dispatch.js';
+export {
+  autoAppendTaskLog,
+  buildTaskBlockNudge,
+  dispatchResultText,
+  emitTaskNotify,
+  shouldNudgeTaskBlocks,
+} from './message-dispatch.js';
 export type { TaskMessageBlock } from './message-dispatch.js';

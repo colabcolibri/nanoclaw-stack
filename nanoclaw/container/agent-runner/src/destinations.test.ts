@@ -59,7 +59,7 @@ describe('buildSystemPromptAddendum — multi-destination routing guidance', () 
     expect(prompt).toContain('`casa`');
   });
 
-  it('gives task sessions only explicit-tool delivery instructions', () => {
+  it('gives task sessions explicit-tool delivery instructions and log-only final text by default', () => {
     seedDestination('casa', 'Casa', 'whatsapp', 'group-1@g.us');
 
     const prompt = buildSystemPromptAddendum('Casa', { kind: 'task', taskId: 'daily-briefing-a25c' });
@@ -67,8 +67,22 @@ describe('buildSystemPromptAddendum — multi-destination routing guidance', () 
     expect(prompt).toContain('isolated task run');
     expect(prompt).toContain('send_message({ to: "name"');
     expect(prompt).toContain('tasks/daily-briefing-a25c.md');
-    expect(prompt).toContain('Only notify someone when the task asks');
+    // Without a --notify target the final text goes to the run log only.
+    expect(prompt).toContain('not delivered anywhere');
+    expect(prompt).not.toContain('delivered there automatically');
     expect(prompt).not.toContain('<message to=');
-    expect(prompt).not.toContain('default to addressing');
+  });
+
+  it('announces automatic final-text delivery when the task has a notify target', () => {
+    seedDestination('casa', 'Casa', 'whatsapp', 'group-1@g.us');
+
+    const prompt = buildSystemPromptAddendum('Casa', {
+      kind: 'task',
+      taskId: 'daily-briefing-a25c',
+      notifies: true,
+    });
+
+    expect(prompt).toContain('delivered there automatically');
+    expect(prompt).toContain('<internal>');
   });
 });

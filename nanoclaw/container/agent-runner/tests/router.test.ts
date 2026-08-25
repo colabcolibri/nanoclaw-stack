@@ -27,12 +27,14 @@ describe('ToolDomainRegistry', () => {
   });
 
   test('syncRegistry rejects tools without domain', () => {
+    // Intentionally malformed input — the runtime must reject it, so the type
+    // hole is deliberate and goes through `unknown`.
     const broken = {
       orphan: {
         definition: ALL_TOOLS.web_search.definition,
         execute: ALL_TOOLS.web_search.execute,
       },
-    } as typeof ALL_TOOLS;
+    } as unknown as typeof ALL_TOOLS;
 
     expect(() => ToolDomainRegistry.syncRegistry(broken)).toThrow(/has no assigned domain/);
   });

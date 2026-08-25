@@ -16,7 +16,6 @@ let prevBytes: string | undefined;
 let prevDays: string | undefined;
 
 const PROJECT_DIR = '-workspace-agent';
-const CWD = '/workspace/agent';
 
 function writeTranscript(sessionId: string, bytes: number, firstTs?: string): string {
   const dir = path.join(tmp, '.claude', 'projects', PROJECT_DIR);
@@ -58,7 +57,7 @@ describe('ClaudeProvider.maybeRotateContinuation', () => {
     process.env.CLAUDE_TRANSCRIPT_ROTATE_BYTES = String(1024 * 1024);
     const p = writeTranscript('sess-small', 4096);
     const provider = new ClaudeProvider();
-    expect(provider.maybeRotateContinuation('sess-small', CWD)).toBeNull();
+    expect(provider.maybeRotateContinuation('sess-small')).toBeNull();
     expect(fs.existsSync(p)).toBe(true);
   });
 
@@ -66,7 +65,7 @@ describe('ClaudeProvider.maybeRotateContinuation', () => {
     process.env.CLAUDE_TRANSCRIPT_ROTATE_BYTES = String(64 * 1024);
     const p = writeTranscript('sess-big', 200 * 1024);
     const provider = new ClaudeProvider();
-    const reason = provider.maybeRotateContinuation('sess-big', CWD);
+    const reason = provider.maybeRotateContinuation('sess-big');
     expect(reason).toContain('MB');
     expect(fs.existsSync(p)).toBe(false); // original moved out of the resume path
     const dir = path.dirname(p);
@@ -79,11 +78,11 @@ describe('ClaudeProvider.maybeRotateContinuation', () => {
     const old = new Date(Date.now() - 10 * 86400_000).toISOString();
     writeTranscript('sess-old', 2048, old);
     const provider = new ClaudeProvider();
-    expect(provider.maybeRotateContinuation('sess-old', CWD)).toContain('d');
+    expect(provider.maybeRotateContinuation('sess-old')).toContain('d');
   });
 
   it('returns null for an unknown session id', () => {
     const provider = new ClaudeProvider();
-    expect(provider.maybeRotateContinuation('does-not-exist', CWD)).toBeNull();
+    expect(provider.maybeRotateContinuation('does-not-exist')).toBeNull();
   });
 });

@@ -5,6 +5,8 @@ import type { SqliteDatabase } from '../../db/sqlite-compat.js';
 import { GROUPS_DIR, TIMEZONE } from '../../config.js';
 import { resolveGroupTimezone } from '../../container-config.js';
 import { getAgentGroup } from '../../db/agent-groups.js';
+import { getDb, hasTable } from '../../db/connection.js';
+import { getMessagingGroup } from '../../db/messaging-groups.js';
 import {
   findTaskSessions,
   getActiveSessions,
@@ -120,6 +122,7 @@ function toOutput(session: ScopedSession, row: TaskRow) {
     prompt: content.prompt.length > 120 ? content.prompt.slice(0, 117) + '...' : content.prompt,
     has_script: content.script ? 1 : 0,
     origin_session_id: content.originSessionId, // which session created the task (null for CLI-created)
+    notify: content.notify, // post-run delivery target (null = log-only)
     created_at: row.timestamp,
     tries: row.tries,
   };
@@ -158,6 +161,68 @@ function taskId(args: Record<string, unknown>): string {
   return id;
 }
 
+/**
+ * Where each run's final text is delivered after the task fires. Resolution
+ * order for --notify:
+ *   1. "channel:platform-id" raw form (e.g. telegram:7239635872) — no lookup.
+ *   2. A destination local_name from the agent group's agent_destinations map
+ *      (the same names listed in the container's system prompt). Requires the
+ *      agent-to-agent module's table; without it only the raw form works.
+ * Omitted → default to the creating chat's own messaging group (results go
+ * back where the task was asked); explicit "null"/"none" clears.
+ */
+interface NotifyTarget {
+  channelType: string;
+  platformId: string;
+}
+
+function notifyScope(args: Record<string, unknown>, ctx: CallerContext): string {
+  const group = groupArg(args, ctx);
+  if (!group) throw new Error('--group is required to resolve --notify by name');
+  return group;
+}
+
+function resolveNotifyValue(value: string, args: Record<string, unknown>, ctx: CallerContext): NotifyTarget {
+  const colon = value.indexOf(':');
+  if (colon > 0) {
+    const channelType = value.slice(0, colon);
+    const rawPlatformId = value.slice(colon + 1);
+    if (!channelType || !rawPlatformId) throw new Error(`invalid --notify "${value}"`);
+    return { channelType, platformId: `${channelType}:${rawPlatformId}` };
+  }
+  if (!hasTable(getDb(), 'agent_destinations')) {
+    throw new Error(`unknown --notify destination "${value}" — use the "channel:platform-id" form`);
+  }
+  // Inlined lookup, not a module import — core must not depend on the optional
+  // agent-to-agent module being installed (same pattern as delivery.ts).
+  const dest = getDb()
+    .prepare(
+      'SELECT target_type, target_id FROM agent_destinations WHERE agent_group_id = ? AND local_name = ? LIMIT 1',
+    )
+    .get(notifyScope(args, ctx), value) as { target_type: string; target_id: string } | undefined;
+  if (!dest || dest.target_type !== 'channel') {
+    throw new Error(`unknown --notify destination "${value}" — see your destinations list`);
+  }
+  const mg = getMessagingGroup(dest.target_id);
+  if (!mg) throw new Error(`--notify destination "${value}" points at a removed channel`);
+  return { channelType: mg.channel_type, platformId: mg.platform_id };
+}
+
+function defaultNotifyTarget(ctx: CallerContext): NotifyTarget | null {
+  if (ctx.caller !== 'agent' || !ctx.sessionId) return null;
+  const session = getSession(ctx.sessionId);
+  const mg = session?.messaging_group_id ? getMessagingGroup(session.messaging_group_id) : undefined;
+  return mg ? { channelType: mg.channel_type, platformId: mg.platform_id } : null;
+}
+
+/** undefined = not specified (apply default); null = cleared; else resolved target. */
+function notifyArg(args: Record<string, unknown>, ctx: CallerContext): NotifyTarget | null | undefined {
+  const value = normalizeNullableString(args.notify);
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return resolveNotifyValue(value, args, ctx);
+}
+
 function createTask(args: Record<string, unknown>, ctx: CallerContext) {
   const group = groupArg(args, ctx);
   if (!group) throw new Error('--group is required');
@@ -174,8 +239,12 @@ function createTask(args: Record<string, unknown>, ctx: CallerContext) {
     dangerouslyOverrideRecurrenceLimit: bool(args.dangerously_override_recurrence_limit),
     timezone: resolveGroupTimezone(group),
   });
+  // Post-run delivery target: explicit --notify wins; otherwise the creating
+  // chat's own messaging group so results land where the task was asked.
+  const notify = notifyArg(args, ctx) ?? defaultNotifyTarget(ctx);
   const { session, row } = createScheduledTask(group, prepared, {
     originSessionId: ctx.caller === 'agent' ? ctx.sessionId : null,
+    notify,
   });
   return toOutput(session, row);
 }
@@ -345,6 +414,8 @@ function updateTaskCommand(args: Record<string, unknown>, ctx: CallerContext) {
     update.recurrence = recurrence;
   }
   if (script !== undefined) update.script = script;
+  const notify = notifyArg(args, ctx);
+  if (notify !== undefined) update.notify = notify;
   const fields = Object.keys(update);
   if (fields.length === 0) throw new Error('nothing to update');
 
@@ -404,7 +475,7 @@ registerResource({
   plural: 'tasks',
   table: 'messages_in',
   description:
-    'Scheduled task — prompt plus run time. Tasks run from the agent group system session and the agent chooses delivery destination at fire time.',
+    "Scheduled task — prompt plus run time. Tasks run from the agent group system session; each run's final summary is delivered to the series' notify destination (default: the chat that created the task).",
   idColumn: 'series_id',
   scopeField: 'agent_group_id',
   columns: [
@@ -470,6 +541,7 @@ registerResource({
       description:
         `Create a scheduled task (recurring or one-shot) in the agent group system session.\n\n` +
         `Requires --prompt plus EITHER --recurrence (recurring; first run derived from the cron grid) OR --process-after (one-shot, ISO 8601 or naive local). Always pass --name for a readable id.\n\n` +
+        `Post-run delivery: when a run finishes, its final text is delivered to the task's notify destination (--notify; defaults to the chat where you create the task). Write your final output AS that user-facing summary — internal notes go in <internal> tags. Mid-run messages to other destinations still use send_message.\n\n` +
         `--script contract (pre-task gate, runs BEFORE the agent wakes):\n` +
         `  bash, 30s timeout, 1MB output cap. Its LAST stdout line must be JSON:\n` +
         `    {"wakeAgent": <bool>, "data": {...}}\n` +
@@ -515,6 +587,15 @@ registerResource({
           description: 'Pre-task gate script (bash) — see the --script contract above.',
         },
         {
+          name: 'notify',
+          type: 'string',
+          description:
+            "Where each run's final summary is delivered after the run (a Telegram message, etc). " +
+            'Pass one of YOUR destination names, or the raw "channel:platform-id" form. ' +
+            'Omit to deliver back into the chat where you create the task; "null"/"none" disables delivery (log only). ' +
+            "The run's final text is sent there automatically — no send_message call needed.",
+        },
+        {
           name: 'group',
           type: 'string',
           description: 'Agent group id (host callers; auto-filled to your own group inside a container).',
@@ -524,6 +605,7 @@ registerResource({
         `# Recurring — --recurrence alone is enough; the first run comes off the cron grid:\nncl tasks create --name "sales briefing" --prompt "Send the weekday sales briefing" --recurrence "0 9 * * 1-5"`,
         `# One-shot — --process-after required (UTC, offset, or naive-local in the instance TZ):\nncl tasks create --name "ping" --prompt "Remind me to call Dana" --process-after "tomorrow 18:00"`,
         `# Monitor — script gates the run; the agent wakes only when something matters:\nncl tasks create --name "alert watch" --recurrence "*/15 * * * *" \\\n  --prompt "Investigate the alerts in the script data and notify me if serious" \\\n  --script 'c=$(curl -sf https://example.com/api/alerts | jq length) || exit 0\necho "{\\"wakeAgent\\": $([ "$c" -gt 0 ] && echo true || echo false), \\"data\\": {\\"alerts\\": $c}}"'`,
+        `# Deliver each run's summary to an explicit destination:\nncl tasks create --name "email watch" --recurrence "0 */3 * * *" --notify telegram-mg-17869 \\\n  --prompt "Check Gmail and summarize anything that needs a reply"`,
       ],
       handler: async (args, ctx) => createTask(args, ctx),
     },
@@ -563,6 +645,12 @@ registerResource({
         { name: 'prompt', type: 'string', description: 'Replace the task prompt.' },
         { name: 'process_after', type: 'string', description: 'New next-run time (ISO 8601 or naive local).' },
         { name: 'recurrence', type: 'string', description: 'New cron expression; "null"/"none" clears it (one-shot).' },
+        {
+          name: 'notify',
+          type: 'string',
+          description:
+            'New post-run delivery destination (your destination name or raw "channel:platform-id"); "null"/"none" disables it.',
+        },
         {
           name: 'dangerously_override_recurrence_limit',
           type: 'boolean',

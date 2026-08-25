@@ -288,18 +288,19 @@ describe('mock provider', () => {
       cwd: '/tmp',
     });
 
-    const events: Array<{ type: string }> = [];
+    const events: ProviderEvent[] = [];
     setTimeout(() => query.end(), 50);
 
     for await (const event of query.events) {
       events.push(event);
     }
 
-    const typed = events.filter((e) => e.type !== 'activity');
+    const typed = events.filter((e): e is Exclude<ProviderEvent, { type: 'activity' }> => e.type !== 'activity');
     expect(typed.length).toBeGreaterThanOrEqual(2);
     expect(typed[0].type).toBe('init');
     expect(typed[1].type).toBe('result');
-    expect((typed[1] as { text: string }).text).toBe('Echo: Hello');
+    const finalText = typed[1].type === 'result' ? typed[1].text : null;
+    expect(finalText).toBe('Echo: Hello');
   });
 
   it('should handle push() during active query', async () => {
@@ -309,7 +310,7 @@ describe('mock provider', () => {
       cwd: '/tmp',
     });
 
-    const events: Array<{ type: string; text?: string }> = [];
+    const events: ProviderEvent[] = [];
 
     setTimeout(() => query.push('Second'), 30);
     setTimeout(() => query.end(), 60);
@@ -318,7 +319,7 @@ describe('mock provider', () => {
       events.push(event);
     }
 
-    const results = events.filter((e) => e.type === 'result');
+    const results = events.filter((e): e is Extract<ProviderEvent, { type: 'result' }> => e.type === 'result');
     expect(results).toHaveLength(2);
     expect(results[0].text).toBe('Re: First');
     expect(results[1].text).toBe('Re: Second');
@@ -409,6 +410,8 @@ const ERR_ROUTING = {
   channelType: 'discord',
   threadId: null,
   inReplyTo: 'm1',
+  taskRun: false,
+  taskNotify: null,
 };
 
 it('does not push accumulated-only follow-ups into an active query', async () => {
@@ -495,6 +498,7 @@ const TASK_ROUTING = {
   threadId: 'system:tasks:ser-1',
   inReplyTo: 't1',
   taskRun: true,
+  taskNotify: null,
 };
 
 function taskLogRows(): Array<{ text: string }> {

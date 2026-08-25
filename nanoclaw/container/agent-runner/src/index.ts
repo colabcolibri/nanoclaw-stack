@@ -27,6 +27,7 @@ import { fileURLToPath } from 'url';
 
 import { loadConfig } from './config.js';
 import { buildSystemPromptAddendum } from './destinations.js';
+import { getInboundDb } from './db/connection.js';
 import { getTaskSeriesId } from './db/session-routing.js';
 import { ensureMemoryScaffold } from './memory/scaffold.js';
 import { MEMORY_SESSION_HOOK } from './memory/session-hook.js';
@@ -44,6 +45,22 @@ function log(msg: string): void {
 }
 
 const CWD = '/workspace/agent';
+
+/** Does this task series carry a post-run notification target? Read from the
+ *  live pending row's content JSON — the runner only informs the prompt; the
+ *  actual delivery decision is re-derived per run in poll-query (routing). */
+function taskSeriesNotifies(taskId: string): boolean {
+  try {
+    const row = getInboundDb()
+      .prepare('SELECT content FROM messages_in WHERE id = ?')
+      .get(taskId) as { content: string } | undefined;
+    if (!row) return false;
+    const parsed = JSON.parse(row.content) as { notify?: unknown };
+    return Boolean(parsed.notify);
+  } catch {
+    return false;
+  }
+}
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -69,10 +86,11 @@ async function main(): Promise<void> {
   // base (/app/CLAUDE.md) and each enabled module's fragment. Memory is
   // supplied separately by each provider's native lifecycle hook.
   const taskId = getTaskSeriesId();
-  const instructions = buildSystemPromptAddendum(
-    config.assistantName || undefined,
-    taskId ? { kind: 'task', taskId } : { kind: 'chat' },
-  );
+  let mode: Parameters<typeof buildSystemPromptAddendum>[1] = { kind: 'chat' };
+  if (taskId) {
+    mode = { kind: 'task', taskId, notifies: taskSeriesNotifies(taskId) };
+  }
+  const instructions = buildSystemPromptAddendum(config.assistantName || undefined, mode);
 
   // Discover additional directories mounted at /workspace/extra/*
   const additionalDirectories: string[] = [];

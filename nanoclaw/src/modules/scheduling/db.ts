@@ -15,26 +15,43 @@ import { runSqliteTransaction, sqlParams, sqliteChanges } from '../../db/sqlite-
 
 import { nextEvenSeq } from '../../db/session-db.js';
 
+export interface TaskNotifyTarget {
+  channelType: string;
+  platformId: string;
+}
+
 export interface TaskContent {
   prompt: string;
   script: string | null;
   originSessionId: string | null;
+  /** Post-run notification target — each completed run's final text is
+   *  delivered here through the normal outbound pipeline. Null = log-only. */
+  notify: TaskNotifyTarget | null;
 }
 
 /** Decode a task row's content envelope — the read half of insertTaskRow's encode. */
 export function parseTaskContent(raw: string): TaskContent {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const notify = parsed.notify as Record<string, unknown> | undefined;
     return {
       prompt: typeof parsed.prompt === 'string' ? parsed.prompt : '',
       script: typeof parsed.script === 'string' ? parsed.script : null,
       originSessionId: typeof parsed.originSessionId === 'string' ? parsed.originSessionId : null,
+      notify:
+        notify &&
+        typeof notify.channelType === 'string' &&
+        notify.channelType.length > 0 &&
+        typeof notify.platformId === 'string' &&
+        notify.platformId.length > 0
+          ? { channelType: notify.channelType, platformId: notify.platformId }
+          : null,
     };
     // eslint-disable-next-line no-catch-all/no-catch-all -- LEGACY-COMPAT(v1-tasks): plain-string content predating the JSON envelope
   } catch {
     // LEGACY-COMPAT(v1-tasks): plain-string content from rows that predate the
     // JSON envelope. Removable once no pre-v2 session DBs remain in the wild.
-    return { prompt: raw, script: null, originSessionId: null };
+    return { prompt: raw, script: null, originSessionId: null, notify: null };
   }
 }
 
@@ -120,6 +137,8 @@ export interface TaskUpdate {
   script?: string | null;
   recurrence?: string | null;
   processAfter?: string;
+  /** Post-run notification target; null clears it. */
+  notify?: TaskNotifyTarget | null;
 }
 
 // Merges content JSON in-place so callers can update prompt/script without
@@ -137,7 +156,7 @@ export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdat
 
   const setProcessAfter = update.processAfter !== undefined;
   const setRecurrence = update.recurrence !== undefined;
-  const mergeContent = update.prompt !== undefined || update.script !== undefined;
+  const mergeContent = update.prompt !== undefined || update.script !== undefined || update.notify !== undefined;
 
   runSqliteTransaction(db, () => {
     for (const row of rows) {
@@ -146,6 +165,7 @@ export function updateTask(db: SqliteDatabase, taskId: string, update: TaskUpdat
         const parsed = JSON.parse(row.content) as Record<string, unknown>;
         if (update.prompt !== undefined) parsed.prompt = update.prompt;
         if (update.script !== undefined) parsed.script = update.script;
+        if (update.notify !== undefined) parsed.notify = update.notify;
         content = JSON.stringify(parsed);
       }
 
