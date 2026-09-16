@@ -21,6 +21,14 @@ http:
       tls:
         certResolver: letsencrypt
 
+    comuna-web:
+      rule: "Host(`comuna.sergioluciano.com`)"
+      entryPoints:
+        - websecure
+      service: comuna-web
+      tls:
+        certResolver: letsencrypt
+
   middlewares:
     auth-rate-limit:
       rateLimit:
@@ -34,4 +42,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:3001"
+        passHostHeader: true
+
+    comuna-web:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3014"
         passHostHeader: true

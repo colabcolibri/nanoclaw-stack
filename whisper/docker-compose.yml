@@ -9,4 +9,7 @@ services:
       - "127.0.0.1:9000:9000"
     environment:
       - ASR_MODEL=base
-      - ASR_ENGINE=openai_whisper
+      - ASR_ENGINE=faster_whisper
+      - OMP_NUM_THREADS=1
+    cpus: "1.0"
+    mem_limit: 1536m
